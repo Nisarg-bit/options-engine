@@ -36,6 +36,23 @@ Everything runs unattended on one AWS t4g.small (Mumbai) under systemd timers, w
 market-calendar guard, automated TOTP login, end-of-day reconciliation against the
 broker's own candles, and a synthetic-tick replay mode for testing offline.
 
+## Screenshots
+
+The live dashboard, light theme, showing the 1 Oct 2026 session (captured on a weekend, so prices are the last close).
+
+![Today: the daily market read, rich/cheap gauge and expected range](docs/01-today.jpg)
+
+| | |
+|---|---|
+| ![Opportunity: every entry check side by side](docs/02-opportunity.jpg) | ![The trade: weekly gate and the daily paper straddle](docs/03-the-trade.jpg) |
+| **Opportunity:** every entry check side by side, not just the loudest one | **The trade:** the weekly entry gate and the daily paper straddle (paper only) |
+| ![Proof: last session in review](docs/04-proof.jpg) | ![Strategy builder: 25 strategies by market view](docs/05-strategy-builder.jpg) |
+| **Proof:** the honest track record, starting with the last session in review | **Strategy builder:** 25 strategies grouped by market view, priced on the live chain |
+| ![Option chain: volatility smile and ATM straddle through the session](docs/06-option-chain.jpg) | ![Open interest: PCR, OI walls and max pain](docs/07-open-interest.jpg) |
+| **Option chain:** implied-volatility smile and the ATM straddle minute by minute | **Open interest:** put/call ratios, OI walls, contracts added and max pain |
+| ![Structure price: straddle with VWAP, moving averages and RSI](docs/08-structure-price.jpg) | ![Data health: collector status and soak test](docs/09-data-health.jpg) |
+| **Structure price:** a fixed-strike straddle with VWAP, MA/EMA and RSI | **Data health:** collector status, bars collected and the soak test |
+
 ## What it does
 
 | Area | Highlights | Main files |
@@ -62,9 +79,9 @@ The project is built to test whether an edge is real, not to assume one.
 - **Model probabilities were over-confident live.** Recommended weekly trades predicted
   ~80% POP and realised ~57% (small sample). A historically fitted POP was no better
   than the model's out of sample (Brier 0.21606 vs 0.21608 over 8 years).
-- **The daily paper straddle is slightly negative after costs** over its first 22 sessions,
-  with fat left tails: most days pay a little and a few large days take it back, so the
-  median day is positive while the mean is negative. Too few sessions to call it yet.
+- **The daily paper straddle is negative after costs so far,** with fat left tails: many
+  days pay a little and a few large days take much more back. With fewer than 40
+  sessions recorded, it is too early to call either way.
 
 Negative results are kept on the dashboard on purpose, with confidence intervals and
 sample sizes, so nothing is presented as stronger than it is.
