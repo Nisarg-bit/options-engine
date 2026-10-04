@@ -26,12 +26,13 @@ the signal's own previous-close mids.
     python shadow.py settle          from run_score.sh, after the journal score
     python shadow.py --show
 """
+import project_paths
 import json, os, sys
 from datetime import date, datetime, timedelta, timezone
 
 import pandas as pd
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 DIR = os.path.join(ROOT, "data", "shadow")
 BOOK = os.path.join(DIR, "book.csv")
 DECISIONS = os.path.join(DIR, "decisions.csv")

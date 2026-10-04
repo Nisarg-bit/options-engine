@@ -46,6 +46,7 @@ Usage:
     python intraday_vrp.py --underlying BANKNIFTY --widths 0,2,4
 """
 
+import project_paths
 import glob
 import os
 import sys
@@ -56,7 +57,7 @@ import pandas as pd
 import decay_model as DM
 import pricing as P
 
-BARS = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+BARS = os.path.join(project_paths.ROOT,
                     "data", "bars_1m")
 SESSION_MINUTES = 375           # 09:15 to 15:29 inclusive
 DEFAULT_LOT = 65

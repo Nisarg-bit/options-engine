@@ -41,6 +41,7 @@ coincidence of CWD rather than by construction, though, so it is anchored
 explicitly below -- one assignment, no edit to the proven file.
 """
 
+import project_paths
 import glob
 import os
 
@@ -56,7 +57,7 @@ router = APIRouter()
 # these endpoints do not depend on which directory the service was started
 # from. Assignment rather than an edit: series_probe.py is the file that was
 # proven against real data, and it stays byte-for-byte that file.
-_ROOT = os.path.dirname(os.path.abspath(__file__))
+_ROOT = project_paths.ROOT
 SP.BARS = os.path.join(_ROOT, "data", "bars_1m")
 
 NEAR_STRIKES = CB.NEAR_STRIKES

@@ -19,12 +19,13 @@ It is SHOWN beside the model POP, never instead of it, and it feeds nothing
 that authorises a trade: the 0.9346 entry rule stays on the calendar sigma it
 was fitted on. NIFTY only -- it was fitted on NIFTY.
 """
+import project_paths
 import json
 import math
 import os
 from datetime import timedelta
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 FILE = os.path.join(ROOT, "data", "calibration.json")
 UNDERLYINGS = ("NIFTY",)
 

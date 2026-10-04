@@ -43,12 +43,13 @@ KNOWN LIMITS, KEPT VISIBLE RATHER THAN HIDDEN
     python outcomes.py --backfill   recompute every settled signal
     python outcomes.py --show [N]
 """
+import project_paths
 import glob, os, sys
 from datetime import date, datetime, time as dtime, timedelta, timezone
 
 import pandas as pd
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 PATH = os.path.join(ROOT, "data", "features", "outcomes.csv")
 JOURNAL = os.path.join(ROOT, "data", "journal", "signals.csv")
 BARS = os.path.join(ROOT, "data", "bars_1m")

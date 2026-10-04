@@ -55,15 +55,15 @@ The live dashboard, light theme, showing the 1 Oct 2026 session (captured on a w
 
 ## What it does
 
-| Area | Highlights | Main files |
+| Area | Highlights | Where |
 |---|---|---|
-| **Data pipeline** | Live ticks for ~1,700 option contracts across 8 expiries aggregated to 1-minute bars (~190k bars by midday); daily instrument master; Parquet partitions with rollups; EOD reconciliation; morning recovery after outages | `collector.py`, `aggregator.py`, `writer.py`, `rollups.py`, `instruments.py`, `reconcile.py`, `recover_morning.py` |
-| **Pricing and volatility** | Bachelier and Black-Scholes pricing off the put-call-parity forward; three sigma sources (India VIX, the expiry's own ATM IV, realised); weekend-aware time decay; implied-vol term structure | `pricing.py`, `models.py`, `sigma_sources.py`, `vol_time.py`, `term_api.py`, `vrp.py` |
-| **Probability and risk** | Probability of profit (normal, lognormal and a historically calibrated version); Monte Carlo probability of a stop being hit, including overnight gaps; expected value after fees and measured slippage; margin, risk-rule and Kelly sizing | `calpop.py`, `stop_touch.py`, `strategies.py`, `catalogue.py`, `spreads.py` |
-| **Market microstructure** | Per-strike open-interest buildup (long/short buildup and unwinding), with the forward move removed so price changes are not just the index moving; PCR, max pain, OI walls | `chain_buildup.py`, `chain_metrics.py`, `indicators.py` |
-| **Signals and journals** | Daily signal across 7 short-premium structures with an entry gate; intraday paper straddle filled at real bid/ask; an advisory ledger and a separate book ledger; shadow candidate rules tracked forward under a written promotion rule | `daily_signal.py`, `live_signal.py`, `daytrade.py`, `journal.py`, `shadow.py`, `outcomes.py` |
-| **Research** | Ten-year replay; walk-forward calibration; P&L attribution into decay, movement, vol, spread and charges | `replay.py`, `calibrate_wf.py`, `attribution.py`, `backtest_corrected.py`, `research/` |
-| **Delivery** | FastAPI service; Firebase publisher that only writes changed nodes; single-page dashboard with strategy builder, option chain, OI analytics and a track record; Telegram bot and daily post-mortem | `api.py`, `publisher.py`, `firebase/public/index.html`, `bot.py`, `postmortem.py` |
+| **Data pipeline** | Live ticks for ~1,700 option contracts across 8 expiries aggregated to 1-minute bars (~190k bars by midday); daily instrument master; Parquet partitions with rollups; EOD reconciliation; morning recovery after outages | [`pipeline/`](pipeline/) |
+| **Pricing and volatility** | Bachelier and Black-Scholes pricing off the put-call-parity forward; three sigma sources (India VIX, the expiry's own ATM IV, realised); weekend-aware time decay; implied-vol term structure | [`quant/`](quant/) |
+| **Probability and risk** | Probability of profit (normal, lognormal and a historically calibrated version); Monte Carlo probability of a stop being hit, including overnight gaps; expected value after fees and measured slippage; margin, risk-rule and Kelly sizing | [`quant/`](quant/), [`strategy/`](strategy/) |
+| **Market microstructure** | Per-strike open-interest buildup (long/short buildup and unwinding), with the forward move removed so price changes are not just the index moving; PCR, max pain, OI walls | [`quant/`](quant/) |
+| **Signals and journals** | Daily signal across 7 short-premium structures with an entry gate; intraday paper straddle filled at real bid/ask; an advisory ledger and a separate book ledger; shadow candidate rules tracked forward under a written promotion rule | [`signals/`](signals/), [`tracking/`](tracking/) |
+| **Research** | Ten-year replay; walk-forward calibration; P&L attribution into decay, movement, vol, spread and charges | [`research/`](research/), [`tracking/`](tracking/) |
+| **Delivery** | FastAPI service; Firebase publisher that only writes changed nodes; single-page dashboard with strategy builder, option chain, OI analytics and a track record; Telegram bot and daily post-mortem | [`service/`](service/), [`firebase/`](firebase/), [`pipeline/`](pipeline/), [`tracking/`](tracking/) |
 
 ## What I found
 
@@ -92,11 +92,33 @@ Python (pandas, NumPy, SciPy, PyArrow), FastAPI, Kite Connect API, Parquet, AWS 
 S3, IAM), systemd, Firebase Realtime Database and Hosting, vanilla JavaScript/SVG
 charts, Telegram Bot API, pytest, GitHub Actions.
 
+## Project layout
+
+```
+pipeline/   live data: broker login, collector, bars, Parquet store, calendar, alerts
+quant/      pricing, volatility, probability and option-chain models
+strategy/   structures, strategy catalogue, positions, feature store
+signals/    daily and live signal generation
+tracking/   journals, paper books, shadow candidates, post-mortems
+service/    FastAPI endpoints, Firebase publisher, outside-market feed
+research/   studies, backtests, calibrations and the ten-year replay
+tools/      fixture builder and page render checks
+tests/      540+ pytest tests
+deploy/     systemd units and install scripts
+firebase/   the dashboard (single-page app) and database rules
+```
+
+Modules import each other by name (`import pricing`), because the production
+server runs everything from one flat folder. `pytest.ini` puts each folder on the
+import path for tests and CI; `env.sh` / `env.ps1` do the same for running a script
+by hand. `project_paths.py` finds the `data/` folder in either layout.
+
 ## Running it
 
 ```bash
 pip install -r requirements.txt
 pytest -q            # 540+ tests, no market data or credentials needed
+source env.sh        # (Windows: . .\env.ps1) then e.g. python research/replay.py
 ```
 
 To run against live data you need a Kite Connect subscription and a `.env` in the

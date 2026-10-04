@@ -6,6 +6,7 @@ has to be loosened, something changed in the model and it should be a
 deliberate, measured change (2.4), not a slackened test.
 """
 
+import project_paths
 import json
 import os
 from math import sqrt, pi
@@ -14,7 +15,7 @@ import pytest
 
 import pricing as P
 
-FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+FIXTURE = os.path.join(project_paths.ROOT, "fixtures",
                        "daily_signal_2026-08-28.json")
 
 

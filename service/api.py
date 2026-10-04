@@ -35,6 +35,7 @@ Run:
     uvicorn api:app --host 0.0.0.0 --port 8000
 """
 
+import project_paths
 import base64
 import glob
 import json
@@ -58,7 +59,7 @@ import stop_touch_api as STA
 import catalogue as CAT
 import calpop as CP
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 BARS = os.path.join(ROOT, "data", "bars_1m")
 JOURNAL_CSV = os.path.join(ROOT, "data", "journal", "signals.csv")
 WEB = os.path.join(ROOT, "web")

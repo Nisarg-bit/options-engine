@@ -18,6 +18,7 @@ of the publisher.
 Run:  python -m pytest test_fixtures.py -q
 """
 
+import project_paths
 import json
 import os
 import re
@@ -27,7 +28,7 @@ import pytest
 import make_fixtures as MF
 
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 
 
 HAVE_PAGE = MF.page_path() is not None

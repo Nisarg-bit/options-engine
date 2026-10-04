@@ -20,6 +20,7 @@ for the life of the process; only the live session is re-read, and then only
 when its parts change.
 """
 
+import project_paths
 import glob
 import os
 
@@ -34,7 +35,7 @@ router = APIRouter()
 # Anchored absolutely, for the same reason series_api is: these modules
 # default to a path relative to the working directory, which is right only by
 # coincidence of how the service happens to be started.
-_ROOT = os.path.dirname(os.path.abspath(__file__))
+_ROOT = project_paths.ROOT
 V.BARS = os.path.join(_ROOT, "data", "bars_1m")
 D.JOURNAL = os.path.join(_ROOT, "data", "journal", "intraday_trades.csv")
 

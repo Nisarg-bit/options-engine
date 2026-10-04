@@ -53,6 +53,7 @@ Usage:
     python features.py --show [N]    print the last N rows
 """
 
+import project_paths
 import glob
 import json
 import math
@@ -65,7 +66,7 @@ import pandas as pd
 import chain_metrics as CM
 import indicators as I
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 PATH = os.path.join(ROOT, "data", "features", "decisions.csv")
 DAILY = os.path.join(ROOT, "data", "features", "index_daily.csv")
 EVENTS = os.path.join(ROOT, "data", "events.json")

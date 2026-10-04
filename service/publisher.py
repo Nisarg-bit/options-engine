@@ -24,6 +24,7 @@ watching all session, with plenty of headroom for people you share it with.
 Both derive from the same per-minute parquet read, so neither can change
 faster than the collector flushes -- about every five minutes -- and
 changed() suppresses the writes in between. Compact drops the per-row legs
+import project_paths
 from the series (identical on every row of a fixed anchor: bytes, not
 information) and the full per-strike tables from the buildup, keeping the
 ranked rows, the whole-chain agreement figures and the tilt decomposition.
@@ -227,7 +228,7 @@ def build(which):
         return safe(api.api_underlyings)
 
     if which == "postmortem":
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+        path = os.path.join(project_paths.ROOT,
                             "data", "postmortem", "latest.json")
         if not os.path.exists(path):
             return None

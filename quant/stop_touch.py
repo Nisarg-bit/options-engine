@@ -51,6 +51,7 @@ THE MODEL
            does not jitter. The standard error is returned with the number.
 """
 
+import project_paths
 from dataclasses import dataclass, field
 from datetime import date, datetime, time as dtime, timedelta
 from math import sqrt
@@ -59,7 +60,7 @@ import os
 
 import numpy as np
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 GAP_SHARE_FILE = os.path.join(ROOT, "data", "gap_share.json")
 
 OPEN, CLOSE = dtime(9, 15), dtime(15, 30)

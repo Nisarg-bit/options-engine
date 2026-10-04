@@ -28,6 +28,7 @@ RESUMABLE: each instrument's answer is cached in data/recovery/D/<token>.json.
     python recover_morning.py --day 2026-09-23           fetch (3/s) + assemble
     python recover_morning.py --day 2026-09-23 --assemble-only
 """
+import project_paths
 import glob, json, os, sys, time
 from datetime import date, datetime, timedelta, timezone
 
@@ -37,7 +38,7 @@ import pyarrow.parquet as pq
 
 from writer import SCHEMA, load_instrument_map
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 BARS = os.path.join(ROOT, "data", "bars_1m")
 INSTR = os.path.join(ROOT, "data", "instruments")
 CACHE = os.path.join(ROOT, "data", "recovery")

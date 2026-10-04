@@ -44,6 +44,7 @@ Usage:
     python daytrade.py --overnight     the gap study (see OVERNIGHT below)
 """
 
+import project_paths
 import csv
 import os
 import sys
@@ -55,7 +56,7 @@ import intraday_richness as R
 import sigma_sources as SIG
 import stop_touch as T
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 JOURNAL = os.path.join(ROOT, "data", "journal", "intraday_trades.csv")
 
 ENTRY, EXIT = "09:20", "15:15"

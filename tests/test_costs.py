@@ -14,6 +14,7 @@ test here fails if an eighth copy ever appears.
 Run:  python -m pytest test_costs.py -q
 """
 
+import project_paths
 import glob
 import os
 import re
@@ -24,16 +25,29 @@ import api as A
 import pricing as P
 
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 LOT, CREDIT = 65, 200.0
+
+
+# Flat on the server ("."), in folders in the repository. Named explicitly so
+# stray copies in backup or scratch folders are never scanned.
+SRC_DIRS = (".", "pipeline", "quant", "strategy", "signals", "tracking",
+            "service", "research", "tools")
+
+
+def _find(module):
+    """A module's source, flat (server) or in its folder (repository)."""
+    hits = [p for d in SRC_DIRS for p in glob.glob(os.path.join(ROOT, d, module))]
+    assert hits, module
+    return hits[0]
 
 
 # ------------------------------------------------------- one definition only
 
 def _sources():
-    for path in sorted(glob.glob(os.path.join(ROOT, "*.py"))):
+    for path in sorted(p for d in SRC_DIRS for p in glob.glob(os.path.join(ROOT, d, "*.py"))):
         name = os.path.basename(path)
-        if name.startswith("test_") or name == "pricing.py":
+        if name.startswith("test_") or name == "pricing.py" or os.sep + "tests" + os.sep in path:
             continue
         yield name, open(path, encoding="utf-8").read()
 
@@ -51,7 +65,7 @@ def test_no_module_builds_its_own_cost_model():
     "daily_signal.py", "intraday.py", "intraday_vrp.py", "vrp.py",
     "compare.py", "backtest_corrected.py"])
 def test_every_pricing_script_points_at_the_single_definition(module):
-    src = open(os.path.join(ROOT, module), encoding="utf-8").read()
+    src = open(_find(module), encoding="utf-8").read()
     assert "COSTS = P.CURRENT_COSTS" in src
 
 

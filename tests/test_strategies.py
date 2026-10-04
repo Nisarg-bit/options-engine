@@ -7,6 +7,7 @@ everything lands at floating-point noise, and the tight assertions below are
 deliberate -- if one ever has to be loosened, the model changed.
 """
 
+import project_paths
 import json
 import os
 
@@ -15,7 +16,7 @@ import pytest
 import pricing as P
 import strategies as S
 
-FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+FIXTURE = os.path.join(project_paths.ROOT, "fixtures",
                        "daily_signal_2026-08-28.json")
 
 ALL = ["short_straddle", "intraday_strangle", "expiry_strangle",

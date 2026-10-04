@@ -30,12 +30,13 @@ WHAT IT MEASURES
     python postmortem.py --backfill      every collected session
     python postmortem.py --no-telegram
 """
+import project_paths
 import glob, json, math, os, sys
 from datetime import date, datetime, timezone
 
 import pandas as pd
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 BARS = os.path.join(ROOT, "data", "bars_1m")
 OUT = os.path.join(ROOT, "data", "postmortem")
 NIFTY, VIX = 256265, 264969

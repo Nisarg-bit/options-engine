@@ -24,6 +24,7 @@ Usage:
                                          every endpoint the page calls
 """
 
+import project_paths
 import json
 import os
 import re
@@ -34,7 +35,7 @@ import sys
 # "does this file cover every endpoint" -- a question the working copy has to
 # be able to ask without any of that installed.
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 PATH = os.path.join(ROOT, "fixtures.json")
 
 # The page is in a different place depending on where this runs: the working

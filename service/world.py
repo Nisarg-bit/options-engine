@@ -22,6 +22,7 @@ Usage:
     python world.py --probe      try every symbol and feed once, print what worked
 """
 
+import project_paths
 import json
 import os
 import re
@@ -30,7 +31,7 @@ import time
 from datetime import date, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 EVENTS_FILE = os.path.join(ROOT, "data", "events.json")
 IST = timezone(timedelta(hours=5, minutes=30))
 

@@ -29,6 +29,7 @@ be checked. They are reported, not used.
 Usage:  python gap_share.py            print and write data/gap_share.json
 """
 
+import project_paths
 import glob
 import json
 import os
@@ -37,7 +38,7 @@ from math import log, sqrt
 
 import pandas as pd
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = project_paths.ROOT
 BHAV = os.path.join(ROOT, "data", "bhavcopy")
 OUT = os.path.join(ROOT, "data", "gap_share.json")
 
