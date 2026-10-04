@@ -1,0 +1,424 @@
+{
+  "source": "Options Calculator WIKI STRATEGIES.xlsm",
+  "snapshot": "2026-08-28 17:23 IST",
+  "note": "Cached values straight from the workbook. Phase 2 modules must reproduce every 'expected' number to within 0.5% on net EV.",
+  "inputs": {
+    "instrument": "NIFTY",
+    "spot": 24083.65,
+    "strike_step": 50,
+    "lot_size": 65,
+    "atm": 24100,
+    "vix": 0.11,
+    "expiry": "2026-09-01 15:30:00",
+    "days_to_expiry": 3.921065277783782,
+    "risk_free": 0.065,
+    "daily_vol": 0.005757663148492351,
+    "expiry_vol": 0.011401140277168839,
+    "daily_stdev": 138.66554408618782,
+    "expiry_stdev": 274.58107203623734,
+    "sl_multiple": 2,
+    "target_pct": 0.5,
+    "wing_width": 200,
+    "wide_sigma_mult": 1.5
+  },
+  "costs": {
+    "brokerage_per_order": 20,
+    "orders_per_round_trip": 4,
+    "stt_on_sell": 0.001,
+    "exchange_per_side": 0.00035,
+    "sebi_per_side": 1e-06,
+    "stamp_buy": 3e-05,
+    "gst": 0.18,
+    "slippage_per_leg": 1,
+    "legs_per_round_trip": 4
+  },
+  "risk_sizing": {
+    "capital": null,
+    "risk_per_trade": 500000,
+    "margin_per_lot": 120000,
+    "recommended_lots": 0
+  },
+  "chain": [
+    {
+      "strike": 23350,
+      "ce": 0,
+      "pe": 2.05
+    },
+    {
+      "strike": 23400,
+      "ce": 750.55,
+      "pe": 2.4
+    },
+    {
+      "strike": 23450,
+      "ce": 719.85,
+      "pe": 2.8
+    },
+    {
+      "strike": 23500,
+      "ce": 649.35,
+      "pe": 3.35
+    },
+    {
+      "strike": 23550,
+      "ce": 602.1,
+      "pe": 3.8
+    },
+    {
+      "strike": 23600,
+      "ce": 552.05,
+      "pe": 4.55
+    },
+    {
+      "strike": 23650,
+      "ce": 504.05,
+      "pe": 5.65
+    },
+    {
+      "strike": 23700,
+      "ce": 454.35,
+      "pe": 7.25
+    },
+    {
+      "strike": 23750,
+      "ce": 407.9,
+      "pe": 9.55
+    },
+    {
+      "strike": 23800,
+      "ce": 361.3,
+      "pe": 12.7
+    },
+    {
+      "strike": 23850,
+      "ce": 314.7,
+      "pe": 17.2
+    },
+    {
+      "strike": 23900,
+      "ce": 271.2,
+      "pe": 23.25
+    },
+    {
+      "strike": 23950,
+      "ce": 229.95,
+      "pe": 31.65
+    },
+    {
+      "strike": 24000,
+      "ce": 190.9,
+      "pe": 42.75
+    },
+    {
+      "strike": 24050,
+      "ce": 155.7,
+      "pe": 57.15
+    },
+    {
+      "strike": 24100,
+      "ce": 123.1,
+      "pe": 75.1
+    },
+    {
+      "strike": 24150,
+      "ce": 95.7,
+      "pe": 97.5
+    },
+    {
+      "strike": 24200,
+      "ce": 72.55,
+      "pe": 124.6
+    },
+    {
+      "strike": 24250,
+      "ce": 53.9,
+      "pe": 155.6
+    },
+    {
+      "strike": 24300,
+      "ce": 39.45,
+      "pe": 191.4
+    },
+    {
+      "strike": 24350,
+      "ce": 28.4,
+      "pe": 230
+    },
+    {
+      "strike": 24400,
+      "ce": 20.4,
+      "pe": 273.15
+    },
+    {
+      "strike": 24450,
+      "ce": 14.55,
+      "pe": 317.6
+    },
+    {
+      "strike": 24500,
+      "ce": 10.85,
+      "pe": 361.95
+    },
+    {
+      "strike": 24550,
+      "ce": 7.9,
+      "pe": 409.75
+    },
+    {
+      "strike": 24600,
+      "ce": 6.1,
+      "pe": 458.75
+    },
+    {
+      "strike": 24650,
+      "ce": 4.8,
+      "pe": 506.75
+    },
+    {
+      "strike": 24700,
+      "ce": 4.05,
+      "pe": 556.8
+    },
+    {
+      "strike": 24750,
+      "ce": 3.65,
+      "pe": 604.8
+    },
+    {
+      "strike": 24800,
+      "ce": 3.2,
+      "pe": 653
+    },
+    {
+      "strike": 24850,
+      "ce": 2.85,
+      "pe": 702.75
+    }
+  ],
+  "expected": {
+    "short_straddle": {
+      "ce_strike": 24100,
+      "pe_strike": 24100,
+      "ce_premium": 123.1,
+      "pe_premium": 75.1,
+      "credit_pts": 198.2,
+      "lots": 1,
+      "credit_rs": 12883,
+      "lower_be": 23901.8,
+      "upper_be": 24298.2,
+      "profit_zone": 396.40000000000146,
+      "pop": 0.5288128003988851,
+      "sl_points": 396.4,
+      "risk_if_sl": -12883,
+      "target_pts": 99.1,
+      "old_ev": 742.3906150776747,
+      "margin": 240000,
+      "old_ev_per_margin": -0.007337664263091518,
+      "long_ce_strike": null,
+      "long_pe_strike": null,
+      "long_ce_premium": 0,
+      "long_pe_premium": 0,
+      "wing_cost": 0,
+      "max_loss_pts": 0,
+      "exp_payoff_pts": 219.47227955787636,
+      "gross_ev_rs": -1382.6981712619643,
+      "fees_rs": 118.34125188,
+      "slippage_rs": 260,
+      "net_ev_rs": -1761.0394231419643,
+      "modelled_pop": 0.5288128003988851,
+      "net_ev_pct_margin": -0.007337664263091518
+    },
+    "intraday_strangle": {
+      "ce_strike": 24200,
+      "pe_strike": 23900,
+      "ce_premium": 72.55,
+      "pe_premium": 23.25,
+      "credit_pts": 95.8,
+      "lots": 1,
+      "credit_rs": 6227,
+      "lower_be": 23804.2,
+      "upper_be": 24295.8,
+      "profit_zone": 491.59999999999854,
+      "pop": 0.625727148299174,
+      "sl_points": 191.6,
+      "risk_if_sl": -6227,
+      "target_pts": 47.9,
+      "old_ev": 1565.8059049179128,
+      "margin": 240000,
+      "old_ev_per_margin": -0.003312668410718275,
+      "long_ce_strike": null,
+      "long_pe_strike": null,
+      "long_ce_premium": 0,
+      "long_pe_premium": 0,
+      "wing_cost": 0,
+      "max_loss_pts": 0,
+      "exp_payoff_pts": 102.40105247465209,
+      "gross_ev_rs": -429.068410852386,
+      "fees_rs": 105.97200772000001,
+      "slippage_rs": 260,
+      "net_ev_rs": -795.040418572386,
+      "modelled_pop": 0.625727148299174,
+      "net_ev_pct_margin": -0.003312668410718275
+    },
+    "expiry_strangle": {
+      "ce_strike": 24350,
+      "pe_strike": 23750,
+      "ce_premium": 28.4,
+      "pe_premium": 9.55,
+      "credit_pts": 37.95,
+      "lots": 1,
+      "credit_rs": 2466.75,
+      "lower_be": 23712.05,
+      "upper_be": 24387.95,
+      "profit_zone": 675.9000000000015,
+      "pop": 0.7781451337968882,
+      "sl_points": 75.9,
+      "risk_if_sl": -2466.75,
+      "target_pts": 18.975,
+      "old_ev": 1372.229017586948,
+      "margin": 240000,
+      "old_ev_per_margin": -0.001819625611799724,
+      "long_ce_strike": null,
+      "long_pe_strike": null,
+      "long_ce_premium": 0,
+      "long_pe_premium": 0,
+      "wing_cost": 0,
+      "max_loss_pts": 0,
+      "exp_payoff_pts": 39.14578518926052,
+      "gross_ev_rs": -77.72603730193374,
+      "fees_rs": 98.98410953,
+      "slippage_rs": 260,
+      "net_ev_rs": -436.71014683193374,
+      "modelled_pop": 0.7781451337968882,
+      "net_ev_pct_margin": -0.001819625611799724
+    },
+    "maxev_strangle": {
+      "ce_strike": 24150,
+      "pe_strike": 24050,
+      "ce_premium": 95.7,
+      "pe_premium": 57.15,
+      "credit_pts": 152.85,
+      "lots": 1,
+      "credit_rs": 9935.25,
+      "lower_be": 23897.15,
+      "upper_be": 24302.85,
+      "profit_zone": 405.6999999999971,
+      "pop": 0.5391534891917318,
+      "sl_points": 305.7,
+      "risk_if_sl": -9935.25,
+      "target_pts": 76.425,
+      "old_ev": 777.9994069843069,
+      "margin": 240000,
+      "old_ev_per_margin": -0.007034769782801069,
+      "long_ce_strike": null,
+      "long_pe_strike": null,
+      "long_ce_premium": 0,
+      "long_pe_premium": 0,
+      "wing_cost": 0,
+      "max_loss_pts": 0,
+      "exp_payoff_pts": 173.0881765643424,
+      "gross_ev_rs": -1315.4814766822567,
+      "fees_rs": 112.86327119,
+      "slippage_rs": 260,
+      "net_ev_rs": -1688.3447478722567,
+      "modelled_pop": 0.5391534891917318,
+      "net_ev_pct_margin": -0.007034769782801069
+    },
+    "iron_condor": {
+      "ce_strike": 24350,
+      "pe_strike": 23750,
+      "ce_premium": 28.4,
+      "pe_premium": 9.55,
+      "credit_pts": 26.250000000000004,
+      "lots": 1,
+      "credit_rs": 1706.2500000000002,
+      "lower_be": 23723.75,
+      "upper_be": 24376.25,
+      "profit_zone": 652.5,
+      "pop": 0.761727514456102,
+      "sl_points": 52.50000000000001,
+      "risk_if_sl": -1706.2500000000002,
+      "target_pts": 13.125000000000002,
+      "old_ev": 893.145143081448,
+      "margin": 11293.75,
+      "old_ev_per_margin": -0.0913827998147321,
+      "long_ce_strike": 24550,
+      "long_pe_strike": 23550,
+      "long_ce_premium": 7.9,
+      "long_pe_premium": 3.8,
+      "wing_cost": 11.7,
+      "max_loss_pts": 173.75,
+      "exp_payoff_pts": 31.39590259473278,
+      "gross_ev_rs": -334.4836686576306,
+      "fees_rs": 177.57082675,
+      "slippage_rs": 520,
+      "net_ev_rs": -1032.0544954076306,
+      "modelled_pop": 0.761727514456102,
+      "net_ev_pct_margin": -0.0913827998147321
+    },
+    "iron_butterfly": {
+      "ce_strike": 24100,
+      "pe_strike": 24100,
+      "ce_premium": 123.1,
+      "pe_premium": 75.1,
+      "credit_pts": 135.5,
+      "lots": 1,
+      "credit_rs": 8807.5,
+      "lower_be": 23964.5,
+      "upper_be": 24235.5,
+      "profit_zone": 271,
+      "pop": 0.37770834047425805,
+      "sl_points": 271,
+      "risk_if_sl": -4192.5,
+      "target_pts": 67.75,
+      "old_ev": 717.7084261653549,
+      "margin": 4192.5,
+      "old_ev_per_margin": -0.3077227862242668,
+      "long_ce_strike": 24300,
+      "long_pe_strike": 23900,
+      "long_ce_premium": 39.45,
+      "long_pe_premium": 23.25,
+      "wing_cost": 62.7,
+      "max_loss_pts": 64.5,
+      "exp_payoff_pts": 144.41323500838828,
+      "gross_ev_rs": -579.3602755452384,
+      "fees_rs": 190.76750570000002,
+      "slippage_rs": 520,
+      "net_ev_rs": -1290.1277812452386,
+      "modelled_pop": 0.37770834047425805,
+      "net_ev_pct_margin": -0.3077227862242668
+    },
+    "iron_condor_wide": {
+      "ce_strike": 24500,
+      "pe_strike": 23600,
+      "ce_premium": 10.85,
+      "pe_premium": 4.55,
+      "credit_pts": 8.949999999999998,
+      "lots": 1,
+      "credit_rs": 581.7499999999999,
+      "lower_be": 23591.05,
+      "upper_be": 24508.95,
+      "profit_zone": 917.9000000000015,
+      "pop": 0.9028915906595527,
+      "sl_points": 17.899999999999995,
+      "risk_if_sl": -581.7499999999999,
+      "target_pts": 4.474999999999999,
+      "old_ev": 468.76436573238954,
+      "margin": 12418.25,
+      "old_ev_per_margin": -0.06318089801382992,
+      "long_ce_strike": 24700,
+      "long_pe_strike": 23400,
+      "long_ce_premium": 4.05,
+      "long_pe_premium": 2.4,
+      "wing_cost": 6.449999999999999,
+      "max_loss_pts": 191.05,
+      "exp_payoff_pts": 10.321001320465282,
+      "gross_ev_rs": -89.11508583024347,
+      "fees_rs": 175.48110093,
+      "slippage_rs": 520,
+      "net_ev_rs": -784.5961867602434,
+      "modelled_pop": 0.9028915906595527,
+      "net_ev_pct_margin": -0.06318089801382992
+    }
+  }
+}

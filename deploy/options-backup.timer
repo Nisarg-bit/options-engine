@@ -1,0 +1,14 @@
+[Unit]
+Description=Back up collected data every day, after the close
+
+[Timer]
+# 10:30 UTC = 16:00 IST, half an hour after the market shuts and the
+# collector has flushed its final bars. Runs all seven days: a weekend run
+# costs nothing and catches anything written out of hours.
+OnCalendar=*-*-* 10:30:00
+# If the box was down when the timer should have fired, run on next boot
+# rather than silently skipping a day.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

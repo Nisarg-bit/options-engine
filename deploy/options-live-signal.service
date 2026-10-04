@@ -1,0 +1,14 @@
+[Unit]
+Description=Live intraday prediction from live quotes
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu
+ExecStart=/home/ubuntu/run_live_signal.sh
+# Shadow by default. The sigma underneath these numbers is known to spread
+# variance evenly across a clock where ~73% of it arrives overnight, so the
+# predictions are recorded rather than offered. Add --live here only once
+# the two-term sigma is in.
+TimeoutStartSec=90

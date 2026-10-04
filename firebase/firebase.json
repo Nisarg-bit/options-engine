@@ -1,0 +1,35 @@
+{
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "hosting": [
+    {
+      "target": "desk",
+      "public": "public",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow, noarchive"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "no-referrer"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, max-age=0, must-revalidate"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

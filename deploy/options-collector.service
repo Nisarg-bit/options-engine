@@ -1,0 +1,27 @@
+[Unit]
+Description=Options chain collector (universe from instruments.py, 1-minute bars)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu
+ExecStart=/home/ubuntu/run_collector.sh
+
+Restart=always
+RestartSec=30
+
+# collector.py already handles SIGINT gracefully -- it flushes the current
+# minute's bars before exiting. Send that instead of SIGTERM so a stop or
+# restart never loses the bar in flight.
+KillSignal=SIGINT
+TimeoutStopSec=90
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=collector
+
+[Install]
+WantedBy=multi-user.target

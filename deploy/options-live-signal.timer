@@ -1,0 +1,18 @@
+[Unit]
+Description=Re-predict every 5 minutes through the session
+
+[Timer]
+# 03:20-09:45 UTC covers 08:50-15:15 IST. Deliberately wider than the
+# window live_signal.py will actually act on -- a timer that starts exactly
+# at the boundary misses the first cycle whenever the clock drifts, and an
+# early firing costs nothing because the script refuses and records nothing.
+OnCalendar=Mon..Fri *-*-* 03..09:00/5:00
+
+# NOT Persistent. A missed cycle is a missed observation of a market that has
+# already moved on; replaying it hours later would write a prediction stamped
+# with the wrong moment, which is worse than the gap it fills.
+Persistent=false
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

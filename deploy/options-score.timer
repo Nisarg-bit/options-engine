@@ -1,0 +1,18 @@
+[Unit]
+Description=Score the journal every weekday morning
+
+[Timer]
+# 03:45 UTC = 09:15 IST, weekdays. Deliberately after two other things:
+#   03:15 UTC  options-restart  -- SIGINT flushes yesterday's last bars to disk
+#   03:30 UTC  options-signal   -- today's signal is logged
+# Scoring reads yesterday's expiry-day bars, so it has to come after the flush.
+OnCalendar=Mon..Fri *-*-* 03:45:00 UTC
+
+# A missed run must catch up. The whole point of this job is that the record
+# accumulates without anyone remembering -- a laptop-closed Friday should not
+# leave a permanent hole in the calibration.
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

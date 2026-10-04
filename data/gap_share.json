@@ -1,0 +1,24 @@
+{
+  "symbol": "NIFTY",
+  "source": "bhavcopy near-month futures, same contract",
+  "first": "2024-07-08",
+  "last": "2026-08-28",
+  "n_one_night": 375,
+  "session_share": 0.6626,
+  "overnight_rms_pct": 0.4379,
+  "session_rms_pct": 0.6136,
+  "longer_gaps": {
+    "2": {
+      "n": 18,
+      "gap_var_vs_one_night": 3.414
+    },
+    "3": {
+      "n": 101,
+      "gap_var_vs_one_night": 2.57
+    },
+    "4": {
+      "n": 10,
+      "gap_var_vs_one_night": 2.002
+    }
+  }
+}

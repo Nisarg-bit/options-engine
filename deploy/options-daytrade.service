@@ -1,0 +1,27 @@
+[Unit]
+Description=Write the day's intraday paper-trade row to the journal
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu
+ExecStart=/home/ubuntu/.venv/bin/python /home/ubuntu/daytrade.py
+
+# This job reads the whole bar archive and writes exactly ONE file. Enforce
+# that rather than trust it: everything is read-only except data/journal/,
+# so a bug that tries to write into data/bars_1m/ fails loudly instead of
+# corrupting a Parquet part that can never be re-collected at any price.
+# write_journal() writes <journal>.tmp beside the CSV and os.replace()s it,
+# so the .tmp lives inside the one writable directory.
+ProtectSystem=strict
+ReadWritePaths=/home/ubuntu/data/journal
+PrivateTmp=true
+NoNewPrivileges=true
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=daytrade

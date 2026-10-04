@@ -1,0 +1,23 @@
+{
+  "_readme": "Hand-kept. Every entry carries the page it was taken from. time_ist is null where the source gives no time. US times converted from ET: EDT (UTC-4) until 2026-11-01, EST (UTC-5) after. Checked 2026-09-22.",
+  "events": [
+    {"date": "2026-10-02", "time_ist": "18:00", "title": "US jobs report (Sep payrolls)", "kind": "us_data", "country": "US", "impact": "high", "source": "https://www.bls.gov/schedule/news_release/empsit.htm"},
+    {"date": "2026-10-02", "time_ist": null, "title": "NSE holiday - Gandhi Jayanti", "kind": "holiday", "country": "IN", "impact": "medium", "source": "https://groww.in/p/nse-holidays"},
+    {"date": "2026-10-07", "time_ist": null, "title": "RBI MPC decision (meeting 5-7 Oct)", "kind": "india_policy", "country": "IN", "impact": "high", "source": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62422"},
+    {"date": "2026-10-14", "time_ist": "18:00", "title": "US CPI (Sep)", "kind": "us_data", "country": "US", "impact": "high", "source": "https://www.bls.gov/schedule/news_release/cpi.htm"},
+    {"date": "2026-10-20", "time_ist": null, "title": "NSE holiday - Dussehra", "kind": "holiday", "country": "IN", "impact": "medium", "source": "https://groww.in/p/nse-holidays"},
+    {"date": "2026-10-28", "time_ist": "23:30", "title": "FOMC decision (meeting 27-28 Oct)", "kind": "fed", "country": "US", "impact": "high", "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"},
+    {"date": "2026-11-06", "time_ist": "19:00", "title": "US jobs report (Oct payrolls)", "kind": "us_data", "country": "US", "impact": "high", "source": "https://www.bls.gov/schedule/news_release/empsit.htm"},
+    {"date": "2026-11-08", "time_ist": null, "title": "Muhurat trading (Sunday; timings to be notified by NSE)", "kind": "special_session", "country": "IN", "impact": "medium", "source": "https://groww.in/p/nse-holidays"},
+    {"date": "2026-11-10", "time_ist": null, "title": "NSE holiday - Diwali Balipratipada", "kind": "holiday", "country": "IN", "impact": "medium", "source": "https://groww.in/p/nse-holidays"},
+    {"date": "2026-11-10", "time_ist": "19:00", "title": "US CPI (Oct)", "kind": "us_data", "country": "US", "impact": "high", "source": "https://www.bls.gov/schedule/news_release/cpi.htm"},
+    {"date": "2026-11-24", "time_ist": null, "title": "NSE holiday - Guru Nanak Jayanti", "kind": "holiday", "country": "IN", "impact": "medium", "source": "https://groww.in/p/nse-holidays"},
+    {"date": "2026-12-04", "time_ist": null, "title": "RBI MPC decision (meeting 2-4 Dec)", "kind": "india_policy", "country": "IN", "impact": "high", "source": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62422"},
+    {"date": "2026-12-04", "time_ist": "19:00", "title": "US jobs report (Nov payrolls)", "kind": "us_data", "country": "US", "impact": "high", "source": "https://www.bls.gov/schedule/news_release/empsit.htm"},
+    {"date": "2026-12-10", "time_ist": "00:30", "title": "FOMC decision (meeting 8-9 Dec, 14:00 ET on 9 Dec)", "kind": "fed", "country": "US", "impact": "high", "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"},
+    {"date": "2026-12-10", "time_ist": "19:00", "title": "US CPI (Nov)", "kind": "us_data", "country": "US", "impact": "high", "source": "https://www.bls.gov/schedule/news_release/cpi.htm"},
+    {"date": "2026-12-25", "time_ist": null, "title": "NSE holiday - Christmas", "kind": "holiday", "country": "IN", "impact": "medium", "source": "https://groww.in/p/nse-holidays"},
+    {"date": "2027-01-28", "time_ist": "00:30", "title": "FOMC decision (meeting 26-27 Jan, tentative)", "kind": "fed", "country": "US", "impact": "high", "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"},
+    {"date": "2027-02-05", "time_ist": null, "title": "RBI MPC decision (meeting 3-5 Feb)", "kind": "india_policy", "country": "IN", "impact": "high", "source": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62422"}
+  ]
+}

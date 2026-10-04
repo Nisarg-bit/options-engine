@@ -1,0 +1,14 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "live": {
+      ".read": true,
+      ".write": false
+    },
+    "archive": {
+      ".read": true,
+      ".write": false
+    }
+  }
+}

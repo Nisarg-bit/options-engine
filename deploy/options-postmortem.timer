@@ -1,0 +1,12 @@
+[Unit]
+Description=Post-mortem at 15:55 IST, after the paper trade is journalled (15:40)
+
+[Timer]
+# 10:25 UTC = 15:55 IST. The run is idempotent (rewrites that day's file);
+# on a holiday it finds no session for today and does nothing.
+OnCalendar=Mon..Fri *-*-* 10:25:00 UTC
+Persistent=false
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

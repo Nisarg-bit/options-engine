@@ -1,0 +1,30 @@
+[Unit]
+Description=Options dashboard API (read-only view over collected bars)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu
+ExecStart=/home/ubuntu/run_api.sh
+
+Restart=always
+RestartSec=10
+
+# This process is a reader. Enforce that rather than trust it: the whole
+# filesystem is read-only to it, so a bug that tries to write into data/
+# fails loudly instead of corrupting a Parquet part mid-soak. Nothing is
+# listed as writable because nothing needs to be.
+ProtectSystem=strict
+PrivateTmp=true
+NoNewPrivileges=true
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dashapi
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,196 @@
+
+/* ======================================================= v2: light theme
+   Dark stays exactly as it was. Light redefines the tokens, then overrides
+   the handful of rules and chart attributes that hard-code white-on-dark.
+   Chart colours live in SVG presentation attributes, which any CSS rule
+   outranks -- so the charts are re-coloured here without touching their code. */
+:root[data-theme=light]{
+  --bg0:#f5f6fb; --bg1:#eef1fa;
+  --ink:#131a2f; --dim:#48536f; --faint:#66718d;
+  --up:#0c9d6c; --down:#e0355a; --warn:#b7700f;
+  --a1:#4f63f6; --a2:#8b5cf6; --a3:#10b981;
+  --glass:linear-gradient(158deg,rgba(255,255,255,.96),rgba(255,255,255,.84));
+  --edge:rgba(19,26,47,.10); --edge2:rgba(19,26,47,.07);
+}
+:root[data-theme=light] body::before{
+  background:
+    radial-gradient(38vw 38vw at 10% 6%,  rgba(79,99,246,.16), transparent 60%),
+    radial-gradient(34vw 34vw at 90% 0%,  rgba(139,92,246,.14), transparent 62%),
+    radial-gradient(42vw 42vw at 75% 95%, rgba(16,185,129,.10), transparent 64%),
+    radial-gradient(30vw 30vw at 18% 90%, rgba(244,114,182,.10), transparent 60%),
+    var(--bg1);
+}
+:root[data-theme=light] body::after{
+  background-image:linear-gradient(rgba(19,26,47,.035) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(19,26,47,.035) 1px,transparent 1px);
+}
+:root[data-theme=light] header{background:rgba(255,255,255,.72)}
+:root[data-theme=light] .card{box-shadow:0 10px 30px rgba(31,41,80,.08), inset 0 1px 0 #fff}
+:root[data-theme=light] .mark::after{background:#fff}
+:root[data-theme=light] .kv{border-bottom-color:rgba(19,26,47,.07)}
+:root[data-theme=light] th{background:rgba(247,248,252,.97)}
+:root[data-theme=light] td{border-bottom-color:rgba(19,26,47,.06)}
+:root[data-theme=light] tbody tr:hover{background:rgba(79,99,246,.06)}
+:root[data-theme=light] .tabs,:root[data-theme=light] .status,
+:root[data-theme=light] .chip,:root[data-theme=light] .btn,
+:root[data-theme=light] select,:root[data-theme=light] input[type=number],
+:root[data-theme=light] .stepper{background:rgba(255,255,255,.8)}
+:root[data-theme=light] select{color-scheme:light}
+:root[data-theme=light] select option,:root[data-theme=light] select optgroup{background:#fff;color:#131a2f}
+:root[data-theme=light] select option:checked{background:#e6e9ff}
+:root[data-theme=light] .tip{background:rgba(255,255,255,.97);box-shadow:0 12px 30px rgba(31,41,80,.18)}
+:root[data-theme=light] .tip b{color:var(--ink)}
+:root[data-theme=light] .stepper button:hover{color:var(--ink);background:rgba(19,26,47,.06)}
+:root[data-theme=light] .bar{background:rgba(19,26,47,.08)}
+:root[data-theme=light] .chain .k{background:rgba(19,26,47,.04)}
+:root[data-theme=light] tr.atm .k{background:linear-gradient(90deg,#4f63f6,#8b5cf6)}
+:root[data-theme=light] .cell:hover{background:rgba(19,26,47,.06)}
+:root[data-theme=light] .pill.def{color:#3a4fd8}
+:root[data-theme=light] .bu-lb{color:#0c9d6c} :root[data-theme=light] .bu-sb{color:#e0355a}
+:root[data-theme=light] .bu-lu{color:#a86a0c} :root[data-theme=light] .bu-sc{color:#3a4fd8}
+:root[data-theme=light] .wrow,:root[data-theme=light] .wnews{border-bottom-color:rgba(19,26,47,.07)}
+:root[data-theme=light] #stale{color:#7a5510 !important;background:rgba(255,200,87,.16) !important}
+:root[data-theme=light] [style*="background:rgba(255,255,255,.04)"]{background:rgba(19,26,47,.035) !important}
+:root[data-theme=light] [style*="rgba(255,255,255,.12)"]{border-top-color:var(--edge) !important}
+:root[data-theme=light] .swatch[style*="255,255,255"]{background:rgba(19,26,47,.35) !important}
+/* chart attributes */
+:root[data-theme=light] svg [stroke="rgba(255,255,255,.04)"],
+:root[data-theme=light] svg [stroke="rgba(255,255,255,.05)"],
+:root[data-theme=light] svg [stroke="rgba(255,255,255,.06)"]{stroke:rgba(19,26,47,.08)}
+:root[data-theme=light] svg [stroke="rgba(255,255,255,.12)"],
+:root[data-theme=light] svg [stroke="rgba(255,255,255,.22)"],
+:root[data-theme=light] svg [stroke="rgba(255,255,255,.25)"],
+:root[data-theme=light] svg [stroke="rgba(255,255,255,.26)"],
+:root[data-theme=light] svg [stroke="rgba(255,255,255,.28)"],
+:root[data-theme=light] svg [stroke="rgba(255,255,255,.3)"],
+:root[data-theme=light] svg [stroke="rgba(255,255,255,.35)"]{stroke:rgba(19,26,47,.38)}
+:root[data-theme=light] svg [fill^="rgba(255,255,255"]{fill:rgba(19,26,47,.06)}
+:root[data-theme=light] svg [stroke="#eaf0ff"]{stroke:#131a2f;filter:none !important}
+:root[data-theme=light] svg [fill="#eaf0ff"],:root[data-theme=light] svg [fill="#fff"]{fill:#131a2f}
+:root[data-theme=light] svg [stroke="#fff"]{stroke:#131a2f}
+:root[data-theme=light] svg [fill="#5b6a8c"]{fill:#5d6885}
+:root[data-theme=light] svg [stroke="#7cc4ff"]{stroke:#2477d4} :root[data-theme=light] svg [fill="#7cc4ff"]{fill:#2477d4}
+:root[data-theme=light] svg [stroke="#ffc857"]{stroke:#d98e0b} :root[data-theme=light] svg [fill="#ffc857"]{fill:#a86a0c}
+:root[data-theme=light] svg [stroke="#2ee6a8"]{stroke:#10b981} :root[data-theme=light] svg [fill="#2ee6a8"]{fill:#0c9d6c}
+
+/* ======================================================= v2: chrome */
+header{padding-right:74px}
+.themebtn{position:absolute;right:20px;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:12px;border:1px solid var(--edge);
+  background:var(--glass);cursor:pointer;display:grid;place-items:center;
+  color:var(--ink);transition:transform .25s,box-shadow .25s}
+.themebtn:hover{transform:translateY(-50%) rotate(-12deg) scale(1.06);box-shadow:0 6px 20px rgba(91,140,255,.3)}
+.themebtn svg{width:18px;height:18px;overflow:visible}
+.themebtn .sun{display:none} :root[data-theme=dark] .themebtn .sun{display:block}
+:root[data-theme=dark] .themebtn .moon{display:none}
+.banner{margin:12px 26px 0;padding:9px 14px;border-radius:12px;font-size:12.5px;line-height:1.55;
+  border:1px solid rgba(139,92,246,.28);color:var(--dim);
+  background:linear-gradient(100deg,rgba(79,99,246,.10),rgba(139,92,246,.08) 55%,rgba(16,185,129,.07))}
+.banner b{color:var(--ink)}
+
+/* chapters */
+nav{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.tabs{max-width:100%;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.chapters button{display:flex;align-items:center;gap:9px;padding:9px 16px 9px 10px;white-space:nowrap}
+.chapters button i{font-style:normal;display:grid;place-items:center;width:24px;height:24px;
+  border-radius:8px;font-size:12px;font-weight:700;background:rgba(127,140,180,.16);color:var(--dim);transition:.2s}
+.chapters button.on i{background:#fff;color:#4f63f6}
+.chapters button small{display:block;font-size:10.5px;font-weight:500;opacity:.75;letter-spacing:0}
+.chapters button span{display:block;text-align:left;line-height:1.2}
+.tools{opacity:.92}
+.tools button{padding:7px 12px;font-size:12px}
+.toolslbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-right:2px}
+:root[data-theme=light] .tabs button.on{background:linear-gradient(135deg,#4f63f6,#8b5cf6);color:#fff;
+  box-shadow:0 6px 20px rgba(79,99,246,.35)}
+
+.chead{display:flex;align-items:center;gap:16px;margin:4px 0 18px;flex-wrap:wrap}
+.chead .cnum{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;
+  font:700 20px var(--sans);color:#fff;background:linear-gradient(140deg,var(--c1),var(--c2));
+  box-shadow:0 8px 24px color-mix(in srgb,var(--c1) 40%,transparent)}
+.chead h1{margin:0;font-size:26px;letter-spacing:-.02em;
+  background:linear-gradient(90deg,var(--c1),var(--c2));-webkit-background-clip:text;
+  background-clip:text;color:transparent}
+.chead p{margin:2px 0 0;color:var(--dim);font-size:14px}
+#today{--c1:#4f63f6;--c2:#22b8f0} #opportunity{--c1:#8b5cf6;--c2:#ec4899}
+#trade{--c1:#f59e0b;--c2:#ef4444} #proof{--c1:#10b981;--c2:#0ea5e9}
+section .card{border-top:2px solid color-mix(in srgb,var(--c1,#5b8cff) 45%,transparent)}
+.cnext{display:flex;justify-content:flex-end;margin-top:22px}
+.cnext button{border:0;cursor:pointer;font:600 14px var(--sans);color:#fff;padding:12px 20px;
+  border-radius:14px;background:linear-gradient(135deg,var(--c1),var(--c2));
+  box-shadow:0 10px 26px color-mix(in srgb,var(--c1) 35%,transparent);transition:transform .2s}
+.cnext button:hover{transform:translateY(-2px)}
+.subhead{margin:34px 0 12px;font-size:17px;letter-spacing:-.01em;color:var(--ink);font-weight:650}
+.subhead small{display:block;font-size:12.5px;color:var(--dim);font-weight:400;margin-top:2px}
+
+/* verdict */
+.verdict{padding:22px 24px;border-left:5px solid var(--tone,#8b95b0)}
+.verdict.go{--tone:var(--up)} .verdict.no{--tone:var(--down)} .verdict.na{--tone:var(--warn)}
+.verdict .vk{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint);font-weight:650}
+.verdict .vh{font-size:28px;font-weight:720;letter-spacing:-.025em;margin:6px 0 12px;line-height:1.2}
+.verdict .vh em{font-style:normal;color:var(--tone)}
+.reasons{display:flex;flex-wrap:wrap;gap:8px}
+.reason{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:12px;font-size:13px;
+  background:rgba(127,140,180,.09);border:1px solid var(--edge2)}
+.reason .d{width:8px;height:8px;border-radius:50%;flex:none;background:var(--faint)}
+.reason.good .d{background:var(--up)} .reason.bad .d{background:var(--down)} .reason.warn .d{background:var(--warn)}
+
+/* plain english */
+.brief p{font-size:15px;line-height:1.75;margin:0 0 12px;color:var(--ink)}
+.brief p:last-child{margin:0}
+.brief b{font-family:var(--mono);font-weight:650}
+.brief .hl{background:linear-gradient(transparent 60%,color-mix(in srgb,var(--warn) 30%,transparent) 60%)}
+.brief .honest{color:var(--dim);font-size:13.5px;border-top:1px dashed var(--edge);padding-top:12px}
+
+/* risk in rupees */
+.rgrid{display:grid;grid-template-columns:minmax(260px,1fr) 1.3fr;gap:22px;align-items:start}
+@media(max-width:860px){.rgrid{grid-template-columns:1fr}}
+.rctl label{display:block;font-size:12.5px;color:var(--dim);margin-bottom:14px}
+.rctl label b{color:var(--ink);font-family:var(--mono)}
+.rctl select,.rctl input[type=number]{margin-top:6px;width:100%}
+input[type=range]{width:100%;margin-top:8px;accent-color:#f59e0b;height:22px}
+.rchips{display:flex;flex-wrap:wrap;gap:6px}
+.rout{padding:18px 20px;border-radius:16px;background:rgba(127,140,180,.08);border:1px solid var(--edge2)}
+.rout .big{font-size:40px}
+.rout p{font-size:14.5px;line-height:1.7;margin:10px 0 0;color:var(--ink)}
+
+/* track record */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr));gap:12px}
+.kpi{padding:14px 16px;border-radius:14px;background:rgba(127,140,180,.08);border:1px solid var(--edge2)}
+.kpi .k{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);font-weight:650}
+.kpi .v{font:650 24px var(--mono);letter-spacing:-.02em;margin-top:4px}
+.kpi .s{font-size:11.5px;color:var(--dim);margin-top:2px}
+.ci{position:relative;height:8px;border-radius:99px;background:rgba(127,140,180,.18);margin-top:8px}
+.ci i{position:absolute;top:0;bottom:0;border-radius:99px;background:linear-gradient(90deg,#10b981,#0ea5e9);opacity:.75}
+.ci b{position:absolute;top:-3px;width:3px;height:14px;border-radius:2px;background:var(--ink)}
+.strip{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.sq{width:26px;height:26px;border-radius:7px;cursor:pointer;transition:transform .15s;position:relative}
+.sq:hover{transform:scale(1.18)}
+.sq.stop::after{content:"";position:absolute;inset:9px;border-radius:50%;background:rgba(255,255,255,.9)}
+.sq.open{outline:2px dashed var(--faint);outline-offset:-2px;background:transparent !important}
+
+/* dial + cone */
+.dialwrap{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.dialwrap .chartbox{flex:1 1 260px;max-width:360px}
+.dialtxt{flex:1 1 200px;font-size:14px;line-height:1.7}
+.needle{transition:transform 1.1s cubic-bezier(.2,.9,.25,1.15);transform-origin:180px 170px}
+
+/* mobile */
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(290px,100%),1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr))}
+@media(max-width:760px){
+  header{padding:10px 14px;gap:10px}
+  .banner{margin:10px 14px 0}
+  nav{padding:12px 14px 0}
+  main{padding:14px 14px 60px}
+  .quote{gap:12px} .quote .val{font-size:15px}
+  .hero{font-size:34px} .verdict .vh{font-size:22px}
+  .chead h1{font-size:22px}
+  .chapters button small{display:none}
+  header{padding-right:62px}
+  .themebtn{right:12px;top:12px;transform:none}
+  .themebtn:hover{transform:rotate(-12deg)}
+  .chapters{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .chapters button{justify-content:flex-start}
+  .tools{width:100%;flex-wrap:nowrap}
+  .tools button{white-space:nowrap}
+}

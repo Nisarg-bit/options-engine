@@ -1,0 +1,26 @@
+[Unit]
+Description=Journal the intraday paper trade after each session
+
+[Timer]
+# The trade exits at 15:15 IST and the last bar of the session is 15:29.
+#
+# Two fires, not one. daytrade.py is idempotent -- a row is a pure function
+# of that day's Parquet and a re-run overwrites rather than appends -- so the
+# second fire costs about ten seconds and buys back the case where the
+# collector was still flushing at 15:20. simulate() marks such a row
+# incomplete rather than inventing a settled trade, and the 15:40 run then
+# rewrites it as settled. Without the second fire that row would sit
+# incomplete until the next manual --backfill.
+#
+#   09:50 UTC = 15:20 IST   five minutes after the exit
+#   10:10 UTC = 15:40 IST   comfortably past the 15:29 last bar
+OnCalendar=Mon..Fri *-*-* 09:50:00 UTC
+OnCalendar=Mon..Fri *-*-* 10:10:00 UTC
+
+# A missed run must catch up, for the same reason options-score.timer does:
+# the record is supposed to accumulate without anyone remembering.
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

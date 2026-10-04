@@ -1,0 +1,14 @@
+[Unit]
+Description=Sync collected option data to S3
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu
+ExecStart=/home/ubuntu/backup.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=backup

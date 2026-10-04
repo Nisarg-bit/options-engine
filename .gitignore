@@ -1,0 +1,87 @@
+.env
+*.parquet
+__pycache__/
+.venv/
+data_replay/
+.firebase-service-account.json
+*-firebase-adminsdk-*.json
+firebase/.firebase/
+
+# --- added 2026-09-28 ---------------------------------------------------
+# Secrets: the Kite access token (was tracked by mistake; untracked now).
+.kite_token
+# Bulk and generated data. Kept: the three small hand-made/fitted inputs the
+# code reads (calibration.json, events.json, gap_share.json).
+data/*
+!data/calibration.json
+!data/events.json
+!data/gap_share.json
+data_test/
+# Research / backtest outputs, logs, local backups, server copies
+*_trades.csv
+*.log
+backup/
+deploy/server-copies/
+firebase/backup/
+Claude outputs/
+.pytest_cache/
+
+# --- added 2026-10-04 (GitHub upload) -----------------------------------
+# Old history (contained a since-expired Kite token); kept locally only.
+.git-old-*/
+# Secrets and keys, belt and braces
+*.pem
+*.key
+.env.*
+.kite_token*
+# Daily instrument dumps are regenerated every morning
+data/instruments/
+
+# --- added 2026-10-04 (public CV repo): kept on this PC, not published ---
+# Real infrastructure values
+deploy/local.env
+infra/NOTES.md
+firebase/.firebaserc
+# One-off deploy/check scripts, probes, diagnostics and the old web/ dashboard copy
+*.bat
+web/
+deploy/*.ps1
+deploy/check_*
+deploy/check_restarts.sh
+deploy/fix_run.sh
+deploy/g1_*.sh
+deploy/h_*.sh
+deploy/recover_run.sh
+deploy/pm_install.sh
+deploy/commit-message.txt
+deploy/enable-public.sh
+deploy/kite_index_history.py
+deploy/outcomes_summary.py
+/backup.sh
+bhavcopy_old.py
+test_bhavcopy_old.py
+browser_check.py
+calibrate_m4_diag.py
+catalogue_check.py
+check_models.py
+check_settle.py
+daytrade_probe.py
+decay_model_probe.py
+explore_instruments.py
+intraday_richness_probe.py
+intraday_vrp_probe.py
+manual_login.py
+merge_old.py
+norm_check.py
+p2_check.py
+probe_history.py
+purge_signal_day.py
+quote_probe.py
+sensex_probe.py
+series_api_probe.py
+sigma_diag.py
+sigma_sources_probe.py
+telegram_setup.py
+term_probe.py
+totp_check.py
+research/risk_stats_draft.py

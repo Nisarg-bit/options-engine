@@ -1,0 +1,11 @@
+[Unit]
+Description=Restart the collector every trading morning, 30 min before the open
+
+[Timer]
+# 03:15 UTC = 08:45 IST. Server clock is UTC; install.sh prints the timezone
+# and the computed next-fire time so this can be verified rather than assumed.
+OnCalendar=Mon-Fri *-*-* 03:15:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

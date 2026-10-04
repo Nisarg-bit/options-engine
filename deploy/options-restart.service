@@ -1,0 +1,6 @@
+[Unit]
+Description=Daily collector restart (picks up a fresh instrument master)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl restart options-collector.service

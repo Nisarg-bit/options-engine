@@ -1,0 +1,20 @@
+[Unit]
+Description=Nightly post-mortem of the session (postmortem.py)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu
+ExecStart=/home/ubuntu/.venv/bin/python /home/ubuntu/postmortem.py
+# Reads the bar archive; writes only its own folder and the daily-price cache.
+ProtectSystem=strict
+ReadWritePaths=/home/ubuntu/data/postmortem /home/ubuntu/data/features
+PrivateTmp=true
+NoNewPrivileges=true
+Environment=PYTHONDONTWRITEBYTECODE=1
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=postmortem
