@@ -182,6 +182,7 @@ SERIES_EXPIRIES = 1
 # Outside market hours nothing changes, so back everything off hard rather
 # than burning CPU rebuilding payloads that will be discarded as unchanged.
 CLOSED_MULTIPLIER = 15
+SLOW_NODE_S = 5.0          # log any node that takes longer than this (see cycle)
 
 
 # --------------------------------------------------------------------- shape
@@ -579,13 +580,25 @@ def cycle(state, dry=False, force=False):
     now = time.time()
     mult = 1 if market_open() else CLOSED_MULTIPLIER
     done, skipped, sent = [], 0, 0
+    # Timing (18 Nov 2026): the first pass after a restart takes 10-16 minutes
+    # and nothing said where. The first pass logs every node as it starts and
+    # finishes; later passes log only nodes slower than SLOW_NODE_S.
+    first = not state.get("_timed")
+    state["_timed"] = True
+    t_pass = time.time()
 
     for node, every in CADENCE.items():
         m = 1 if node in NO_BACKOFF else mult
         if not (force or now - state.get(node, 0) >= every * m):
             continue
         state[node] = now
+        if first:
+            print(f"first pass: {node} ...", flush=True)
+        t0 = time.time()
         payload = build(node)
+        took = time.time() - t0
+        if first or took > SLOW_NODE_S:
+            print(f"{'first pass' if first else 'slow node'}: {node} took {took:.1f}s", flush=True)
         if payload is None:
             continue
         blob = json.dumps(scrub(payload), default=str, sort_keys=True)
@@ -606,12 +619,18 @@ def cycle(state, dry=False, force=False):
     # here backs off fifteen-fold.
     if force or now - state.get("_archive", 0) >= 120:
         state["_archive"] = now
+        t0 = time.time()
         try:
             line = archive_pass(dry=dry)
             if line:
                 done.append(line)
         except Exception:
             traceback.print_exc()
+        took = time.time() - t0
+        if first or took > SLOW_NODE_S:
+            print(f"{'first pass' if first else 'slow node'}: archive took {took:.1f}s", flush=True)
+    if first:
+        print(f"first pass: total {time.time() - t_pass:.1f}s", flush=True)
 
     if done and not dry:
         db().reference(f"{ROOT}/updated_at").set(

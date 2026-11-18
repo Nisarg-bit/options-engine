@@ -2,8 +2,8 @@
  "generated": "2026-11-17T10:53:00+05:30",
  "session": "2026-11-17",
  "config_version": 1,
- "config_label": "DEMO EXAMPLE RULES - not a strategy. Replace before enabling current-session entries.",
- "rules_validated": false,
+ "config_label": "Strategy rules supplied by Nisarg (18 Nov 2026): opening-range Fib + VWAP / 5-session return + structure; ORB screener; flow + OI buildup; OR-edge stop, 2R.",
+ "rules_validated": true,
  "label": "FIXTURE DEMO - paper",
  "live_entry_gate": null,
  "paused_global": false,
@@ -6165,6 +6165,7 @@
   }
  },
  "dead_letters": [],
+ "daily_summary": null,
  "notes": [
   "Paper trading and replay only. No order reaches a broker.",
   "Equity spot prices select candidates; the futures contract's own quotes open, mark and close.",

@@ -37,3 +37,23 @@ def test_release_memory_never_raises(monkeypatch):
     PUB._last_trim["at"] = 0
     PUB.release_memory()                    # real libc on Linux, no-op elsewhere
     PUB.limit_arenas()
+
+
+def test_cycle_logs_node_timings(monkeypatch, capsys):
+    import publisher as P
+    monkeypatch.setattr(P, "CADENCE", {"a": 1, "b": 1})
+    monkeypatch.setattr(P, "build", lambda node: {"node": node})
+    monkeypatch.setattr(P, "changed", lambda node, blob: True)
+    monkeypatch.setattr(P, "archive_pass", lambda dry=False: "")
+    monkeypatch.setattr(P, "market_open", lambda: True)
+    state = {}
+    P.cycle(state, dry=True)
+    out = capsys.readouterr().out
+    assert "first pass: a took" in out and "first pass: b took" in out and "first pass: total" in out
+    state.update(a=0, b=0, _archive=0)
+    P.cycle(state, dry=True)                       # quiet after the first pass
+    assert "first pass" not in capsys.readouterr().out
+    monkeypatch.setattr(P, "SLOW_NODE_S", -1.0)    # everything counts as slow
+    state.update(a=0, b=0)
+    P.cycle(state, dry=True)
+    assert "slow node: a took" in capsys.readouterr().out

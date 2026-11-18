@@ -41,12 +41,20 @@ function show(){
   history.replaceState(null,'','#sfut'); paint(true);
 }
 btn.addEventListener('click',show);
-// Market Pulse claims the landing page on load; a #sfut deep link takes it back once everything has mounted.
-if(location.hash==='#sfut'){ show(); addEventListener('load',()=>[50,400,1200].forEach(ms=>setTimeout(()=>{if(location.hash==='#sfut'&&!sec.classList.contains('on'))show();},ms)),{once:true}); }
-
 let MODE='intraday', VIEW='scan', SIG='', S=null, SRCKIND='', JF={mode:'',dir:'',cls:''};
 qa('[data-m]',sec).forEach(b=>b.onclick=()=>{MODE=b.dataset.m;qa('[data-m]',sec).forEach(x=>x.setAttribute('aria-selected',x===b));paint(true);});
 qa('[data-v]',sec).forEach(b=>b.onclick=()=>{VIEW=b.dataset.v;qa('[data-v]',sec).forEach(x=>x.setAttribute('aria-selected',x===b));paint(true);});
+
+// Deep links: #sfut, #sfut/pos, #sfut/jr, optionally /swing (e.g. #sfut/pos/swing).
+// Market Pulse claims the landing page on load; a deep link takes it back once everything has mounted.
+const DL=location.hash.match(/^#sfut(?:\/(scan|pos|jr))?(?:\/(intraday|swing))?$/);
+if(DL){
+  VIEW=DL[1]||'scan'; MODE=DL[2]||'intraday';
+  qa('[data-v]',sec).forEach(x=>x.setAttribute('aria-selected',x.dataset.v===VIEW));
+  qa('[data-m]',sec).forEach(x=>x.setAttribute('aria-selected',x.dataset.m===MODE));
+  show();
+  addEventListener('load',()=>[50,400,1200].forEach(ms=>setTimeout(()=>{if(location.hash.startsWith('#sfut')&&!sec.classList.contains('on'))show();},ms)),{once:true});
+}
 
 const apiMode=()=>!(typeof SRC!=='undefined'&&SRC.mode==='firebase')&&typeof get==='function';
 async function load(){
