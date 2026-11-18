@@ -1,0 +1,62 @@
+/* options-engine design tokens (Phase C1, Nov 2026).
+   Own palette: deep navy structure, teal accent, green/red reserved for up/down.
+   Every page and component reads these variables -- nothing hard-codes a colour. */
+:root{
+  --bg:#F4F6F9;          /* page */
+  --surface:#FFFFFF;     /* cards */
+  --surface-2:#F8FAFC;   /* insets, table stripes */
+  --line:#E2E8F0;        /* borders, dividers */
+  --ink:#0F2A44;         /* headings, big numbers (deep navy) */
+  --text:#22313F;        /* body */
+  --muted:#5F6F81;       /* captions, labels */
+  --accent:#0E8F8A;      /* teal: links, active tab, focus */
+  --accent-soft:#E3F4F3;
+  --up:#178A4C;   --up-soft:#E5F4EC;     /* rising / bullish */
+  --down:#C8423F; --down-soft:#FBEAEA;   /* falling / bearish */
+  --warn:#B7791F; --warn-soft:#FBF1E1;   /* caution, estimates, stale data */
+  --neutral:#64748B; --neutral-soft:#EEF2F6;
+  --radius:14px; --radius-sm:9px;
+  --shadow:0 1px 2px rgba(15,42,68,.06),0 4px 14px rgba(15,42,68,.05);
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B1620; --surface:#122230; --surface-2:#0F1D29; --line:#1F3344;
+    --ink:#E8F0F7; --text:#C9D6E2; --muted:#8CA0B3;
+    --accent:#2BB6AF; --accent-soft:#12343A;
+    --up:#34C77B; --up-soft:#12301F; --down:#F06B66; --down-soft:#3A1A1A;
+    --warn:#E0A548; --warn-soft:#33270F; --neutral:#93A4B6; --neutral-soft:#1A2B3A;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B1620; --surface:#122230; --surface-2:#0F1D29; --line:#1F3344;
+  --ink:#E8F0F7; --text:#C9D6E2; --muted:#8CA0B3;
+  --accent:#2BB6AF; --accent-soft:#12343A;
+  --up:#34C77B; --up-soft:#12301F; --down:#F06B66; --down-soft:#3A1A1A;
+  --warn:#E0A548; --warn-soft:#33270F; --neutral:#93A4B6; --neutral-soft:#1A2B3A;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}
+
+/* ---- components ---- */
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--font)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+      box-shadow:var(--shadow);padding:18px 20px}
+.card-h{display:flex;align-items:center;gap:8px;margin-bottom:10px;color:var(--muted);
+        font-size:12.5px;font-weight:600;letter-spacing:.02em}
+.card-h .i{width:16px;height:16px;border-radius:50%;border:1px solid var(--line);display:inline-grid;
+           place-items:center;font-size:10px;color:var(--muted);cursor:help}
+.card-h .sp{flex:1}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 10px;
+      font-size:11.5px;font-weight:600;white-space:nowrap}
+.pill.up{background:var(--up-soft);color:var(--up)} .pill.down{background:var(--down-soft);color:var(--down)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.flat{background:var(--neutral-soft);color:var(--neutral)}
+.big{font:600 34px/1.1 var(--font-num);color:var(--ink);letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:12.5px}
+.up{color:var(--up)} .down{color:var(--down)}
+.tabs{display:inline-flex;gap:4px;background:var(--surface);border:1px solid var(--line);
+      border-radius:12px;padding:4px}
+.tabs button{border:0;background:none;font:600 13px var(--font);color:var(--muted);
+             padding:7px 14px;border-radius:9px;cursor:pointer}
+.tabs button.on{background:var(--accent-soft);color:var(--accent)}

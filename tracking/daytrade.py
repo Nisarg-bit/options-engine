@@ -46,6 +46,7 @@ Usage:
 
 import project_paths
 import csv
+import json
 import os
 import sys
 from datetime import date
@@ -57,7 +58,7 @@ import sigma_sources as SIG
 import stop_touch as T
 
 ROOT = project_paths.ROOT
-JOURNAL = os.path.join(ROOT, "data", "journal", "intraday_trades.csv")
+JOURNAL = os.path.join(ROOT, "data", "journal", "intraday_trades_v2.csv")
 
 ENTRY, EXIT = "09:20", "15:15"
 STOP_FRAC = 0.30          # of credit; from the sizing card, not fitted here
@@ -65,6 +66,7 @@ TRAIL = 10                # sessions of realised history behind the richness sco
 MIN_TRAIL = 3
 
 COLUMNS = [
+    "sample_eligible", "quality_flags", "cost_model", "lot_source",
     "date", "underlying", "expiry", "dte", "status",
     "entry", "atm", "structure", "credit", "stop_level", "target_level",
     "implied_sigma", "trailing_realised", "richness", "richness_pct",
@@ -189,14 +191,36 @@ def percentile(value, others):
 
 # ---------------------------------------------------------------- the row
 
+def session_lot(day, expiry, underlying):
+    """Resolve the traded expiry's lot from that day's master, without lookahead."""
+    path = os.path.join(ROOT, 'data', 'instruments', f'{day}.json')
+    try:
+        with open(path, encoding='utf-8') as f:
+            data = json.load(f)
+        rows = data if isinstance(data, list) else data.get('instruments', [])
+        lots = {int(r.get('lot_size') or r.get('lotsize')) for r in rows
+                if r.get('name') == underlying and str(r.get('expiry', ''))[:10] == str(expiry)
+                and (r.get('lot_size') or r.get('lotsize'))}
+        if len(lots) == 1 and min(lots) > 0:
+            return lots.pop(), f'master {day}'
+    except (OSError, ValueError, TypeError):
+        pass
+    return V.DEFAULT_LOT, 'unverified fallback'
+
+
 def evaluate(day, bm, expiry, underlying, history, richness_history,
              stop_frac=STOP_FRAC, target_frac=None,
-             entry=ENTRY, exit_at=EXIT, lot=V.DEFAULT_LOT):
+             entry=ENTRY, exit_at=EXIT, lot=None):
     """One session's journal row. Open if unfinished, settled if it reached the exit."""
+    lot, lot_source = session_lot(day, expiry, underlying) if lot is None else (lot, 'explicit')
     sim = V.simulate(bm, day, expiry, width=0, entry=entry, exit_at=exit_at,
-                     stop_frac=stop_frac, target_frac=target_frac, lot=lot)
+                     stop_frac=stop_frac, target_frac=target_frac, lot=lot,
+                     costs=V.P.current_costs_for(underlying))
     if sim is None:
         return None
+    if lot_source == 'unverified fallback':
+        sim['sample_eligible'] = False
+        sim['quality_flags'].append('unverified_lot')
     rich = R.study(day, bm, expiry, entry, exit_at)
 
     att = A.attribute(sim, lot)
@@ -208,6 +232,10 @@ def evaluate(day, bm, expiry, underlying, history, richness_history,
         "date": str(day), "underlying": underlying, "expiry": str(expiry),
         "dte": sim["dte"],
         "status": "settled" if sim["complete"] else "open",
+        "sample_eligible": sim["sample_eligible"],
+        "quality_flags": ";".join(sim["quality_flags"]),
+        "cost_model": sim["cost_model"],
+        "lot_source": lot_source,
         "entry": sim["entry"], "atm": sim["atm"], "structure": "atm_straddle",
         "credit": round(sim["credit"], 2),
         "stop_level": round(sim["credit"] * (1 + stop_frac), 2),
@@ -293,7 +321,8 @@ def stop_calibration(settled):
 def upsert(rows, row):
     """Replace the row for this date, or append. An OPEN row is expected to be
     rewritten several times a session as more bars land."""
-    out = [r for r in rows if r["date"] != row["date"]]
+    out = [r for r in rows if (r["date"], r.get("underlying", "NIFTY"))
+           != (row["date"], row.get("underlying", "NIFTY"))]
     out.append(row)
     return out
 
@@ -388,21 +417,39 @@ def overnight_study(underlying, entry=ENTRY, exit_at=EXIT):
 SAMPLE_FLOOR = 40       # sessions before the MEAN of a skewed payoff means much
 
 
-def summary_data(rows):
+def clean_sample(row):
+    """Legacy rows lack coverage verification: preserve, never silently certify."""
+    return (row.get("sample_eligible") in (True, "True", "true", "1", 1)
+            and row.get("entry") == ENTRY and row.get("status") == "settled")
+
+
+def summary_data(rows, clean_only=False):
     """The journal's headline numbers, as data. One implementation for the
     terminal and the page, so they can never disagree."""
-    settled = [r for r in rows if r["status"] == "settled"]
+    settled = [r for r in rows if r["status"] == "settled"
+               and (not clean_only or clean_sample(r))]
     out = {"journalled": len(rows), "settled": len(settled),
            "floor": SAMPLE_FLOOR,
            "remaining": max(0, SAMPLE_FLOOR - len(settled))}
+    if not clean_only:
+        out["clean_sample"] = summary_data(rows, clean_only=True)
+        out["unverified_or_excluded"] = len(settled) - out["clean_sample"]["settled"]
     if not settled:
         return out
     nets = [float(r["net_rs"]) for r in settled]
+    winners = [v for v in nets if v > 0]
+    losers = [v for v in nets if v < 0]
+    avg_win = sum(winners) / len(winners) if winners else 0
+    avg_loss = -sum(losers) / len(losers) if losers else 0
     ratios = [float(r["ratio"]) for r in settled if r["ratio"]]
     out.update({
         "median_net": round(R.med(nets), 0),
         "mean_net": round(sum(nets) / len(nets), 0),
         "total_net": round(sum(nets), 0),
+        "average_win": round(avg_win, 2),
+        "average_loss": round(avg_loss, 2),
+        "profit_factor": sum(winners) / -sum(losers) if losers else None,
+        "break_even_win_rate": avg_loss / (avg_win + avg_loss) if avg_win + avg_loss else None,
         "wins": sum(1 for v in nets if v > 0),
         "stops": sum(1 for r in settled if r["exit_reason"] == "stop"),
         # Realised stop rate with a Wilson 95% interval, beside the mean of
@@ -480,7 +527,7 @@ def main():
     # sessions BEFORE the one being scored -- otherwise today's score is
     # computed partly from today, which is not information you had at 09:20.
     history, rich_hist = [], []
-    kept = {r["date"]: r for r in rows}
+    kept = {(r["date"], r.get("underlying", "NIFTY")): r for r in rows}
     for d in V.sessions(und):
         bm, exp, err = V.load(d, und)
         if err:
@@ -489,13 +536,24 @@ def main():
             row = evaluate(d, bm, exp, und, history, rich_hist,
                            stop_frac=stop_frac, target_frac=target_frac)
             if row:
-                kept[row["date"]] = row
+                kept[(row["date"], row["underlying"])] = row
                 print(f"  {d}  {row['status']:<8} credit {row['credit']:>7.2f}  "
                       f"richness {row['richness'] or '-':>5}  "
                       f"{row['exit_reason']:>6} @ {row['exit']}  "
                       f"net Rs {row['net_rs']:>8}")
+            # New rules have their own prospective journal; never relabel the
+            # old unconditional baseline's history as spread-policy trades.
+            if und == 'NIFTY':
+                import daily_spread_policy as SP
+                size, source = session_lot(d, exp, und)
+                spread = SP.simulate(bm, d, exp, lot=size, underlying=und)
+                spread['lot_source'] = source
+                if source == 'unverified fallback':
+                    spread['sample_eligible'] = False
+                    spread['quality_flags'].append('unverified_lot')
+                SP.persist(spread)
         r = R.study(d, bm, exp, ENTRY, EXIT)
-        if r and max(bm) >= EXIT:
+        if r and r.get("history_eligible"):
             history.append(r["rv15"])
             _, sc = richness_score(r["implied"], history[:-1])
             if sc:

@@ -1,0 +1,11 @@
+# Confirmation research protocol
+
+Frozen before running the new candidate replay. Research only; no broker orders or active-policy replacement.
+
+Opening range uses parity forwards at each minute 09:20–09:44. Continuation requires two consecutive completed minute observations outside the same range boundary. Failed-break reversal requires an outside observation followed by a return strictly inside the range; direction is opposite the failed break. Scan 09:45–13:29; act at the following minute, never at the signal minute. At 13:29, if no qualifying event exists, use the sign of the latest forward minus the opening-range midpoint as an explicitly labelled daily fallback. Zero chooses call, a declared arbitrary tie rule. Select ATM at signal time. Exit by 15:00. No re-entry.
+
+Fixed comparisons: existing opening-direction baseline, baseline without target, continuation without target, failed-break reversal without target. Stop remains 35% of entry debit, net of estimated fees; no optimized threshold grid. Compare each entry using a two-strike-step debit spread and a single long option. One instrument-master lot; also report net return divided by full premium risk. Risk-normalized returns are analytical comparisons, not executable equal-risk sizing when lots are indivisible. Hard account limits are required before sizing or live use.
+
+Scenarios: recorded bid/ask, one extra adverse point per leg per side, and one additional minute of execution delay. All exits use observed bid/ask, fees and first observed net stop breach. No same-minute stop/entry execution. Missing/stale quotes or inadequate displayed size invalidate eligibility; report every recorded date and failure. Signal forwards require fresh valid CE/PE quotes at the selected parity ATM. All minutes through the selected signal must exist. Missing held quotes invalidate a result even if a later exit is available.
+
+The 34 previously studied days are development data, not a holdout. Report common-date paired results, eligible coverage, fallback contribution and earlier/later stability. Do not deploy the best historical result automatically. Fresh data, execution resilience and positive net performance under stress remain necessary. Daily participation is an objective subject to data, execution and risk availability, not permission to trade blindly.

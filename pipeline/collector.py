@@ -2,7 +2,6 @@
 import os, sys, time, glob, signal, threading, random
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
-from kiteconnect import KiteTicker
 from session import get_kite
 from aggregator import Aggregator
 from writer import BarWriter, load_instrument_map
@@ -10,6 +9,77 @@ import market
 import notify
 
 RUNNING = True
+
+# Kite refuses more than this many instruments on ONE websocket ("Can't
+# subscribe to more than 4000 instruments") and allows up to 3 websockets per
+# API key. The universe (5 NIFTY + 3 BANKNIFTY + 2 SENSEX expiries, plus the
+# stock layer) is over 6,000, so it is split across connections. 3,500 per
+# connection stays clear of the 4,000 Kite reports and needs only two
+# connections for today's ~6,100, leaving the third spare.
+SHARD_SIZE = 3500
+MAX_CONNECTIONS = 3
+
+
+def plan_shards(tokens, size=SHARD_SIZE, most=MAX_CONNECTIONS):
+    """Split tokens into at most `most` lists of at most `size`. Anything past
+    most*size is dropped and reported -- instruments.py keeps the universe
+    under that cap, so this is a last line of defence, not the plan."""
+    tokens = list(tokens)
+    shards = [tokens[i:i + size] for i in range(0, len(tokens), size)]
+    dropped = sum(len(x) for x in shards[most:])
+    return shards[:most], dropped
+
+
+def open_connections(api_key, access_token, shards, stk_set, on_ticks, log=print,
+                     ticker_cls=None, reactor=None, on_reconnect=None, full_set=frozenset()):
+    """One KiteTicker per shard, all feeding the same on_ticks.
+
+    The first connect() starts Twisted's reactor in a background thread; the
+    rest are handed to that thread with callFromThread, because Twisted is not
+    thread-safe and a second connect() racing the first can try to start a
+    second reactor."""
+    if ticker_cls is None:
+        from kiteconnect import KiteTicker as ticker_cls
+    if reactor is None:
+        from twisted.internet import reactor
+    conns = []
+    for n, shard in enumerate(shards, 1):
+        kws = ticker_cls(api_key, access_token)
+        # FULL for options AND stock futures: Kite only sends open interest in
+        # full-mode packets, and futures OI is the whole point of the OI page
+        # (12 Nov ran futures in QUOTE mode: every build-up count came back 0).
+        # Cash shares have no OI, so they stay in the lighter QUOTE mode.
+        opt = [t for t in shard if t not in stk_set or t in full_set]
+        stk = [t for t in shard if t in stk_set and t not in full_set]
+
+        def on_connect(ws, response, shard=shard, opt=opt, stk=stk, n=n):
+            log(f"connection {n}/{len(shards)}: subscribing to {len(shard):,} instruments")
+            ws.subscribe(shard)
+            if opt:
+                ws.set_mode(ws.MODE_FULL, opt)
+            if stk:
+                ws.set_mode(ws.MODE_QUOTE, stk)
+
+        kws.on_ticks = on_ticks
+        kws.on_connect = on_connect
+        def _recon(ws, attempt, n=n):
+            if on_reconnect:
+                on_reconnect()
+            log(f"connection {n}: reconnecting, attempt {attempt}")
+        kws.on_reconnect = _recon
+        kws.on_error = lambda ws, code, reason, n=n: log(f"connection {n}: error {code}: {reason}")
+        kws.on_close = lambda ws, code, reason, n=n: log(f"connection {n}: closed {code}: {reason}")
+        conns.append(kws)
+    for i, kws in enumerate(conns):
+        if i == 0:
+            kws.connect(threaded=True)
+            for _ in range(100):                     # up to 10 s for the reactor to come up
+                if reactor.running:
+                    break
+                time.sleep(0.1)
+        else:
+            reactor.callFromThread(kws.connect, threaded=True)
+    return conns
 
 
 def _stop(*_):
@@ -31,7 +101,14 @@ def run_live(dry_run=False):
     path = latest_instrument_file()
     imap = load_instrument_map(path)
     tokens = list(imap)
-    print(f"instruments : {len(tokens):,} from {path}")
+    # Options and indices keep their tier and FULL mode (depth = bid/ask).
+    # Stocks go to their own tier in QUOTE mode: price, volume and OI is all
+    # the market pages need, at a fraction of FULL's bandwidth.
+    stk_map = {t: m for t, m in imap.items() if m.get("kind") in ("stock", "stock_fut")}
+    opt_map = {t: m for t, m in imap.items() if t not in stk_map}
+    opt_tokens, stk_tokens = list(opt_map), list(stk_map)
+    print(f"instruments : {len(tokens):,} from {path} "
+          f"({len(opt_tokens):,} options/indices, {len(stk_tokens):,} stocks)")
 
     get_kite()                       # validates or refreshes the token
     load_dotenv()
@@ -50,11 +127,10 @@ def run_live(dry_run=False):
     # per underlying instead of 75. api.read_parts caches each part by
     # (mtime, size) and re-reads only what changed, so a longer list of
     # already-read files costs a stat() each, not a re-read.
-    wr = BarWriter(imap, flush_every=1)
+    wr = BarWriter(opt_map, flush_every=1)
+    wr_stk = BarWriter(stk_map, tier="stocks_1m", flush_every=1)
     lock = threading.Lock()
     stats = {"ticks": 0, "bars": 0, "reconnects": 0}
-
-    kws = KiteTicker(os.environ["KITE_API_KEY"], access_token)
 
     def on_ticks(ws, ticks):
         stats["ticks"] += len(ticks)
@@ -62,28 +138,14 @@ def run_live(dry_run=False):
             for t in ticks:
                 agg.add_tick(t)
 
-    def on_connect(ws, response):
-        print(f"connected - subscribing to {len(tokens):,} instruments")
-        ws.subscribe(tokens)
-        ws.set_mode(ws.MODE_FULL, tokens)
-
-    def on_reconnect(ws, attempt):
+    shards, dropped = plan_shards(tokens)
+    print(f"websockets  : {len(shards)} connection(s) of up to {SHARD_SIZE:,}"
+          + (f" -- WARNING {dropped:,} instruments over the cap, not subscribed" if dropped else ""))
+    def bump():
         stats["reconnects"] += 1
-        print(f"reconnecting, attempt {attempt}")
-
-    def on_error(ws, code, reason):
-        print(f"error {code}: {reason}")
-
-    def on_close(ws, code, reason):
-        print(f"closed {code}: {reason}")
-
-    kws.on_ticks = on_ticks
-    kws.on_connect = on_connect
-    kws.on_reconnect = on_reconnect
-    kws.on_error = on_error
-    kws.on_close = on_close
-
-    kws.connect(threaded=True)
+    futs = {t for t, m in stk_map.items() if m.get("kind") == "stock_fut"}
+    conns = open_connections(os.environ["KITE_API_KEY"], access_token, shards,
+                             set(stk_tokens), on_ticks, on_reconnect=bump, full_set=futs)
 
     idle_announced = False
     while RUNNING:
@@ -107,7 +169,11 @@ def run_live(dry_run=False):
         stats["bars"] += len(bars)
         interp = sum(1 for b in bars if b["is_interpolated"])
         if not dry_run:
-            wr.add(bars)
+            wr.add(bars)          # each writer keeps only the tokens in its map
+            try:
+                wr_stk.add(bars)
+            except Exception as e:  # noqa: BLE001 -- stocks must never stop the chains
+                print(f"WARNING stock bars not written: {type(e).__name__}: {e}")
         print(f"{bar_ts:%H:%M}Z  bars={len(bars):>5,}  interp={interp:>5,}  "
               f"ticks={stats['ticks']:>9,}")
         notify.heartbeat(ts=bar_ts, bars=len(bars), interpolated=interp,
@@ -117,10 +183,15 @@ def run_live(dry_run=False):
     print("final flush")
     if not dry_run:
         wr.flush()
-    try:
-        kws.close()
-    except Exception:
-        pass
+        try:
+            wr_stk.flush()
+        except Exception as e:  # noqa: BLE001
+            print(f"WARNING stock flush failed: {type(e).__name__}: {e}")
+    for kws in conns:
+        try:
+            kws.close()
+        except Exception:
+            pass
     print(f"done  ticks={stats['ticks']:,}  bars={stats['bars']:,}  "
           f"reconnects={stats['reconnects']}")
 

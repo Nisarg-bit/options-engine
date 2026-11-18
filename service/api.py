@@ -1658,11 +1658,22 @@ def api_journal(limit: int = 400):
 # file quietly removed the routes again.
 import daytrade_api                                          # noqa: E402
 import series_api                                            # noqa: E402
+import pulse_api                                             # noqa: E402
+import options_view_api                                      # noqa: E402
+import paper_book_api                                        # noqa: E402
 import term_api                                              # noqa: E402
 
 app.include_router(series_api.router)
 app.include_router(daytrade_api.router)
+app.include_router(pulse_api.router)
+app.include_router(options_view_api.router)
+app.include_router(paper_book_api.router)
 app.include_router(term_api.router)
+try:                                                         # stock-futures paper system (futures/)
+    import sf_api                                            # noqa: E402
+    app.include_router(sf_api.make_router())
+except ImportError:                                          # not deployed on this box
+    pass
 
 
 # ---------------------------------------------------------------------- web

@@ -103,6 +103,7 @@ tracking/   journals, paper books, shadow candidates, post-mortems
 service/    FastAPI endpoints, Firebase publisher, outside-market feed
 research/   studies, backtests, calibrations and the ten-year replay
 tools/      fixture builder and page render checks
+futures/    stock-futures paper system: seven agents, SQLite event store, paper broker, replay
 tests/      540+ pytest tests
 deploy/     systemd units and install scripts
 firebase/   the dashboard (single-page app) and database rules
@@ -137,6 +138,197 @@ BACKUP_BUCKET=s3://your-bucket
 
 Server setup is in [`infra/SETUP.md`](infra/SETUP.md) and the systemd units and install
 scripts are in [`deploy/`](deploy/). Market data from Kite Connect and NSE is not included.
+
+## Stock futures paper system
+
+A Stock Futures workspace for NSE single-stock futures (FUTSTK) with two
+independently configured modes, **Intraday** and **Swing**, each able to go
+long or short. **Paper trading and replay only:** no broker orders, no cash
+equity, index futures, options orders or rollovers. Code is in
+[`futures/`](futures/), tests in
+[`tests/test_stock_futures.py`](tests/test_stock_futures.py), and the page is
+[`firebase/public/futures.js`](firebase/public/futures.js).
+
+```
+ScanRequested → 1 Market regime → 2 Sector ranking → 3 Stock screening → 4 Nifty Desk verification
+  → 5 Futures contract + paper entry (exactly 1 lot) → 6 Position monitor (+ optional override) → 7 Paper exit + journal
+```
+
+The agents are deterministic code. They run concurrently as backend workers
+(one thread each) and talk only through typed, durable events in one SQLite
+file (`data/futures/futures.db`). Every event carries a unique id, the schema
+version, scan id, trade id, mode, config version, direction, producer,
+instrument id and event time. Each step commits its state change, its output
+events and the mark that its input was handled in **one** transaction, so a
+retry or a duplicate cannot apply it twice. Restarting picks up open
+positions, pending orders, approvals, reservations and unresolved exits. Shutting
+the dashboard does not stop the worker.
+
+Direction is explicit everywhere. **LONG opens with BUY and closes with SELL.
+SHORT opens with SELL and closes with BUY to cover.** The position monitor
+prices a long off the bid and a short off the ask (the side that can actually
+close it). Stocks are chosen and verified on the underlying share's data. The
+futures contract's own quotes and metadata are used to open, mark and close.
+
+### Running it locally
+
+```bash
+pip install -r requirements.txt
+pytest -q tests/test_stock_futures.py          # 43 acceptance tests, synthetic fixtures
+
+# Fixture demos (synthetic data, injected clock, labelled FIXTURE)
+python futures/sf_cli.py demo --scenario bullish        --mode intraday   # LONG: BUY then SELL
+python futures/sf_cli.py demo --scenario bearish        --mode intraday   # SHORT: SELL then BUY to cover
+python futures/sf_cli.py demo --scenario swing-bullish  --mode swing      # holds over the weekend and the 24 Nov holiday
+python futures/sf_cli.py demo --scenario swing-bearish  --mode swing      # short gaps up through its stop
+python futures/sf_cli.py demo --scenario sideways       --mode both       # no entries
+python futures/sf_cli.py demo --scenario bullish --mode intraday --until 10:52 --out firebase/public/futures-demo.json
+
+# Replay one collected session from the repo's own data (point-in-time reads, labelled REPLAY)
+python futures/sf_cli.py replay --source repo --date 2026-11-12 --mode intraday
+python futures/sf_cli.py replay --source repo --date 2026-11-12 --mode swing
+
+# Live paper worker (real clock, repo data). Entries stay disabled until configured; see below.
+python futures/sf_cli.py worker --source repo --mode both
+python futures/sf_cli.py status
+python futures/sf_cli.py pause --scope global --on        # or --scope intraday|swing, --off
+```
+
+The page shows `/futures-demo.json` under a FIXTURE banner until the worker has
+published real data. To view it locally, run
+`python -m http.server 8765 --directory firebase/public` and open
+`http://localhost:8765/#sfut`.
+
+### Configuration
+
+[`futures/config/default.json`](futures/config/default.json) is versioned.
+Each config is stored in the database under a content hash. Every scan and
+trade records the version it used, and an open position keeps its version and
+exit plan until it closes. Edits only affect future trades, unless an
+authorised override changes one trade's active plan. The shipped rules are
+**labelled demo examples** (`"label": "DEMO EXAMPLE RULES…"`,
+`"rules_validated": false`).
+
+```jsonc
+"profiles": {
+  "intraday": {
+    "benchmark": "NIFTY 50", "scan_cadence_s": 300, "candidate_ttl_s": 240, "max_data_age_s": 180,
+    "entry_window": ["09:45", "14:30"], "exit_deadline": "15:15",
+    "regime": { "lookback": {"basis": "current_session", "minutes": 30},
+                "rules": [{"regime": "BULLISH", "all": [["benchmark_return_pct", ">", 0.25], ["close_vs_sma_pct", ">", 0], ["breadth_ratio", ">", 0.1]]},
+                          {"regime": "BEARISH", "all": [["benchmark_return_pct", "<", -0.25], ...]}] },
+    "direction_map": {"BULLISH": ["LONG"], "BEARISH": ["SHORT"], "SIDEWAYS": [], "UNAVAILABLE": []},
+    "sector": {"require_absolute": true, "require_relative": true, "min_coverage": 0.6, "top_n": 3},
+    "stock":  {"top_n": 5, "long": {"all": [["return_pct", ">", 0.3], ["rel_return_pct", ">", 0]]}, "short": {...}},
+    "verification": {"long": {"all": [["turnover_rs", ">=", 5e7], ["money_flow_net_rs", ">", 0], ["oi_change_pct", ">", -5]]}, ...},
+    "contract": {"expiry_preference": "nearest_eligible", "max_spread_ticks": 20, "min_top_qty_lots": 1},
+    "approval": {"entry_required": false, "entry_window_s": 120},
+    "override": {"enabled": true, "response_window_s": 300, "allowed": ["stop", "target"]},
+    "exit_plan": {"stop": {"basis": "pct", "value": 1.0}, "target": {"basis": "pct", "value": 1.5}, "hard_max_stop_pct": 2.5,
+                  "missing_quote_policy": "retry_until_quote", "cutoff_grace_s": 600}
+  },
+  "swing": { "regime": {"lookback": {"basis": "completed_daily", "sessions": 5}}, "entry_window": ["14:30", "15:10"],
+             "contract": {"pre_expiry_buffer_sessions": 1},
+             "exit_plan": {"stop": {"basis": "pct", "value": 3.0}, "target": {"basis": "pct", "value": 6.0},
+                           "max_holding_sessions": 5, "holding_count": "sessions_after_entry", "session_exit_time": "15:15"} }
+},
+"shared": { "mode_priority": ["intraday", "swing"], "one_position_per_underlying": true, "max_open_positions": 4,
+            "max_gross_notional_rs": 6000000, "margin_pct_estimate": 0.20, "margin_budget_rs": 1200000, "daily_loss_limit_rs": 50000,
+            "fill_policy": {"slippage_ticks": 1, "max_quote_age_s": 90, "partial_fills": false, "granularity": "lot",
+                            "bar_model": "next_bar_open/1", "bar_ambiguity": "stop_first"},
+            "exit_precedence": ["hard_risk", "stop", "pre_expiry_deadline", "intraday_deadline", "max_holding", "invalidation", "target"],
+            "costs": {"brokerage_per_order_rs": 20, "stt_sell_pct": 0.02, "exchange_txn_pct": 0.00173, "stamp_buy_pct": 0.002, "gst_pct": 18} }
+```
+
+Rules that are fixed in code, whatever the config says:
+- An entry is always one lot of the resolved contract. If one lot breaks a
+  limit (open positions, notional, estimated margin, daily loss, entry
+  window), the entry is skipped and the next candidate is tried. The size is
+  never cut.
+- Only one active entry or position per underlying across both modes and
+  directions. This is enforced by a database key, so a signal in the other
+  direction can neither open a second position nor reverse an open one. When
+  the two modes compete in the same scan time, the mode listed first in
+  `mode_priority` reaches the entry agent first.
+- Fills: BUY at the ask plus slippage, rounded up to the tick. SELL at the bid
+  minus slippage, rounded down. No fill from a stale, missing, one-sided or
+  crossed quote. A close can never fill more than the open quantity. Bar-only
+  replay uses a separately named model (`next_bar_open/1`). If one bar spans
+  both the stop and the target, the stop is assumed to come first.
+- Swing: a contract qualifies only if the sessions left before its pre-expiry
+  deadline cover the planned hold. That deadline is `pre_expiry_buffer_sessions`
+  sessions before the expiry session (the session before, if expiry falls on a
+  holiday), at `session_exit_time`. Sessions held are counted as exchange
+  sessions after the entry session. Gaps exit at the first eligible quote, and
+  the trigger price and fill price are recorded separately. No settlement is
+  invented and nothing is rolled.
+- Intraday: at the exit deadline, any unfilled entry quantity is cancelled and
+  the filled position is closed. If no usable quote arrives within
+  `cutoff_grace_s`, the trade is marked `intraday_cutoff_exception` and kept
+  out of settled P&L. It is not relabelled as Swing and no fill is invented.
+
+### Data adapters and the connections current-session paper trading needs
+
+[`futures/sf_data.py`](futures/sf_data.py) defines `FixtureData` (synthetic
+scenarios) and `RepoData`, which reads the site's own stores. Every record has
+a source timestamp and an `available_at` time. `PointInTime` raises an error
+if any record is returned before it was available, so replay cannot look
+ahead.
+
+| Feed (`live.required_feeds`) | Where it comes from now | What is missing for current-session paper entries |
+|---|---|---|
+| `benchmark_bars` | `data/bars_1m/date=*/underlying=INDEX` (`NIFTY 50`) | Nothing for Intraday. Swing builds daily bars from collected sessions, so it needs ≥ 6 collected sessions. |
+| `stock_bars` | `data/stocks_1m/…/underlying=EQ` (collector, QUOTE mode) | Nothing, once the stock layer runs (STOCKS≠0). |
+| `sector_map` | `data/sectors.json` (`pipeline/sectors.py`). `Others` is treated as unresolved and excluded. | Nothing. Sector indices are not collected, so sector returns are aggregated from constituents (labelled on the page). |
+| `futstk_master` | `data/instruments/<day>.json` (`kind: stock_fut`) | **`tick_size`**: `pipeline/instruments.py` now writes it on the next master build. Until a master has it, contracts are rejected. **Only the nearest expiry is collected**, so Swing cannot choose next month. To allow that, add further FUTSTK expiries to `choose_stocks`, which costs extra websocket tokens. Listing/trading status is assumed `listed` because Kite's dump has no status field. |
+| `futstk_quotes` | `data/stocks_1m/…/underlying=STKFUT` bid/ask/qty (FULL-mode depth, last value of each minute) | Usable for minute-level paper fills. Tick-level quotes would need a quote recorder. |
+| `desk_snapshot` | Recomputed from the same `stocks_1m` bars via `quant/market_pulse.py` (turnover, money-flow **estimate**, OI change) | Nothing. The page notes that screening and verification share a source. |
+
+Calendar: `exchange_calendars` XBOM (as in `pipeline/market.py`). **The
+installed version stops at 2026-12-31**, after which the code falls back to
+weekdays only. Upgrade it, or list holidays in `calendar.extra_holidays`,
+before running into 2027.
+
+Current-session entries need **all** of the following. Until then, analysis,
+monitoring and exits run, and each scan records the exact blocking reason:
+1. Your real rules in the config, with `"rules_validated": true`.
+2. `"live": {"entries_enabled": true}`.
+3. Every required feed reporting `ok`. Check with `python futures/sf_cli.py status`, or Feed health on the page.
+4. Portfolio limits and an exit plan for each mode. `validate_config` checks the structure.
+
+### Dashboard and operator access
+
+The Stock Futures tab shows, for each mode: the regime and its evidence,
+ranked sectors and stocks with pass/fail reasons, verification evidence
+(estimates and observations labelled), the chosen contract, the no-trade
+reason, feed health, pending approvals, orders, fills and positions (direction,
+order purpose, lots, units, active exit rules, Intraday deadline, Swing session
+count and pre-expiry deadline, overnight flag, unresolved exits), the agent
+timeline, and a journal with mode and direction filters and CSV export.
+
+Firebase (`/live/futures`) is **read-only**. Operator controls exist only on
+the API (`/api/futures/ops/pause|approval|override|config`). They need the
+service's existing `DASH_USER`/`DASH_PASS` Basic auth or `DASH_TOKEN`, and if
+neither is configured they refuse (403). The worker writes
+`data/futures/state.json` every 15 s. The publisher and `GET
+/api/futures/state` read that file and never open the database, because both
+units run with `ProtectSystem=strict`. **For API operator writes,** add
+`ReadWritePaths=/home/ubuntu/data/futures` to `options-api.service`. Otherwise
+use the CLI on the box. Deployment templates (not installed):
+[`deploy/options-futures.service`](deploy/options-futures.service),
+[`deploy/run_futures.sh`](deploy/run_futures.sh). On the server, copy
+`futures/*.py` into the flat folder and `futures/config/` beside them.
+
+### Operator runbook
+
+| Situation | What to do | What the system does |
+|---|---|---|
+| Stop new entries | `sf_cli.py pause --scope global --on` (or a mode), or Pause on the API page | Scans still run and show evidence. Monitoring, exits and reconciliation continue. |
+| Restart / crash | `systemctl restart options-futures` or rerun `worker` | Handlers are idempotent. Open positions, working orders, approvals, reservations and unresolved exits resume from SQLite. |
+| Feed missing or stale | Check Feed health, `status`, the collector logs | The regime becomes UNAVAILABLE, stale verification is UNAVAILABLE, no new entries. Positions are flagged `data: …` and still close on time rules. |
+| Unresolved exit | Find rows with class `unresolved` in the journal, or `status` | Intraday `retry_until_quote` keeps the close order working and fills when a quote returns (the trade is then `excluded`, not settled). `manual` cancels it, sets UNRESOLVED and waits for you. Swing past expiry is set UNRESOLVED with no settlement. Reconcile by hand and record the outcome in your notes. |
+| Override an exit | API page → Positions → Override exit, before the deadline | Checks side, the hard risk limit, the pre-expiry deadline and the deadline itself, and is audited. Late, invalid or post-claim overrides are refused and the default plan stays. |
+| Event keeps failing | `dead_letters` in the state / `failures` table | An event that fails 5 times stops being retried. Fix the cause, then delete its `failures` row to retry it. |
 
 ## Roadmap
 

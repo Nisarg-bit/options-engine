@@ -37,7 +37,7 @@ router = APIRouter()
 # coincidence of how the service happens to be started.
 _ROOT = project_paths.ROOT
 V.BARS = os.path.join(_ROOT, "data", "bars_1m")
-D.JOURNAL = os.path.join(_ROOT, "data", "journal", "intraday_trades.csv")
+D.JOURNAL = os.path.join(_ROOT, "data", "journal", "intraday_trades_v2.csv")
 
 MAX_JOURNAL_ROWS = 120
 
@@ -72,7 +72,7 @@ def _stats(day, underlying):
         rich = R.study(day, bm, exp, D.ENTRY, D.EXIT)
         val = {
             "date": day, "expiry": exp,
-            "complete": max(bm) >= D.EXIT,
+            "complete": bool(rich and rich.get("history_eligible")),
             "first_fwd": V.forward(bm[min(bm)]),
             "last_fwd": V.forward(bm[max(bm)]),
             "implied": rich["implied"] if rich else None,
@@ -92,6 +92,15 @@ def _today_row(day, underlying, history, rich_hist):
     bm, exp, err = V.load(day, underlying)
     row = None if err or not bm else D.evaluate(day, bm, exp, underlying,
                                                 history, rich_hist)
+    if row is not None and underlying == 'NIFTY':
+        import daily_spread_policy as SP
+        size, source = D.session_lot(day, exp, underlying)
+        spread = SP.simulate(bm, day, exp, lot=size, underlying=underlying)
+        spread['lot_source'] = source
+        if source == 'unverified fallback':
+            spread['sample_eligible'] = False
+            spread['quality_flags'].append('unverified_lot')
+        row = {**row, 'experimental_spread': spread}
     _cache[key] = (sig, row)
     return row
 
@@ -157,7 +166,8 @@ def api_daytrade(underlying: str = "NIFTY", compact: int = 0,
     if row is None:
         raise HTTPException(404, f"could not price {today}")
 
-    journal = D.read_journal()
+    journal = [r for r in D.read_journal()
+               if r.get("underlying", "NIFTY") == underlying]
     # The live row supersedes whatever the CSV holds for the same date -- the
     # file may have been written at 11:00 and it is now 14:30.
     journal = [r for r in journal if r["date"] != row["date"]] + [row]
@@ -171,10 +181,12 @@ def api_daytrade(underlying: str = "NIFTY", compact: int = 0,
     mark = float(row["cover"])
     out = {
         "underlying": underlying, "session": str(today),
+        "journal_version": "v2_order_costs_clock_and_coverage",
         "status": row["status"], "as_of": row["exit"],
         "today": {**row,
                   "mark": round(mark, 2),
-                  "pnl_now_rs": round(float(row["pnl_pts"]) * V.DEFAULT_LOT, 0),
+                  "pnl_now_rs": row.get("net_rs"),
+                  "gross_pnl_rs": round(float(row["pnl_pts"]) * float(row.get("lot", V.DEFAULT_LOT)), 0),
                   "to_stop_pct": round((float(row["stop_level"]) - mark) / credit, 4),
                   "stop_frac": D.STOP_FRAC},
         "summary": D.summary_data(journal),
@@ -184,10 +196,11 @@ def api_daytrade(underlying: str = "NIFTY", compact: int = 0,
             "Entry 09:20 after the opening auction settles, exit 15:15 before "
             "the closing auction. Sold at the bid, covered at the ask, so the "
             "spread is measured rather than modelled.",
-            "No profit target. With the stop at 30% of credit, a target breaks "
-            "even at a win rate of 0.30/(T+0.30) — around 15% of credit at the "
-            "observed 67%, where the median decay actually achieved is about "
-            "5%. A reachable target cannot pay for the stop.",
+            "Daily intraday paper baseline; no weekly gate is applied. One "
+            "entry per valid session, stop or 15:15 exit, no overnight position. "
+            "No profit target is assumed; alternative exits require forward testing. "
+            "Missing quotes cannot prove a fill. Clean-sample statistics exclude "
+            "unverified coverage and delayed entries. Charges are estimates.",
             "The richness score is today's implied sigma over the trailing "
             "median of REALISED volatility, not over other prices — implied is "
             "dominated by days to expiry, so a price-against-price score would "
@@ -204,4 +217,7 @@ def api_daytrade(underlying: str = "NIFTY", compact: int = 0,
         # MAX_JOURNAL_ROWS already caps it; each row is a few hundred bytes.
         out["journal"] = journal
     out["journal_total"] = len(journal)
+    if underlying == 'NIFTY':
+        import daily_spread_policy as SP
+        out['paper_policy'] = SP.payload(row.get('experimental_spread'))
     return out

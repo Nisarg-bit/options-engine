@@ -1,0 +1,266 @@
+{
+  "version": "opening_spread_v1",
+  "status": "historical_research_only",
+  "boundary": "2026-10-06",
+  "activation": "2026-10-26",
+  "excluded": [
+    {
+      "date": "2026-09-01",
+      "reason": "incomplete paired coverage",
+      "candidates": {
+        "trend": [
+          "missing_signal_window"
+        ],
+        "reversal": [
+          "missing_signal_window"
+        ],
+        "iron_fly": [
+          "missing_signal_window"
+        ],
+        "adaptive": [
+          "missing_signal_window"
+        ]
+      }
+    },
+    {
+      "date": "2026-09-23",
+      "reason": "incomplete paired coverage",
+      "candidates": {
+        "trend": [
+          "missing_signal_window"
+        ],
+        "reversal": [
+          "missing_signal_window"
+        ],
+        "iron_fly": [
+          "missing_signal_window"
+        ],
+        "adaptive": [
+          "missing_signal_window"
+        ]
+      }
+    },
+    {
+      "date": "2026-09-25",
+      "reason": "incomplete paired coverage",
+      "candidates": {
+        "trend": [
+          "missing_signal_window"
+        ],
+        "reversal": [
+          "missing_signal_window"
+        ],
+        "iron_fly": [
+          "missing_signal_window"
+        ],
+        "adaptive": [
+          "missing_signal_window"
+        ]
+      }
+    }
+  ],
+  "candidates": {
+    "trend": {
+      "earlier": {
+        "sessions": 21,
+        "net": -6606.06,
+        "mean": -314.57,
+        "max_drawdown": -6610.88,
+        "profit_factor": 0.4492270079542568,
+        "worst": -1144.2465532229999
+      },
+      "later": {
+        "sessions": 13,
+        "net": 2469.53,
+        "mean": 189.96,
+        "max_drawdown": -3757.65,
+        "profit_factor": 1.4293137315782685,
+        "worst": -1179.3272457724995
+      },
+      "all": {
+        "sessions": 34,
+        "net": -4136.53,
+        "mean": -121.66,
+        "max_drawdown": -6610.88,
+        "profit_factor": 0.7669090588814927,
+        "worst": -1179.3272457724995
+      },
+      "stress": {
+        "sessions": 34,
+        "net": -11077.77,
+        "mean": -325.82,
+        "max_drawdown": -12617.01,
+        "profit_factor": 0.48709806143989975,
+        "worst": -1286.4088980735005
+      },
+      "later_stress": {
+        "sessions": 13,
+        "net": 805.28,
+        "mean": 61.94,
+        "max_drawdown": -4609.79,
+        "profit_factor": 1.1251169393816758,
+        "worst": -1226.2042401184995
+      }
+    },
+    "reversal": {
+      "earlier": {
+        "sessions": 21,
+        "net": 3303.28,
+        "mean": 157.3,
+        "max_drawdown": -2078.6,
+        "profit_factor": 1.4548323118317117,
+        "worst": -1216.7809956385008
+      },
+      "later": {
+        "sessions": 13,
+        "net": -321.26,
+        "mean": -24.71,
+        "max_drawdown": -3853.68,
+        "profit_factor": 0.9522592596791681,
+        "worst": -1158.7855861925002
+      },
+      "all": {
+        "sessions": 34,
+        "net": 2982.02,
+        "mean": 87.71,
+        "max_drawdown": -3853.68,
+        "profit_factor": 1.2131251331238304,
+        "worst": -1216.7809956385008
+      },
+      "stress": {
+        "sessions": 34,
+        "net": -5450.72,
+        "mean": -160.32,
+        "max_drawdown": -9113.54,
+        "profit_factor": 0.7108534838165163,
+        "worst": -1237.2375335845006
+      },
+      "later_stress": {
+        "sessions": 13,
+        "net": -3789.28,
+        "mean": -291.48,
+        "max_drawdown": -5883.46,
+        "profit_factor": 0.5774517243133137,
+        "worst": -1195.6458447900004
+      }
+    },
+    "iron_fly": {
+      "earlier": {
+        "sessions": 21,
+        "net": -7696.98,
+        "mean": -366.52,
+        "max_drawdown": -7696.98,
+        "profit_factor": 0.0,
+        "worst": -854.2032796839994
+      },
+      "later": {
+        "sessions": 13,
+        "net": -4082.18,
+        "mean": -314.01,
+        "max_drawdown": -4082.18,
+        "profit_factor": 0.18854841567250757,
+        "worst": -719.6761817385
+      },
+      "all": {
+        "sessions": 34,
+        "net": -11779.16,
+        "mean": -346.45,
+        "max_drawdown": -11779.16,
+        "profit_factor": 0.07452515796945303,
+        "worst": -854.2032796839994
+      },
+      "stress": {
+        "sessions": 34,
+        "net": -27987.47,
+        "mean": -823.16,
+        "max_drawdown": -27987.47,
+        "profit_factor": 0.0,
+        "worst": -1043.9129818074987
+      },
+      "later_stress": {
+        "sessions": 13,
+        "net": -10996.57,
+        "mean": -845.89,
+        "max_drawdown": -10996.57,
+        "profit_factor": 0.0,
+        "worst": -941.0334527239993
+      }
+    },
+    "adaptive": {
+      "earlier": {
+        "sessions": 21,
+        "net": -7098.83,
+        "mean": -338.04,
+        "max_drawdown": -7098.83,
+        "profit_factor": 0.25975112129086037,
+        "worst": -1144.2465532229999
+      },
+      "later": {
+        "sessions": 13,
+        "net": 2023.77,
+        "mean": 155.67,
+        "max_drawdown": -2626.87,
+        "profit_factor": 1.4377820025821058,
+        "worst": -1179.3272457724995
+      },
+      "all": {
+        "sessions": 34,
+        "net": -5075.06,
+        "mean": -149.27,
+        "max_drawdown": -7098.83,
+        "profit_factor": 0.642917853701372,
+        "worst": -1179.3272457724995
+      },
+      "stress": {
+        "sessions": 34,
+        "net": -16499.61,
+        "mean": -485.28,
+        "max_drawdown": -16499.61,
+        "profit_factor": 0.3208892813525499,
+        "worst": -1286.4088980735005
+      },
+      "later_stress": {
+        "sessions": 13,
+        "net": -1598.4,
+        "mean": -122.95,
+        "max_drawdown": -5213.13,
+        "profit_factor": 0.7810617959517312,
+        "worst": -1132.3891535129992
+      }
+    },
+    "baseline": {
+      "earlier": {
+        "sessions": 21,
+        "net": -13224.8,
+        "mean": -629.75,
+        "max_drawdown": -18590.89,
+        "profit_factor": 0.4778668961290665,
+        "worst": -5209.9643068854975
+      },
+      "later": {
+        "sessions": 13,
+        "net": -24064.37,
+        "mean": -1851.11,
+        "max_drawdown": -29572.3,
+        "profit_factor": 0.2609208040774341,
+        "worst": -7541.642217648999
+      },
+      "all": {
+        "sessions": 34,
+        "net": -37289.17,
+        "mean": -1096.74,
+        "max_drawdown": -43144.5,
+        "profit_factor": 0.35584316702894253,
+        "worst": -7541.642217648999
+      }
+    }
+  },
+  "limitations": [
+    "Previously inspected historical data: not independent validation",
+    "One-minute quotes do not model legging, depth, latency or intraminute touches",
+    "Stress adds one premium point per leg on entry and exit; not a worst case",
+    "Same lots do not mean same capital at risk; compare payoff envelopes too"
+  ],
+  "selected_for_forward_paper": "trend",
+  "independent_validation": false
+}

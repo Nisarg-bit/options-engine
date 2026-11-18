@@ -1,0 +1,4654 @@
+{
+ "generated": "2026-11-17T10:53:00+05:30",
+ "session": "2026-11-17",
+ "config_version": 1,
+ "config_label": "DEMO EXAMPLE RULES - not a strategy. Replace before enabling current-session entries.",
+ "rules_validated": false,
+ "label": "FIXTURE DEMO - paper",
+ "live_entry_gate": null,
+ "paused_global": false,
+ "profiles": {
+  "intraday": {
+   "paused": false,
+   "regime": "BULLISH",
+   "benchmark": "NIFTY 50",
+   "cadence_s": 300,
+   "entry_window": [
+    "09:45",
+    "14:30"
+   ],
+   "exit_deadline": "15:15",
+   "direction_map": {
+    "BEARISH": [
+     "SHORT"
+    ],
+    "BULLISH": [
+     "LONG"
+    ],
+    "SIDEWAYS": [],
+    "UNAVAILABLE": []
+   },
+   "last_scan": {
+    "scan_id": "intraday-20261117-105000",
+    "status": "STOPPED",
+    "started": "2026-11-17T10:50:00+05:30",
+    "config_version": 1,
+    "regime": {
+     "evidence": {
+      "benchmark": "NIFTY 50",
+      "breadth": {
+       "advancers": 12,
+       "counted": 15,
+       "decliners": 3,
+       "ratio": 0.6,
+       "universe": 15
+      },
+      "lookback": {
+       "basis": "current_session",
+       "minutes": 30
+      },
+      "metrics": {
+       "benchmark_return_pct": 0.3172,
+       "breadth_ratio": 0.6,
+       "close_vs_sma_pct": 0.0692
+      },
+      "rules": [
+       {
+        "checks": [
+         {
+          "metric": "benchmark_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.25,
+          "value": 0.3172
+         },
+         {
+          "metric": "close_vs_sma_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.0692
+         },
+         {
+          "metric": "breadth_ratio",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.1,
+          "value": 0.6
+         }
+        ],
+        "regime": "BULLISH",
+        "status": "PASS"
+       }
+      ],
+      "source": "fixture",
+      "window": {
+       "age_s": 0.0,
+       "available_at": "2026-11-17T10:50:00+05:30",
+       "basis": "current_session",
+       "effective": "30 min",
+       "end_price": 24288.0,
+       "end_ts": "2026-11-17T10:49:00+05:30",
+       "return_pct": 0.3172,
+       "start_price": 24211.2,
+       "start_ts": "2026-11-17T10:20:00+05:30",
+       "turnover_rs": 144647452.8
+      }
+     },
+     "permitted": [
+      "LONG"
+     ],
+     "reasons": [
+      "BULLISH: BULLISH PASS"
+     ],
+     "regime": "BULLISH"
+    },
+    "sectors": {
+     "benchmark_return_pct": 0.3172,
+     "by_direction": {
+      "LONG": {
+       "assessed": [
+        {
+         "absolute_test": "PASS",
+         "breadth": {
+          "advancers": 4,
+          "decliners": 0
+         },
+         "constituents": 4,
+         "coverage": 1.0,
+         "fresh": 4,
+         "rank": 2,
+         "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +0.60% ok, relative +0.29% ok",
+         "relative_pct": 0.2859,
+         "relative_test": "PASS",
+         "result": "PASS",
+         "return_pct": 0.6031,
+         "sector": "Bank",
+         "source": "constituent_aggregation (turnover-weighted)",
+         "turnover_rs": 579907581.0
+        },
+        {
+         "absolute_test": "PASS",
+         "breadth": {
+          "advancers": 4,
+          "decliners": 0
+         },
+         "constituents": 4,
+         "coverage": 1.0,
+         "fresh": 4,
+         "rank": 1,
+         "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +1.08% ok, relative +0.76% ok",
+         "relative_pct": 0.7626,
+         "relative_test": "PASS",
+         "result": "PASS",
+         "return_pct": 1.0798,
+         "sector": "IT",
+         "source": "constituent_aggregation (turnover-weighted)",
+         "turnover_rs": 579900287.0
+        },
+        {
+         "absolute_test": "FAIL",
+         "breadth": {
+          "advancers": 0,
+          "decliners": 3
+         },
+         "constituents": 3,
+         "coverage": 1.0,
+         "fresh": 3,
+         "reason": "LONG needs positive absolute return and benchmark outperformance: absolute -0.37% fails, relative -0.69% fails",
+         "relative_pct": -0.6854,
+         "relative_test": "FAIL",
+         "result": "FAIL",
+         "return_pct": -0.3682,
+         "sector": "Metal",
+         "source": "constituent_aggregation (turnover-weighted)",
+         "turnover_rs": 434971314.0
+        },
+        {
+         "absolute_test": "PASS",
+         "breadth": {
+          "advancers": 3,
+          "decliners": 0
+         },
+         "constituents": 3,
+         "coverage": 1.0,
+         "fresh": 3,
+         "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +0.16% ok, relative -0.16% fails",
+         "relative_pct": -0.1579,
+         "relative_test": "FAIL",
+         "result": "FAIL",
+         "return_pct": 0.1593,
+         "sector": "Pharma",
+         "source": "constituent_aggregation (turnover-weighted)",
+         "turnover_rs": 434932450.0
+        }
+       ],
+       "qualifying": [
+        {
+         "absolute_test": "PASS",
+         "breadth": {
+          "advancers": 4,
+          "decliners": 0
+         },
+         "constituents": 4,
+         "coverage": 1.0,
+         "fresh": 4,
+         "rank": 1,
+         "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +1.08% ok, relative +0.76% ok",
+         "relative_pct": 0.7626,
+         "relative_test": "PASS",
+         "result": "PASS",
+         "return_pct": 1.0798,
+         "sector": "IT",
+         "source": "constituent_aggregation (turnover-weighted)",
+         "turnover_rs": 579900287.0
+        },
+        {
+         "absolute_test": "PASS",
+         "breadth": {
+          "advancers": 4,
+          "decliners": 0
+         },
+         "constituents": 4,
+         "coverage": 1.0,
+         "fresh": 4,
+         "rank": 2,
+         "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +0.60% ok, relative +0.29% ok",
+         "relative_pct": 0.2859,
+         "relative_test": "PASS",
+         "result": "PASS",
+         "return_pct": 0.6031,
+         "sector": "Bank",
+         "source": "constituent_aggregation (turnover-weighted)",
+         "turnover_rs": 579907581.0
+        }
+       ]
+      }
+     },
+     "sectors": [
+      {
+       "breadth": {
+        "advancers": 4,
+        "decliners": 0
+       },
+       "constituents": 4,
+       "coverage": 1.0,
+       "fresh": 4,
+       "return_pct": 0.6031,
+       "sector": "Bank",
+       "source": "constituent_aggregation (turnover-weighted)",
+       "turnover_rs": 579907581.0
+      },
+      {
+       "breadth": {
+        "advancers": 4,
+        "decliners": 0
+       },
+       "constituents": 4,
+       "coverage": 1.0,
+       "fresh": 4,
+       "return_pct": 1.0798,
+       "sector": "IT",
+       "source": "constituent_aggregation (turnover-weighted)",
+       "turnover_rs": 579900287.0
+      },
+      {
+       "breadth": {
+        "advancers": 0,
+        "decliners": 3
+       },
+       "constituents": 3,
+       "coverage": 1.0,
+       "fresh": 3,
+       "return_pct": -0.3682,
+       "sector": "Metal",
+       "source": "constituent_aggregation (turnover-weighted)",
+       "turnover_rs": 434971314.0
+      },
+      {
+       "breadth": {
+        "advancers": 3,
+        "decliners": 0
+       },
+       "constituents": 3,
+       "coverage": 1.0,
+       "fresh": 3,
+       "return_pct": 0.1593,
+       "sector": "Pharma",
+       "source": "constituent_aggregation (turnover-weighted)",
+       "turnover_rs": 434932450.0
+      }
+     ],
+     "unmapped": [
+      {
+       "reason": "ambiguous sector mapping",
+       "symbol": "MYSTERYCO"
+      }
+     ]
+    },
+    "candidates": {
+     "candidates": [
+      {
+       "available_at": "2026-11-17T10:50:00+05:30",
+       "bar_ts": "2026-11-17T10:49:00+05:30",
+       "checks": [
+        {
+         "metric": "return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.3,
+         "value": 1.2862
+        },
+        {
+         "metric": "rel_return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.0,
+         "value": 0.969
+        }
+       ],
+       "direction": "LONG",
+       "last_price": 1575.0,
+       "metrics": {
+        "rel_return_pct": 0.969,
+        "return_pct": 1.2862,
+        "turnover_rs": 144976550.0
+       },
+       "rank": 0,
+       "score": 0.969,
+       "sector": "IT",
+       "sector_rank": 1,
+       "symbol": "INFY",
+       "window": "30 min"
+      },
+      {
+       "available_at": "2026-11-17T10:50:00+05:30",
+       "bar_ts": "2026-11-17T10:49:00+05:30",
+       "checks": [
+        {
+         "metric": "return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.3,
+         "value": 1.0865
+        },
+        {
+         "metric": "rel_return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.0,
+         "value": 0.7693
+        }
+       ],
+       "direction": "LONG",
+       "last_price": 3542.8,
+       "metrics": {
+        "rel_return_pct": 0.7693,
+        "return_pct": 1.0865,
+        "turnover_rs": 144954970.7733
+       },
+       "rank": 1,
+       "score": 0.7693,
+       "sector": "IT",
+       "sector_rank": 1,
+       "symbol": "TCS",
+       "window": "30 min"
+      },
+      {
+       "available_at": "2026-11-17T10:50:00+05:30",
+       "bar_ts": "2026-11-17T10:49:00+05:30",
+       "checks": [
+        {
+         "metric": "return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.3,
+         "value": 1.0111
+        },
+        {
+         "metric": "rel_return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.0,
+         "value": 0.6939
+        }
+       ],
+       "direction": "LONG",
+       "last_price": 1662.3999999999999,
+       "metrics": {
+        "rel_return_pct": 0.6939,
+        "return_pct": 1.0111,
+        "turnover_rs": 144972196.3733
+       },
+       "rank": 2,
+       "score": 0.6939,
+       "sector": "IT",
+       "sector_rank": 1,
+       "symbol": "HCLTECH",
+       "window": "30 min"
+      },
+      {
+       "available_at": "2026-11-17T10:50:00+05:30",
+       "bar_ts": "2026-11-17T10:49:00+05:30",
+       "checks": [
+        {
+         "metric": "return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.3,
+         "value": 0.9353
+        },
+        {
+         "metric": "rel_return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.0,
+         "value": 0.6181
+        }
+       ],
+       "direction": "LONG",
+       "last_price": 259.0,
+       "metrics": {
+        "rel_return_pct": 0.6181,
+        "return_pct": 0.9353,
+        "turnover_rs": 144996569.8
+       },
+       "rank": 3,
+       "score": 0.6181,
+       "sector": "IT",
+       "sector_rank": 1,
+       "symbol": "WIPRO",
+       "window": "30 min"
+      },
+      {
+       "available_at": "2026-11-17T10:50:00+05:30",
+       "bar_ts": "2026-11-17T10:49:00+05:30",
+       "checks": [
+        {
+         "metric": "return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.3,
+         "value": 0.6804
+        },
+        {
+         "metric": "rel_return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.0,
+         "value": 0.3632
+        }
+       ],
+       "direction": "LONG",
+       "last_price": 1333.8,
+       "metrics": {
+        "rel_return_pct": 0.3632,
+        "return_pct": 0.6804,
+        "turnover_rs": 144977962.8844
+       },
+       "rank": 4,
+       "score": 0.3632,
+       "sector": "Bank",
+       "sector_rank": 2,
+       "symbol": "ICICIBANK",
+       "window": "30 min"
+      }
+     ],
+     "expires_at": "2026-11-17T10:54:00+05:30",
+     "rejected": [],
+     "tie_break": "sector rank, then score desc, then symbol"
+    },
+    "verification": [
+     {
+      "checks": [
+       {
+        "metric": "turnover_rs",
+        "op": ">=",
+        "result": "PASS",
+        "threshold": 50000000,
+        "value": 475000000.0
+       },
+       {
+        "metric": "money_flow_net_rs",
+        "op": ">",
+        "result": "PASS",
+        "threshold": 0,
+        "value": 142500000.0
+       },
+       {
+        "metric": "oi_change_pct",
+        "op": ">",
+        "result": "PASS",
+        "threshold": -5,
+        "value": 3.0
+       }
+      ],
+      "direction": "LONG",
+      "evidence": {
+       "age_s": 0,
+       "available_at": "2026-11-17T10:50:00+05:30",
+       "kinds": {
+        "money_flow_net_rs": "estimate",
+        "oi_change_pct": "observed",
+        "order_block_dist_pct": "pattern",
+        "turnover_rs": "observed"
+       },
+       "metrics": {
+        "money_flow_net_rs": 142500000.0,
+        "oi_change_pct": 3.0,
+        "order_block_dist_pct": 1.2,
+        "turnover_rs": 475000000.0
+       },
+       "revision": null,
+       "shared_source_with_screening": false,
+       "snapshot_ts": "2026-11-17T10:50:00+05:30",
+       "source": "fixture desk"
+      },
+      "rank": 0,
+      "reasons": [
+       "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+      ],
+      "status": "PASS",
+      "symbol": "INFY"
+     },
+     {
+      "checks": [
+       {
+        "metric": "turnover_rs",
+        "op": ">=",
+        "result": "PASS",
+        "threshold": 50000000,
+        "value": 475000000.0
+       },
+       {
+        "metric": "money_flow_net_rs",
+        "op": ">",
+        "result": "PASS",
+        "threshold": 0,
+        "value": 142500000.0
+       },
+       {
+        "metric": "oi_change_pct",
+        "op": ">",
+        "result": "PASS",
+        "threshold": -5,
+        "value": 3.0
+       }
+      ],
+      "direction": "LONG",
+      "evidence": {
+       "age_s": 0,
+       "available_at": "2026-11-17T10:50:00+05:30",
+       "kinds": {
+        "money_flow_net_rs": "estimate",
+        "oi_change_pct": "observed",
+        "order_block_dist_pct": "pattern",
+        "turnover_rs": "observed"
+       },
+       "metrics": {
+        "money_flow_net_rs": 142500000.0,
+        "oi_change_pct": 3.0,
+        "order_block_dist_pct": 1.2,
+        "turnover_rs": 475000000.0
+       },
+       "revision": null,
+       "shared_source_with_screening": false,
+       "snapshot_ts": "2026-11-17T10:50:00+05:30",
+       "source": "fixture desk"
+      },
+      "rank": 1,
+      "reasons": [
+       "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+      ],
+      "status": "PASS",
+      "symbol": "TCS"
+     },
+     {
+      "checks": [
+       {
+        "metric": "turnover_rs",
+        "op": ">=",
+        "result": "PASS",
+        "threshold": 50000000,
+        "value": 475000000.0
+       },
+       {
+        "metric": "money_flow_net_rs",
+        "op": ">",
+        "result": "PASS",
+        "threshold": 0,
+        "value": 142500000.0
+       },
+       {
+        "metric": "oi_change_pct",
+        "op": ">",
+        "result": "PASS",
+        "threshold": -5,
+        "value": 3.0
+       }
+      ],
+      "direction": "LONG",
+      "evidence": {
+       "age_s": 0,
+       "available_at": "2026-11-17T10:50:00+05:30",
+       "kinds": {
+        "money_flow_net_rs": "estimate",
+        "oi_change_pct": "observed",
+        "order_block_dist_pct": "pattern",
+        "turnover_rs": "observed"
+       },
+       "metrics": {
+        "money_flow_net_rs": 142500000.0,
+        "oi_change_pct": 3.0,
+        "order_block_dist_pct": 1.2,
+        "turnover_rs": 475000000.0
+       },
+       "revision": null,
+       "shared_source_with_screening": false,
+       "snapshot_ts": "2026-11-17T10:50:00+05:30",
+       "source": "fixture desk"
+      },
+      "rank": 2,
+      "reasons": [
+       "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+      ],
+      "status": "PASS",
+      "symbol": "HCLTECH"
+     },
+     {
+      "checks": [
+       {
+        "metric": "turnover_rs",
+        "op": ">=",
+        "result": "PASS",
+        "threshold": 50000000,
+        "value": 475000000.0
+       },
+       {
+        "metric": "money_flow_net_rs",
+        "op": ">",
+        "result": "PASS",
+        "threshold": 0,
+        "value": 142500000.0
+       },
+       {
+        "metric": "oi_change_pct",
+        "op": ">",
+        "result": "PASS",
+        "threshold": -5,
+        "value": 3.0
+       }
+      ],
+      "direction": "LONG",
+      "evidence": {
+       "age_s": 0,
+       "available_at": "2026-11-17T10:50:00+05:30",
+       "kinds": {
+        "money_flow_net_rs": "estimate",
+        "oi_change_pct": "observed",
+        "order_block_dist_pct": "pattern",
+        "turnover_rs": "observed"
+       },
+       "metrics": {
+        "money_flow_net_rs": 142500000.0,
+        "oi_change_pct": 3.0,
+        "order_block_dist_pct": 1.2,
+        "turnover_rs": 475000000.0
+       },
+       "revision": null,
+       "shared_source_with_screening": false,
+       "snapshot_ts": "2026-11-17T10:50:00+05:30",
+       "source": "fixture desk"
+      },
+      "rank": 3,
+      "reasons": [
+       "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+      ],
+      "status": "PASS",
+      "symbol": "WIPRO"
+     },
+     {
+      "checks": [
+       {
+        "metric": "turnover_rs",
+        "op": ">=",
+        "result": "PASS",
+        "threshold": 50000000,
+        "value": 475000000.0
+       },
+       {
+        "metric": "money_flow_net_rs",
+        "op": ">",
+        "result": "PASS",
+        "threshold": 0,
+        "value": 142500000.0
+       },
+       {
+        "metric": "oi_change_pct",
+        "op": ">",
+        "result": "PASS",
+        "threshold": -5,
+        "value": 3.0
+       }
+      ],
+      "direction": "LONG",
+      "evidence": {
+       "age_s": 0,
+       "available_at": "2026-11-17T10:50:00+05:30",
+       "kinds": {
+        "money_flow_net_rs": "estimate",
+        "oi_change_pct": "observed",
+        "order_block_dist_pct": "pattern",
+        "turnover_rs": "observed"
+       },
+       "metrics": {
+        "money_flow_net_rs": 142500000.0,
+        "oi_change_pct": 3.0,
+        "order_block_dist_pct": 1.2,
+        "turnover_rs": 475000000.0
+       },
+       "revision": null,
+       "shared_source_with_screening": false,
+       "snapshot_ts": "2026-11-17T10:50:00+05:30",
+       "source": "fixture desk"
+      },
+      "rank": 4,
+      "reasons": [
+       "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+      ],
+      "status": "PASS",
+      "symbol": "ICICIBANK"
+     }
+    ],
+    "rejections": [
+     {
+      "rank": 0,
+      "reason": "limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+      "symbol": "INFY"
+     },
+     {
+      "rank": 1,
+      "reason": "limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+      "symbol": "TCS"
+     },
+     {
+      "rank": 2,
+      "reason": "limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+      "symbol": "HCLTECH"
+     },
+     {
+      "rank": 3,
+      "reason": "limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+      "symbol": "WIPRO"
+     },
+     {
+      "rank": 4,
+      "reason": "limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+      "symbol": "ICICIBANK"
+     }
+    ],
+    "contract": null,
+    "trade_id": null,
+    "no_trade_reason": "no candidate could be entered (every ranked candidate was tried; last rejection: limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped)",
+    "timeline": [
+     {
+      "seq": 264,
+      "type": "ScanRequested",
+      "agent": "scheduler",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": null,
+      "instrument_id": null,
+      "summary": "",
+      "evidence": {
+       "as_of": "2026-11-17T10:50:00+05:30"
+      }
+     },
+     {
+      "seq": 265,
+      "type": "RegimeClassified",
+      "agent": "1-market-regime",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": null,
+      "instrument_id": null,
+      "summary": "BULLISH -> permitted LONG",
+      "evidence": {
+       "evidence": {
+        "benchmark": "NIFTY 50",
+        "breadth": {
+         "advancers": 12,
+         "counted": 15,
+         "decliners": 3,
+         "ratio": 0.6,
+         "universe": 15
+        },
+        "lookback": {
+         "basis": "current_session",
+         "minutes": 30
+        },
+        "metrics": {
+         "benchmark_return_pct": 0.3172,
+         "breadth_ratio": 0.6,
+         "close_vs_sma_pct": 0.0692
+        },
+        "rules": [
+         {
+          "checks": [
+           {
+            "metric": "benchmark_return_pct",
+            "op": ">",
+            "result": "PASS",
+            "threshold": 0.25,
+            "value": 0.3172
+           },
+           {
+            "metric": "close_vs_sma_pct",
+            "op": ">",
+            "result": "PASS",
+            "threshold": 0.0,
+            "value": 0.0692
+           },
+           {
+            "metric": "breadth_ratio",
+            "op": ">",
+            "result": "PASS",
+            "threshold": 0.1,
+            "value": 0.6
+           }
+          ],
+          "regime": "BULLISH",
+          "status": "PASS"
+         }
+        ],
+        "source": "fixture",
+        "window": {
+         "age_s": 0.0,
+         "available_at": "2026-11-17T10:50:00+05:30",
+         "basis": "current_session",
+         "effective": "30 min",
+         "end_price": 24288.0,
+         "end_ts": "2026-11-17T10:49:00+05:30",
+         "return_pct": 0.3172,
+         "start_price": 24211.2,
+         "start_ts": "2026-11-17T10:20:00+05:30",
+         "turnover_rs": 144647452.8
+        }
+       },
+       "permitted": [
+        "LONG"
+       ],
+       "reasons": [
+        "BULLISH: BULLISH PASS"
+       ],
+       "regime": "BULLISH"
+      }
+     },
+     {
+      "seq": 266,
+      "type": "SectorsRanked",
+      "agent": "2-sector-ranking",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": null,
+      "instrument_id": null,
+      "summary": "LONG: 1.IT +1.08% (rel +0.76), 2.Bank +0.60% (rel +0.29)",
+      "evidence": {
+       "benchmark_return_pct": 0.3172,
+       "by_direction": {
+        "LONG": {
+         "assessed": [
+          {
+           "absolute_test": "PASS",
+           "breadth": {
+            "advancers": 4,
+            "decliners": 0
+           },
+           "constituents": 4,
+           "coverage": 1.0,
+           "fresh": 4,
+           "rank": 2,
+           "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +0.60% ok, relative +0.29% ok",
+           "relative_pct": 0.2859,
+           "relative_test": "PASS",
+           "result": "PASS",
+           "return_pct": 0.6031,
+           "sector": "Bank",
+           "source": "constituent_aggregation (turnover-weighted)",
+           "turnover_rs": 579907581.0
+          },
+          {
+           "absolute_test": "PASS",
+           "breadth": {
+            "advancers": 4,
+            "decliners": 0
+           },
+           "constituents": 4,
+           "coverage": 1.0,
+           "fresh": 4,
+           "rank": 1,
+           "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +1.08% ok, relative +0.76% ok",
+           "relative_pct": 0.7626,
+           "relative_test": "PASS",
+           "result": "PASS",
+           "return_pct": 1.0798,
+           "sector": "IT",
+           "source": "constituent_aggregation (turnover-weighted)",
+           "turnover_rs": 579900287.0
+          },
+          {
+           "absolute_test": "FAIL",
+           "breadth": {
+            "advancers": 0,
+            "decliners": 3
+           },
+           "constituents": 3,
+           "coverage": 1.0,
+           "fresh": 3,
+           "reason": "LONG needs positive absolute return and benchmark outperformance: absolute -0.37% fails, relative -0.69% fails",
+           "relative_pct": -0.6854,
+           "relative_test": "FAIL",
+           "result": "FAIL",
+           "return_pct": -0.3682,
+           "sector": "Metal",
+           "source": "constituent_aggregation (turnover-weighted)",
+           "turnover_rs": 434971314.0
+          },
+          {
+           "absolute_test": "PASS",
+           "breadth": {
+            "advancers": 3,
+            "decliners": 0
+           },
+           "constituents": 3,
+           "coverage": 1.0,
+           "fresh": 3,
+           "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +0.16% ok, relative -0.16% fails",
+           "relative_pct": -0.1579,
+           "relative_test": "FAIL",
+           "result": "FAIL",
+           "return_pct": 0.1593,
+           "sector": "Pharma",
+           "source": "constituent_aggregation (turnover-weighted)",
+           "turnover_rs": 434932450.0
+          }
+         ],
+         "qualifying": [
+          {
+           "absolute_test": "PASS",
+           "breadth": {
+            "advancers": 4,
+            "decliners": 0
+           },
+           "constituents": 4,
+           "coverage": 1.0,
+           "fresh": 4,
+           "rank": 1,
+           "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +1.08% ok, relative +0.76% ok",
+           "relative_pct": 0.7626,
+           "relative_test": "PASS",
+           "result": "PASS",
+           "return_pct": 1.0798,
+           "sector": "IT",
+           "source": "constituent_aggregation (turnover-weighted)",
+           "turnover_rs": 579900287.0
+          },
+          {
+           "absolute_test": "PASS",
+           "breadth": {
+            "advancers": 4,
+            "decliners": 0
+           },
+           "constituents": 4,
+           "coverage": 1.0,
+           "fresh": 4,
+           "rank": 2,
+           "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +0.60% ok, relative +0.29% ok",
+           "relative_pct": 0.2859,
+           "relative_test": "PASS",
+           "result": "PASS",
+           "return_pct": 0.6031,
+           "sector": "Bank",
+           "source": "constituent_aggregation (turnover-weighted)",
+           "turnover_rs": 579907581.0
+          }
+         ]
+        }
+       },
+       "sectors": [
+        {
+         "breadth": {
+          "advancers": 4,
+          "decliners": 0
+         },
+         "constituents": 4,
+         "coverage": 1.0,
+         "fresh": 4,
+         "return_pct": 0.6031,
+         "sector": "Bank",
+         "source": "constituent_aggregation (turnover-weighted)",
+         "turnover_rs": 579907581.0
+        },
+        {
+         "breadth": {
+          "advancers": 4,
+          "decliners": 0
+         },
+         "constituents": 4,
+         "coverage": 1.0,
+         "fresh": 4,
+         "return_pct": 1.0798,
+         "sector": "IT",
+         "source": "constituent_aggregation (turnover-weighted)",
+         "turnover_rs": 579900287.0
+        },
+        {
+         "breadth": {
+          "advancers": 0,
+          "decliners": 3
+         },
+         "constituents": 3,
+         "coverage": 1.0,
+         "fresh": 3,
+         "return_pct": -0.3682,
+         "sector": "Metal",
+         "source": "constituent_aggregation (turnover-weighted)",
+         "turnover_rs": 434971314.0
+        },
+        {
+         "breadth": {
+          "advancers": 3,
+          "decliners": 0
+         },
+         "constituents": 3,
+         "coverage": 1.0,
+         "fresh": 3,
+         "return_pct": 0.1593,
+         "sector": "Pharma",
+         "source": "constituent_aggregation (turnover-weighted)",
+         "turnover_rs": 434932450.0
+        }
+       ],
+       "unmapped": [
+        {
+         "reason": "ambiguous sector mapping",
+         "symbol": "MYSTERYCO"
+        }
+       ]
+      }
+     },
+     {
+      "seq": 267,
+      "type": "CandidatesRanked",
+      "agent": "3-stock-screening",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": null,
+      "instrument_id": null,
+      "summary": "1.INFY LONG +0.97, 2.TCS LONG +0.77, 3.HCLTECH LONG +0.69, 4.WIPRO LONG +0.62, 5.ICICIBANK LONG +0.36",
+      "evidence": {
+       "candidates": [
+        {
+         "available_at": "2026-11-17T10:50:00+05:30",
+         "bar_ts": "2026-11-17T10:49:00+05:30",
+         "checks": [
+          {
+           "metric": "return_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.3,
+           "value": 1.2862
+          },
+          {
+           "metric": "rel_return_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.0,
+           "value": 0.969
+          }
+         ],
+         "direction": "LONG",
+         "last_price": 1575.0,
+         "metrics": {
+          "rel_return_pct": 0.969,
+          "return_pct": 1.2862,
+          "turnover_rs": 144976550.0
+         },
+         "rank": 0,
+         "score": 0.969,
+         "sector": "IT",
+         "sector_rank": 1,
+         "symbol": "INFY",
+         "window": "30 min"
+        },
+        {
+         "available_at": "2026-11-17T10:50:00+05:30",
+         "bar_ts": "2026-11-17T10:49:00+05:30",
+         "checks": [
+          {
+           "metric": "return_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.3,
+           "value": 1.0865
+          },
+          {
+           "metric": "rel_return_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.0,
+           "value": 0.7693
+          }
+         ],
+         "direction": "LONG",
+         "last_price": 3542.8,
+         "metrics": {
+          "rel_return_pct": 0.7693,
+          "return_pct": 1.0865,
+          "turnover_rs": 144954970.7733
+         },
+         "rank": 1,
+         "score": 0.7693,
+         "sector": "IT",
+         "sector_rank": 1,
+         "symbol": "TCS",
+         "window": "30 min"
+        },
+        {
+         "available_at": "2026-11-17T10:50:00+05:30",
+         "bar_ts": "2026-11-17T10:49:00+05:30",
+         "checks": [
+          {
+           "metric": "return_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.3,
+           "value": 1.0111
+          },
+          {
+           "metric": "rel_return_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.0,
+           "value": 0.6939
+          }
+         ],
+         "direction": "LONG",
+         "last_price": 1662.3999999999999,
+         "metrics": {
+          "rel_return_pct": 0.6939,
+          "return_pct": 1.0111,
+          "turnover_rs": 144972196.3733
+         },
+         "rank": 2,
+         "score": 0.6939,
+         "sector": "IT",
+         "sector_rank": 1,
+         "symbol": "HCLTECH",
+         "window": "30 min"
+        },
+        {
+         "available_at": "2026-11-17T10:50:00+05:30",
+         "bar_ts": "2026-11-17T10:49:00+05:30",
+         "checks": [
+          {
+           "metric": "return_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.3,
+           "value": 0.9353
+          },
+          {
+           "metric": "rel_return_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.0,
+           "value": 0.6181
+          }
+         ],
+         "direction": "LONG",
+         "last_price": 259.0,
+         "metrics": {
+          "rel_return_pct": 0.6181,
+          "return_pct": 0.9353,
+          "turnover_rs": 144996569.8
+         },
+         "rank": 3,
+         "score": 0.6181,
+         "sector": "IT",
+         "sector_rank": 1,
+         "symbol": "WIPRO",
+         "window": "30 min"
+        },
+        {
+         "available_at": "2026-11-17T10:50:00+05:30",
+         "bar_ts": "2026-11-17T10:49:00+05:30",
+         "checks": [
+          {
+           "metric": "return_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.3,
+           "value": 0.6804
+          },
+          {
+           "metric": "rel_return_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.0,
+           "value": 0.3632
+          }
+         ],
+         "direction": "LONG",
+         "last_price": 1333.8,
+         "metrics": {
+          "rel_return_pct": 0.3632,
+          "return_pct": 0.6804,
+          "turnover_rs": 144977962.8844
+         },
+         "rank": 4,
+         "score": 0.3632,
+         "sector": "Bank",
+         "sector_rank": 2,
+         "symbol": "ICICIBANK",
+         "window": "30 min"
+        }
+       ],
+       "expires_at": "2026-11-17T10:54:00+05:30",
+       "rejected": [],
+       "tie_break": "sector rank, then score desc, then symbol"
+      }
+     },
+     {
+      "seq": 268,
+      "type": "VerificationResult",
+      "agent": "4-desk-verification",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "INFY PASS: turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS",
+      "evidence": {
+       "checks": [
+        {
+         "metric": "turnover_rs",
+         "op": ">=",
+         "result": "PASS",
+         "threshold": 50000000,
+         "value": 475000000.0
+        },
+        {
+         "metric": "money_flow_net_rs",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0,
+         "value": 142500000.0
+        },
+        {
+         "metric": "oi_change_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": -5,
+         "value": 3.0
+        }
+       ],
+       "direction": "LONG",
+       "evidence": {
+        "age_s": 0,
+        "available_at": "2026-11-17T10:50:00+05:30",
+        "kinds": {
+         "money_flow_net_rs": "estimate",
+         "oi_change_pct": "observed",
+         "order_block_dist_pct": "pattern",
+         "turnover_rs": "observed"
+        },
+        "metrics": {
+         "money_flow_net_rs": 142500000.0,
+         "oi_change_pct": 3.0,
+         "order_block_dist_pct": 1.2,
+         "turnover_rs": 475000000.0
+        },
+        "revision": null,
+        "shared_source_with_screening": false,
+        "snapshot_ts": "2026-11-17T10:50:00+05:30",
+        "source": "fixture desk"
+       },
+       "rank": 0,
+       "reasons": [
+        "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+       ],
+       "status": "PASS",
+       "symbol": "INFY"
+      }
+     },
+     {
+      "seq": 269,
+      "type": "CandidateVerified",
+      "agent": "4-desk-verification",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "INFY verified",
+      "evidence": {
+       "candidate": {
+        "available_at": "2026-11-17T10:50:00+05:30",
+        "bar_ts": "2026-11-17T10:49:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 1.2862
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.969
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 1575.0,
+        "metrics": {
+         "rel_return_pct": 0.969,
+         "return_pct": 1.2862,
+         "turnover_rs": 144976550.0
+        },
+        "rank": 0,
+        "score": 0.969,
+        "sector": "IT",
+        "sector_rank": 1,
+        "symbol": "INFY",
+        "window": "30 min"
+       },
+       "expires_at": "2026-11-17T10:54:00+05:30",
+       "rank": 0,
+       "verification": {
+        "checks": [
+         {
+          "metric": "turnover_rs",
+          "op": ">=",
+          "result": "PASS",
+          "threshold": 50000000,
+          "value": 475000000.0
+         },
+         {
+          "metric": "money_flow_net_rs",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0,
+          "value": 142500000.0
+         },
+         {
+          "metric": "oi_change_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": -5,
+          "value": 3.0
+         }
+        ],
+        "direction": "LONG",
+        "evidence": {
+         "age_s": 0,
+         "available_at": "2026-11-17T10:50:00+05:30",
+         "kinds": {
+          "money_flow_net_rs": "estimate",
+          "oi_change_pct": "observed",
+          "order_block_dist_pct": "pattern",
+          "turnover_rs": "observed"
+         },
+         "metrics": {
+          "money_flow_net_rs": 142500000.0,
+          "oi_change_pct": 3.0,
+          "order_block_dist_pct": 1.2,
+          "turnover_rs": 475000000.0
+         },
+         "revision": null,
+         "shared_source_with_screening": false,
+         "snapshot_ts": "2026-11-17T10:50:00+05:30",
+         "source": "fixture desk"
+        },
+        "rank": 0,
+        "reasons": [
+         "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+        ],
+        "status": "PASS",
+        "symbol": "INFY"
+       }
+      }
+     },
+     {
+      "seq": 270,
+      "type": "CandidateRejected",
+      "agent": "5-futures-entry",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "INFY: limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+      "evidence": {
+       "rank": 0,
+       "reason": "limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+       "symbol": "INFY"
+      }
+     },
+     {
+      "seq": 271,
+      "type": "VerificationResult",
+      "agent": "4-desk-verification",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "TCS PASS: turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS",
+      "evidence": {
+       "checks": [
+        {
+         "metric": "turnover_rs",
+         "op": ">=",
+         "result": "PASS",
+         "threshold": 50000000,
+         "value": 475000000.0
+        },
+        {
+         "metric": "money_flow_net_rs",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0,
+         "value": 142500000.0
+        },
+        {
+         "metric": "oi_change_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": -5,
+         "value": 3.0
+        }
+       ],
+       "direction": "LONG",
+       "evidence": {
+        "age_s": 0,
+        "available_at": "2026-11-17T10:50:00+05:30",
+        "kinds": {
+         "money_flow_net_rs": "estimate",
+         "oi_change_pct": "observed",
+         "order_block_dist_pct": "pattern",
+         "turnover_rs": "observed"
+        },
+        "metrics": {
+         "money_flow_net_rs": 142500000.0,
+         "oi_change_pct": 3.0,
+         "order_block_dist_pct": 1.2,
+         "turnover_rs": 475000000.0
+        },
+        "revision": null,
+        "shared_source_with_screening": false,
+        "snapshot_ts": "2026-11-17T10:50:00+05:30",
+        "source": "fixture desk"
+       },
+       "rank": 1,
+       "reasons": [
+        "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+       ],
+       "status": "PASS",
+       "symbol": "TCS"
+      }
+     },
+     {
+      "seq": 272,
+      "type": "CandidateVerified",
+      "agent": "4-desk-verification",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "TCS verified",
+      "evidence": {
+       "candidate": {
+        "available_at": "2026-11-17T10:50:00+05:30",
+        "bar_ts": "2026-11-17T10:49:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 1.0865
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.7693
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 3542.8,
+        "metrics": {
+         "rel_return_pct": 0.7693,
+         "return_pct": 1.0865,
+         "turnover_rs": 144954970.7733
+        },
+        "rank": 1,
+        "score": 0.7693,
+        "sector": "IT",
+        "sector_rank": 1,
+        "symbol": "TCS",
+        "window": "30 min"
+       },
+       "expires_at": "2026-11-17T10:54:00+05:30",
+       "rank": 1,
+       "verification": {
+        "checks": [
+         {
+          "metric": "turnover_rs",
+          "op": ">=",
+          "result": "PASS",
+          "threshold": 50000000,
+          "value": 475000000.0
+         },
+         {
+          "metric": "money_flow_net_rs",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0,
+          "value": 142500000.0
+         },
+         {
+          "metric": "oi_change_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": -5,
+          "value": 3.0
+         }
+        ],
+        "direction": "LONG",
+        "evidence": {
+         "age_s": 0,
+         "available_at": "2026-11-17T10:50:00+05:30",
+         "kinds": {
+          "money_flow_net_rs": "estimate",
+          "oi_change_pct": "observed",
+          "order_block_dist_pct": "pattern",
+          "turnover_rs": "observed"
+         },
+         "metrics": {
+          "money_flow_net_rs": 142500000.0,
+          "oi_change_pct": 3.0,
+          "order_block_dist_pct": 1.2,
+          "turnover_rs": 475000000.0
+         },
+         "revision": null,
+         "shared_source_with_screening": false,
+         "snapshot_ts": "2026-11-17T10:50:00+05:30",
+         "source": "fixture desk"
+        },
+        "rank": 1,
+        "reasons": [
+         "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+        ],
+        "status": "PASS",
+        "symbol": "TCS"
+       }
+      }
+     },
+     {
+      "seq": 273,
+      "type": "CandidateRejected",
+      "agent": "5-futures-entry",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "TCS: limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+      "evidence": {
+       "rank": 1,
+       "reason": "limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+       "symbol": "TCS"
+      }
+     },
+     {
+      "seq": 274,
+      "type": "VerificationResult",
+      "agent": "4-desk-verification",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "HCLTECH PASS: turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS",
+      "evidence": {
+       "checks": [
+        {
+         "metric": "turnover_rs",
+         "op": ">=",
+         "result": "PASS",
+         "threshold": 50000000,
+         "value": 475000000.0
+        },
+        {
+         "metric": "money_flow_net_rs",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0,
+         "value": 142500000.0
+        },
+        {
+         "metric": "oi_change_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": -5,
+         "value": 3.0
+        }
+       ],
+       "direction": "LONG",
+       "evidence": {
+        "age_s": 0,
+        "available_at": "2026-11-17T10:50:00+05:30",
+        "kinds": {
+         "money_flow_net_rs": "estimate",
+         "oi_change_pct": "observed",
+         "order_block_dist_pct": "pattern",
+         "turnover_rs": "observed"
+        },
+        "metrics": {
+         "money_flow_net_rs": 142500000.0,
+         "oi_change_pct": 3.0,
+         "order_block_dist_pct": 1.2,
+         "turnover_rs": 475000000.0
+        },
+        "revision": null,
+        "shared_source_with_screening": false,
+        "snapshot_ts": "2026-11-17T10:50:00+05:30",
+        "source": "fixture desk"
+       },
+       "rank": 2,
+       "reasons": [
+        "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+       ],
+       "status": "PASS",
+       "symbol": "HCLTECH"
+      }
+     },
+     {
+      "seq": 275,
+      "type": "CandidateVerified",
+      "agent": "4-desk-verification",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "HCLTECH verified",
+      "evidence": {
+       "candidate": {
+        "available_at": "2026-11-17T10:50:00+05:30",
+        "bar_ts": "2026-11-17T10:49:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 1.0111
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.6939
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 1662.3999999999999,
+        "metrics": {
+         "rel_return_pct": 0.6939,
+         "return_pct": 1.0111,
+         "turnover_rs": 144972196.3733
+        },
+        "rank": 2,
+        "score": 0.6939,
+        "sector": "IT",
+        "sector_rank": 1,
+        "symbol": "HCLTECH",
+        "window": "30 min"
+       },
+       "expires_at": "2026-11-17T10:54:00+05:30",
+       "rank": 2,
+       "verification": {
+        "checks": [
+         {
+          "metric": "turnover_rs",
+          "op": ">=",
+          "result": "PASS",
+          "threshold": 50000000,
+          "value": 475000000.0
+         },
+         {
+          "metric": "money_flow_net_rs",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0,
+          "value": 142500000.0
+         },
+         {
+          "metric": "oi_change_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": -5,
+          "value": 3.0
+         }
+        ],
+        "direction": "LONG",
+        "evidence": {
+         "age_s": 0,
+         "available_at": "2026-11-17T10:50:00+05:30",
+         "kinds": {
+          "money_flow_net_rs": "estimate",
+          "oi_change_pct": "observed",
+          "order_block_dist_pct": "pattern",
+          "turnover_rs": "observed"
+         },
+         "metrics": {
+          "money_flow_net_rs": 142500000.0,
+          "oi_change_pct": 3.0,
+          "order_block_dist_pct": 1.2,
+          "turnover_rs": 475000000.0
+         },
+         "revision": null,
+         "shared_source_with_screening": false,
+         "snapshot_ts": "2026-11-17T10:50:00+05:30",
+         "source": "fixture desk"
+        },
+        "rank": 2,
+        "reasons": [
+         "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+        ],
+        "status": "PASS",
+        "symbol": "HCLTECH"
+       }
+      }
+     },
+     {
+      "seq": 276,
+      "type": "CandidateRejected",
+      "agent": "5-futures-entry",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "HCLTECH: limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+      "evidence": {
+       "rank": 2,
+       "reason": "limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+       "symbol": "HCLTECH"
+      }
+     },
+     {
+      "seq": 277,
+      "type": "VerificationResult",
+      "agent": "4-desk-verification",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "WIPRO PASS: turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS",
+      "evidence": {
+       "checks": [
+        {
+         "metric": "turnover_rs",
+         "op": ">=",
+         "result": "PASS",
+         "threshold": 50000000,
+         "value": 475000000.0
+        },
+        {
+         "metric": "money_flow_net_rs",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0,
+         "value": 142500000.0
+        },
+        {
+         "metric": "oi_change_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": -5,
+         "value": 3.0
+        }
+       ],
+       "direction": "LONG",
+       "evidence": {
+        "age_s": 0,
+        "available_at": "2026-11-17T10:50:00+05:30",
+        "kinds": {
+         "money_flow_net_rs": "estimate",
+         "oi_change_pct": "observed",
+         "order_block_dist_pct": "pattern",
+         "turnover_rs": "observed"
+        },
+        "metrics": {
+         "money_flow_net_rs": 142500000.0,
+         "oi_change_pct": 3.0,
+         "order_block_dist_pct": 1.2,
+         "turnover_rs": 475000000.0
+        },
+        "revision": null,
+        "shared_source_with_screening": false,
+        "snapshot_ts": "2026-11-17T10:50:00+05:30",
+        "source": "fixture desk"
+       },
+       "rank": 3,
+       "reasons": [
+        "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+       ],
+       "status": "PASS",
+       "symbol": "WIPRO"
+      }
+     },
+     {
+      "seq": 278,
+      "type": "CandidateVerified",
+      "agent": "4-desk-verification",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "WIPRO verified",
+      "evidence": {
+       "candidate": {
+        "available_at": "2026-11-17T10:50:00+05:30",
+        "bar_ts": "2026-11-17T10:49:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 0.9353
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.6181
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 259.0,
+        "metrics": {
+         "rel_return_pct": 0.6181,
+         "return_pct": 0.9353,
+         "turnover_rs": 144996569.8
+        },
+        "rank": 3,
+        "score": 0.6181,
+        "sector": "IT",
+        "sector_rank": 1,
+        "symbol": "WIPRO",
+        "window": "30 min"
+       },
+       "expires_at": "2026-11-17T10:54:00+05:30",
+       "rank": 3,
+       "verification": {
+        "checks": [
+         {
+          "metric": "turnover_rs",
+          "op": ">=",
+          "result": "PASS",
+          "threshold": 50000000,
+          "value": 475000000.0
+         },
+         {
+          "metric": "money_flow_net_rs",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0,
+          "value": 142500000.0
+         },
+         {
+          "metric": "oi_change_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": -5,
+          "value": 3.0
+         }
+        ],
+        "direction": "LONG",
+        "evidence": {
+         "age_s": 0,
+         "available_at": "2026-11-17T10:50:00+05:30",
+         "kinds": {
+          "money_flow_net_rs": "estimate",
+          "oi_change_pct": "observed",
+          "order_block_dist_pct": "pattern",
+          "turnover_rs": "observed"
+         },
+         "metrics": {
+          "money_flow_net_rs": 142500000.0,
+          "oi_change_pct": 3.0,
+          "order_block_dist_pct": 1.2,
+          "turnover_rs": 475000000.0
+         },
+         "revision": null,
+         "shared_source_with_screening": false,
+         "snapshot_ts": "2026-11-17T10:50:00+05:30",
+         "source": "fixture desk"
+        },
+        "rank": 3,
+        "reasons": [
+         "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+        ],
+        "status": "PASS",
+        "symbol": "WIPRO"
+       }
+      }
+     },
+     {
+      "seq": 279,
+      "type": "CandidateRejected",
+      "agent": "5-futures-entry",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "WIPRO: limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+      "evidence": {
+       "rank": 3,
+       "reason": "limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+       "symbol": "WIPRO"
+      }
+     },
+     {
+      "seq": 280,
+      "type": "VerificationResult",
+      "agent": "4-desk-verification",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "ICICIBANK PASS: turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS",
+      "evidence": {
+       "checks": [
+        {
+         "metric": "turnover_rs",
+         "op": ">=",
+         "result": "PASS",
+         "threshold": 50000000,
+         "value": 475000000.0
+        },
+        {
+         "metric": "money_flow_net_rs",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0,
+         "value": 142500000.0
+        },
+        {
+         "metric": "oi_change_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": -5,
+         "value": 3.0
+        }
+       ],
+       "direction": "LONG",
+       "evidence": {
+        "age_s": 0,
+        "available_at": "2026-11-17T10:50:00+05:30",
+        "kinds": {
+         "money_flow_net_rs": "estimate",
+         "oi_change_pct": "observed",
+         "order_block_dist_pct": "pattern",
+         "turnover_rs": "observed"
+        },
+        "metrics": {
+         "money_flow_net_rs": 142500000.0,
+         "oi_change_pct": 3.0,
+         "order_block_dist_pct": 1.2,
+         "turnover_rs": 475000000.0
+        },
+        "revision": null,
+        "shared_source_with_screening": false,
+        "snapshot_ts": "2026-11-17T10:50:00+05:30",
+        "source": "fixture desk"
+       },
+       "rank": 4,
+       "reasons": [
+        "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+       ],
+       "status": "PASS",
+       "symbol": "ICICIBANK"
+      }
+     },
+     {
+      "seq": 281,
+      "type": "CandidateVerified",
+      "agent": "4-desk-verification",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "ICICIBANK verified",
+      "evidence": {
+       "candidate": {
+        "available_at": "2026-11-17T10:50:00+05:30",
+        "bar_ts": "2026-11-17T10:49:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 0.6804
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.3632
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 1333.8,
+        "metrics": {
+         "rel_return_pct": 0.3632,
+         "return_pct": 0.6804,
+         "turnover_rs": 144977962.8844
+        },
+        "rank": 4,
+        "score": 0.3632,
+        "sector": "Bank",
+        "sector_rank": 2,
+        "symbol": "ICICIBANK",
+        "window": "30 min"
+       },
+       "expires_at": "2026-11-17T10:54:00+05:30",
+       "rank": 4,
+       "verification": {
+        "checks": [
+         {
+          "metric": "turnover_rs",
+          "op": ">=",
+          "result": "PASS",
+          "threshold": 50000000,
+          "value": 475000000.0
+         },
+         {
+          "metric": "money_flow_net_rs",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0,
+          "value": 142500000.0
+         },
+         {
+          "metric": "oi_change_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": -5,
+          "value": 3.0
+         }
+        ],
+        "direction": "LONG",
+        "evidence": {
+         "age_s": 0,
+         "available_at": "2026-11-17T10:50:00+05:30",
+         "kinds": {
+          "money_flow_net_rs": "estimate",
+          "oi_change_pct": "observed",
+          "order_block_dist_pct": "pattern",
+          "turnover_rs": "observed"
+         },
+         "metrics": {
+          "money_flow_net_rs": 142500000.0,
+          "oi_change_pct": 3.0,
+          "order_block_dist_pct": 1.2,
+          "turnover_rs": 475000000.0
+         },
+         "revision": null,
+         "shared_source_with_screening": false,
+         "snapshot_ts": "2026-11-17T10:50:00+05:30",
+         "source": "fixture desk"
+        },
+        "rank": 4,
+        "reasons": [
+         "turnover_rs 475000000.0 >= 50000000: PASS; money_flow_net_rs 142500000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+        ],
+        "status": "PASS",
+        "symbol": "ICICIBANK"
+       }
+      }
+     },
+     {
+      "seq": 282,
+      "type": "CandidateRejected",
+      "agent": "5-futures-entry",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "ICICIBANK: limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+      "evidence": {
+       "rank": 4,
+       "reason": "limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped",
+       "symbol": "ICICIBANK"
+      }
+     },
+     {
+      "seq": 283,
+      "type": "ScanStopped",
+      "agent": "4-desk-verification",
+      "at": "2026-11-17T10:50:00+05:30",
+      "direction": "LONG",
+      "instrument_id": null,
+      "summary": "no candidate could be entered (every ranked candidate was tried; last rejection: limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped)",
+      "evidence": {
+       "evidence": {
+        "tried": []
+       },
+       "reason": "no candidate could be entered (every ranked candidate was tried; last rejection: limit: intraday open-position limit 2 reached -- one lot is the only size, so the entry is skipped)",
+       "stage": "verification"
+      }
+     }
+    ]
+   }
+  },
+  "swing": {
+   "paused": false,
+   "regime": null,
+   "benchmark": "NIFTY 50",
+   "cadence_s": 900,
+   "entry_window": [
+    "14:30",
+    "15:10"
+   ],
+   "exit_deadline": null,
+   "direction_map": {
+    "BEARISH": [
+     "SHORT"
+    ],
+    "BULLISH": [
+     "LONG"
+    ],
+    "SIDEWAYS": [],
+    "UNAVAILABLE": []
+   },
+   "last_scan": null
+  }
+ },
+ "positions": [
+  {
+   "trade_id": "intraday-20261117-102500-TCS",
+   "mode": "intraday",
+   "direction": "LONG",
+   "underlying": "TCS",
+   "tradingsymbol": "TCS26NOVFUT",
+   "instrument_id": "TCS-FUT-NOV",
+   "expiry": "2026-11-24",
+   "status": "OPEN",
+   "lots": 1,
+   "units": 175,
+   "entry_filled_units": 175,
+   "entry_avg": 3518.2,
+   "mark": 3549.8,
+   "mark_side": "bid",
+   "mtm": 5530.0,
+   "stop_price": 3483.018,
+   "target_price": 3570.973,
+   "plan_version": 1,
+   "plan": {
+    "cutoff_grace_s": 600,
+    "evaluated_on": "bid (executable SELL side)",
+    "hard_max_stop_pct": 2.5,
+    "intraday_deadline": "2026-11-17T15:15:00+05:30",
+    "invalidation": {
+     "regime_change": false
+    },
+    "missing_quote_policy": "retry_until_quote",
+    "plan_version": "intraday-demo-1",
+    "regime_at_entry": null,
+    "stop": {
+     "basis": "pct",
+     "value": 1.0
+    },
+    "stop_price": 3483.018,
+    "target": {
+     "basis": "pct",
+     "value": 1.5
+    },
+    "target_price": 3570.973,
+    "time_exit": "15:15"
+   },
+   "intraday_deadline": "2026-11-17T15:15:00+05:30",
+   "pre_expiry_deadline": null,
+   "sessions_held": null,
+   "max_holding_sessions": null,
+   "overnight": false,
+   "data_flag": null,
+   "exit": null,
+   "unresolved": null,
+   "label": "FIXTURE DEMO - paper",
+   "timeline": [
+    {
+     "seq": 174,
+     "type": "ScanRequested",
+     "agent": "scheduler",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": null,
+     "instrument_id": null,
+     "summary": "",
+     "evidence": {
+      "as_of": "2026-11-17T10:25:00+05:30"
+     }
+    },
+    {
+     "seq": 175,
+     "type": "RegimeClassified",
+     "agent": "1-market-regime",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": null,
+     "instrument_id": null,
+     "summary": "BULLISH -> permitted LONG",
+     "evidence": {
+      "evidence": {
+       "benchmark": "NIFTY 50",
+       "breadth": {
+        "advancers": 12,
+        "counted": 15,
+        "decliners": 3,
+        "ratio": 0.6,
+        "universe": 15
+       },
+       "lookback": {
+        "basis": "current_session",
+        "minutes": 30
+       },
+       "metrics": {
+        "benchmark_return_pct": 0.3846,
+        "breadth_ratio": 0.6,
+        "close_vs_sma_pct": 0.1257
+       },
+       "rules": [
+        {
+         "checks": [
+          {
+           "metric": "benchmark_return_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.25,
+           "value": 0.3846
+          },
+          {
+           "metric": "close_vs_sma_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.0,
+           "value": 0.1257
+          },
+          {
+           "metric": "breadth_ratio",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.1,
+           "value": 0.6
+          }
+         ],
+         "regime": "BULLISH",
+         "status": "PASS"
+        }
+       ],
+       "source": "fixture",
+       "window": {
+        "age_s": 0.0,
+        "available_at": "2026-11-17T10:25:00+05:30",
+        "basis": "current_session",
+        "effective": "30 min",
+        "end_price": 24224.0,
+        "end_ts": "2026-11-17T10:24:00+05:30",
+        "return_pct": 0.3846,
+        "start_price": 24131.2,
+        "start_ts": "2026-11-17T09:55:00+05:30",
+        "turnover_rs": 144615548.8
+       }
+      },
+      "permitted": [
+       "LONG"
+      ],
+      "reasons": [
+       "BULLISH: BULLISH PASS"
+      ],
+      "regime": "BULLISH"
+     }
+    },
+    {
+     "seq": 176,
+     "type": "SectorsRanked",
+     "agent": "2-sector-ranking",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": null,
+     "instrument_id": null,
+     "summary": "LONG: 1.IT +1.32% (rel +0.94), 2.Bank +0.73% (rel +0.35)",
+     "evidence": {
+      "benchmark_return_pct": 0.3846,
+      "by_direction": {
+       "LONG": {
+        "assessed": [
+         {
+          "absolute_test": "PASS",
+          "breadth": {
+           "advancers": 4,
+           "decliners": 0
+          },
+          "constituents": 4,
+          "coverage": 1.0,
+          "fresh": 4,
+          "rank": 2,
+          "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +0.73% ok, relative +0.35% ok",
+          "relative_pct": 0.3488,
+          "relative_test": "PASS",
+          "result": "PASS",
+          "return_pct": 0.7334,
+          "sector": "Bank",
+          "source": "constituent_aggregation (turnover-weighted)",
+          "turnover_rs": 579908924.0
+         },
+         {
+          "absolute_test": "PASS",
+          "breadth": {
+           "advancers": 4,
+           "decliners": 0
+          },
+          "constituents": 4,
+          "coverage": 1.0,
+          "fresh": 4,
+          "rank": 1,
+          "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +1.32% ok, relative +0.94% ok",
+          "relative_pct": 0.9352,
+          "relative_test": "PASS",
+          "result": "PASS",
+          "return_pct": 1.3198,
+          "sector": "IT",
+          "source": "constituent_aggregation (turnover-weighted)",
+          "turnover_rs": 579901308.0
+         },
+         {
+          "absolute_test": "FAIL",
+          "breadth": {
+           "advancers": 0,
+           "decliners": 3
+          },
+          "constituents": 3,
+          "coverage": 1.0,
+          "fresh": 3,
+          "reason": "LONG needs positive absolute return and benchmark outperformance: absolute -0.44% fails, relative -0.83% fails",
+          "relative_pct": -0.8278,
+          "relative_test": "FAIL",
+          "result": "FAIL",
+          "return_pct": -0.4432,
+          "sector": "Metal",
+          "source": "constituent_aggregation (turnover-weighted)",
+          "turnover_rs": 434974875.0
+         },
+         {
+          "absolute_test": "PASS",
+          "breadth": {
+           "advancers": 3,
+           "decliners": 0
+          },
+          "constituents": 3,
+          "coverage": 1.0,
+          "fresh": 3,
+          "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +0.19% ok, relative -0.19% fails",
+          "relative_pct": -0.1918,
+          "relative_test": "FAIL",
+          "result": "FAIL",
+          "return_pct": 0.1928,
+          "sector": "Pharma",
+          "source": "constituent_aggregation (turnover-weighted)",
+          "turnover_rs": 434933367.0
+         }
+        ],
+        "qualifying": [
+         {
+          "absolute_test": "PASS",
+          "breadth": {
+           "advancers": 4,
+           "decliners": 0
+          },
+          "constituents": 4,
+          "coverage": 1.0,
+          "fresh": 4,
+          "rank": 1,
+          "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +1.32% ok, relative +0.94% ok",
+          "relative_pct": 0.9352,
+          "relative_test": "PASS",
+          "result": "PASS",
+          "return_pct": 1.3198,
+          "sector": "IT",
+          "source": "constituent_aggregation (turnover-weighted)",
+          "turnover_rs": 579901308.0
+         },
+         {
+          "absolute_test": "PASS",
+          "breadth": {
+           "advancers": 4,
+           "decliners": 0
+          },
+          "constituents": 4,
+          "coverage": 1.0,
+          "fresh": 4,
+          "rank": 2,
+          "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +0.73% ok, relative +0.35% ok",
+          "relative_pct": 0.3488,
+          "relative_test": "PASS",
+          "result": "PASS",
+          "return_pct": 0.7334,
+          "sector": "Bank",
+          "source": "constituent_aggregation (turnover-weighted)",
+          "turnover_rs": 579908924.0
+         }
+        ]
+       }
+      },
+      "sectors": [
+       {
+        "breadth": {
+         "advancers": 4,
+         "decliners": 0
+        },
+        "constituents": 4,
+        "coverage": 1.0,
+        "fresh": 4,
+        "return_pct": 0.7334,
+        "sector": "Bank",
+        "source": "constituent_aggregation (turnover-weighted)",
+        "turnover_rs": 579908924.0
+       },
+       {
+        "breadth": {
+         "advancers": 4,
+         "decliners": 0
+        },
+        "constituents": 4,
+        "coverage": 1.0,
+        "fresh": 4,
+        "return_pct": 1.3198,
+        "sector": "IT",
+        "source": "constituent_aggregation (turnover-weighted)",
+        "turnover_rs": 579901308.0
+       },
+       {
+        "breadth": {
+         "advancers": 0,
+         "decliners": 3
+        },
+        "constituents": 3,
+        "coverage": 1.0,
+        "fresh": 3,
+        "return_pct": -0.4432,
+        "sector": "Metal",
+        "source": "constituent_aggregation (turnover-weighted)",
+        "turnover_rs": 434974875.0
+       },
+       {
+        "breadth": {
+         "advancers": 3,
+         "decliners": 0
+        },
+        "constituents": 3,
+        "coverage": 1.0,
+        "fresh": 3,
+        "return_pct": 0.1928,
+        "sector": "Pharma",
+        "source": "constituent_aggregation (turnover-weighted)",
+        "turnover_rs": 434933367.0
+       }
+      ],
+      "unmapped": [
+       {
+        "reason": "ambiguous sector mapping",
+        "symbol": "MYSTERYCO"
+       }
+      ]
+     }
+    },
+    {
+     "seq": 177,
+     "type": "CandidatesRanked",
+     "agent": "3-stock-screening",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": null,
+     "instrument_id": null,
+     "summary": "1.INFY LONG +1.19, 2.TCS LONG +0.94, 3.HCLTECH LONG +0.85, 4.WIPRO LONG +0.76, 5.ICICIBANK LONG +0.44",
+     "evidence": {
+      "candidates": [
+       {
+        "available_at": "2026-11-17T10:25:00+05:30",
+        "bar_ts": "2026-11-17T10:24:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 1.5752
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 1.1906
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 1558.3333333333335,
+        "metrics": {
+         "rel_return_pct": 1.1906,
+         "return_pct": 1.5752,
+         "turnover_rs": 144976944.1667
+        },
+        "rank": 0,
+        "score": 1.1906,
+        "sector": "IT",
+        "sector_rank": 1,
+        "symbol": "INFY",
+        "window": "30 min"
+       },
+       {
+        "available_at": "2026-11-17T10:25:00+05:30",
+        "bar_ts": "2026-11-17T10:24:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 1.3279
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.9433
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 3511.0666666666666,
+        "metrics": {
+         "rel_return_pct": 0.9433,
+         "return_pct": 1.3279,
+         "turnover_rs": 144952787.0667
+        },
+        "rank": 1,
+        "score": 0.9433,
+        "sector": "IT",
+        "sector_rank": 1,
+        "symbol": "TCS",
+        "window": "30 min"
+       },
+       {
+        "available_at": "2026-11-17T10:25:00+05:30",
+        "bar_ts": "2026-11-17T10:24:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 1.2347
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.8501
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 1648.5333333333333,
+        "metrics": {
+         "rel_return_pct": 0.8501,
+         "return_pct": 1.2347,
+         "turnover_rs": 144975339.4667
+        },
+        "rank": 2,
+        "score": 0.8501,
+        "sector": "IT",
+        "sector_rank": 1,
+        "symbol": "HCLTECH",
+        "window": "30 min"
+       },
+       {
+        "available_at": "2026-11-17T10:25:00+05:30",
+        "bar_ts": "2026-11-17T10:24:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 1.1413
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.7567
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 257.0,
+        "metrics": {
+         "rel_return_pct": 0.7567,
+         "return_pct": 1.1413,
+         "turnover_rs": 144996236.8
+        },
+        "rank": 3,
+        "score": 0.7567,
+        "sector": "IT",
+        "sector_rank": 1,
+        "symbol": "WIPRO",
+        "window": "30 min"
+       },
+       {
+        "available_at": "2026-11-17T10:25:00+05:30",
+        "bar_ts": "2026-11-17T10:24:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 0.828
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.4434
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 1326.2888888888888,
+        "metrics": {
+         "rel_return_pct": 0.4434,
+         "return_pct": 0.828,
+         "turnover_rs": 144979705.5489
+        },
+        "rank": 4,
+        "score": 0.4434,
+        "sector": "Bank",
+        "sector_rank": 2,
+        "symbol": "ICICIBANK",
+        "window": "30 min"
+       }
+      ],
+      "expires_at": "2026-11-17T10:29:00+05:30",
+      "rejected": [],
+      "tie_break": "sector rank, then score desc, then symbol"
+     }
+    },
+    {
+     "seq": 178,
+     "type": "VerificationResult",
+     "agent": "4-desk-verification",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": "LONG",
+     "instrument_id": null,
+     "summary": "INFY PASS: turnover_rs 350000000.0 >= 50000000: PASS; money_flow_net_rs 105000000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS",
+     "evidence": {
+      "checks": [
+       {
+        "metric": "turnover_rs",
+        "op": ">=",
+        "result": "PASS",
+        "threshold": 50000000,
+        "value": 350000000.0
+       },
+       {
+        "metric": "money_flow_net_rs",
+        "op": ">",
+        "result": "PASS",
+        "threshold": 0,
+        "value": 105000000.0
+       },
+       {
+        "metric": "oi_change_pct",
+        "op": ">",
+        "result": "PASS",
+        "threshold": -5,
+        "value": 3.0
+       }
+      ],
+      "direction": "LONG",
+      "evidence": {
+       "age_s": 0,
+       "available_at": "2026-11-17T10:25:00+05:30",
+       "kinds": {
+        "money_flow_net_rs": "estimate",
+        "oi_change_pct": "observed",
+        "order_block_dist_pct": "pattern",
+        "turnover_rs": "observed"
+       },
+       "metrics": {
+        "money_flow_net_rs": 105000000.0,
+        "oi_change_pct": 3.0,
+        "order_block_dist_pct": 1.2,
+        "turnover_rs": 350000000.0
+       },
+       "revision": null,
+       "shared_source_with_screening": false,
+       "snapshot_ts": "2026-11-17T10:25:00+05:30",
+       "source": "fixture desk"
+      },
+      "rank": 0,
+      "reasons": [
+       "turnover_rs 350000000.0 >= 50000000: PASS; money_flow_net_rs 105000000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+      ],
+      "status": "PASS",
+      "symbol": "INFY"
+     }
+    },
+    {
+     "seq": 179,
+     "type": "CandidateVerified",
+     "agent": "4-desk-verification",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": "LONG",
+     "instrument_id": null,
+     "summary": "INFY verified",
+     "evidence": {
+      "candidate": {
+       "available_at": "2026-11-17T10:25:00+05:30",
+       "bar_ts": "2026-11-17T10:24:00+05:30",
+       "checks": [
+        {
+         "metric": "return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.3,
+         "value": 1.5752
+        },
+        {
+         "metric": "rel_return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.0,
+         "value": 1.1906
+        }
+       ],
+       "direction": "LONG",
+       "last_price": 1558.3333333333335,
+       "metrics": {
+        "rel_return_pct": 1.1906,
+        "return_pct": 1.5752,
+        "turnover_rs": 144976944.1667
+       },
+       "rank": 0,
+       "score": 1.1906,
+       "sector": "IT",
+       "sector_rank": 1,
+       "symbol": "INFY",
+       "window": "30 min"
+      },
+      "expires_at": "2026-11-17T10:29:00+05:30",
+      "rank": 0,
+      "verification": {
+       "checks": [
+        {
+         "metric": "turnover_rs",
+         "op": ">=",
+         "result": "PASS",
+         "threshold": 50000000,
+         "value": 350000000.0
+        },
+        {
+         "metric": "money_flow_net_rs",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0,
+         "value": 105000000.0
+        },
+        {
+         "metric": "oi_change_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": -5,
+         "value": 3.0
+        }
+       ],
+       "direction": "LONG",
+       "evidence": {
+        "age_s": 0,
+        "available_at": "2026-11-17T10:25:00+05:30",
+        "kinds": {
+         "money_flow_net_rs": "estimate",
+         "oi_change_pct": "observed",
+         "order_block_dist_pct": "pattern",
+         "turnover_rs": "observed"
+        },
+        "metrics": {
+         "money_flow_net_rs": 105000000.0,
+         "oi_change_pct": 3.0,
+         "order_block_dist_pct": 1.2,
+         "turnover_rs": 350000000.0
+        },
+        "revision": null,
+        "shared_source_with_screening": false,
+        "snapshot_ts": "2026-11-17T10:25:00+05:30",
+        "source": "fixture desk"
+       },
+       "rank": 0,
+       "reasons": [
+        "turnover_rs 350000000.0 >= 50000000: PASS; money_flow_net_rs 105000000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+       ],
+       "status": "PASS",
+       "symbol": "INFY"
+      }
+     }
+    },
+    {
+     "seq": 180,
+     "type": "CandidateRejected",
+     "agent": "5-futures-entry",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": "LONG",
+     "instrument_id": null,
+     "summary": "INFY: INFY already has an active intraday LONG entry/position (intraday-20261117-101500-INFY); no second position, no reversal",
+     "evidence": {
+      "rank": 0,
+      "reason": "INFY already has an active intraday LONG entry/position (intraday-20261117-101500-INFY); no second position, no reversal",
+      "symbol": "INFY"
+     }
+    },
+    {
+     "seq": 181,
+     "type": "VerificationResult",
+     "agent": "4-desk-verification",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": "LONG",
+     "instrument_id": null,
+     "summary": "TCS PASS: turnover_rs 350000000.0 >= 50000000: PASS; money_flow_net_rs 105000000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS",
+     "evidence": {
+      "checks": [
+       {
+        "metric": "turnover_rs",
+        "op": ">=",
+        "result": "PASS",
+        "threshold": 50000000,
+        "value": 350000000.0
+       },
+       {
+        "metric": "money_flow_net_rs",
+        "op": ">",
+        "result": "PASS",
+        "threshold": 0,
+        "value": 105000000.0
+       },
+       {
+        "metric": "oi_change_pct",
+        "op": ">",
+        "result": "PASS",
+        "threshold": -5,
+        "value": 3.0
+       }
+      ],
+      "direction": "LONG",
+      "evidence": {
+       "age_s": 0,
+       "available_at": "2026-11-17T10:25:00+05:30",
+       "kinds": {
+        "money_flow_net_rs": "estimate",
+        "oi_change_pct": "observed",
+        "order_block_dist_pct": "pattern",
+        "turnover_rs": "observed"
+       },
+       "metrics": {
+        "money_flow_net_rs": 105000000.0,
+        "oi_change_pct": 3.0,
+        "order_block_dist_pct": 1.2,
+        "turnover_rs": 350000000.0
+       },
+       "revision": null,
+       "shared_source_with_screening": false,
+       "snapshot_ts": "2026-11-17T10:25:00+05:30",
+       "source": "fixture desk"
+      },
+      "rank": 1,
+      "reasons": [
+       "turnover_rs 350000000.0 >= 50000000: PASS; money_flow_net_rs 105000000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+      ],
+      "status": "PASS",
+      "symbol": "TCS"
+     }
+    },
+    {
+     "seq": 182,
+     "type": "CandidateVerified",
+     "agent": "4-desk-verification",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": "LONG",
+     "instrument_id": null,
+     "summary": "TCS verified",
+     "evidence": {
+      "candidate": {
+       "available_at": "2026-11-17T10:25:00+05:30",
+       "bar_ts": "2026-11-17T10:24:00+05:30",
+       "checks": [
+        {
+         "metric": "return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.3,
+         "value": 1.3279
+        },
+        {
+         "metric": "rel_return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.0,
+         "value": 0.9433
+        }
+       ],
+       "direction": "LONG",
+       "last_price": 3511.0666666666666,
+       "metrics": {
+        "rel_return_pct": 0.9433,
+        "return_pct": 1.3279,
+        "turnover_rs": 144952787.0667
+       },
+       "rank": 1,
+       "score": 0.9433,
+       "sector": "IT",
+       "sector_rank": 1,
+       "symbol": "TCS",
+       "window": "30 min"
+      },
+      "expires_at": "2026-11-17T10:29:00+05:30",
+      "rank": 1,
+      "verification": {
+       "checks": [
+        {
+         "metric": "turnover_rs",
+         "op": ">=",
+         "result": "PASS",
+         "threshold": 50000000,
+         "value": 350000000.0
+        },
+        {
+         "metric": "money_flow_net_rs",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0,
+         "value": 105000000.0
+        },
+        {
+         "metric": "oi_change_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": -5,
+         "value": 3.0
+        }
+       ],
+       "direction": "LONG",
+       "evidence": {
+        "age_s": 0,
+        "available_at": "2026-11-17T10:25:00+05:30",
+        "kinds": {
+         "money_flow_net_rs": "estimate",
+         "oi_change_pct": "observed",
+         "order_block_dist_pct": "pattern",
+         "turnover_rs": "observed"
+        },
+        "metrics": {
+         "money_flow_net_rs": 105000000.0,
+         "oi_change_pct": 3.0,
+         "order_block_dist_pct": 1.2,
+         "turnover_rs": 350000000.0
+        },
+        "revision": null,
+        "shared_source_with_screening": false,
+        "snapshot_ts": "2026-11-17T10:25:00+05:30",
+        "source": "fixture desk"
+       },
+       "rank": 1,
+       "reasons": [
+        "turnover_rs 350000000.0 >= 50000000: PASS; money_flow_net_rs 105000000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+       ],
+       "status": "PASS",
+       "symbol": "TCS"
+      }
+     }
+    },
+    {
+     "seq": 183,
+     "type": "EntryOrderSubmitted",
+     "agent": "5-futures-entry",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": "LONG",
+     "instrument_id": "TCS-FUT-NOV",
+     "summary": "BUY 175 units (OPEN) TCS26NOVFUT",
+     "evidence": {
+      "client_order_id": "intraday-20261117-102500-TCS-OPEN-1",
+      "direction": "LONG",
+      "expiry": "2026-11-24",
+      "lots": 1,
+      "purpose": "OPEN",
+      "side": "BUY",
+      "tradingsymbol": "TCS26NOVFUT",
+      "units": 175
+     }
+    },
+    {
+     "seq": 184,
+     "type": "OrderFilled",
+     "agent": "paper_broker",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": "LONG",
+     "instrument_id": "TCS-FUT-NOV",
+     "summary": "BUY 175 @ 3518.2 (OPEN, quote_top_of_book/1)",
+     "evidence": {
+      "client_order_id": "intraday-20261117-102500-TCS-OPEN-1",
+      "costs": {
+       "brokerage": 20.0,
+       "gst": 5.63,
+       "sebi": 0.62,
+       "stamp": 12.31,
+       "stt": 0.0,
+       "total": 49.21,
+       "txn": 10.65
+      },
+      "direction": "LONG",
+      "evidence": {
+       "ask": 3518.15,
+       "ask_qty": 875,
+       "bid": 3518.0,
+       "bid_qty": 875,
+       "model": "quote_top_of_book/1",
+       "quote_ts": "2026-11-17T10:25:00+05:30",
+       "source": "fixture"
+      },
+      "fill_id": "intraday-20261117-102500-TCS-OPEN-1-F1",
+      "instrument_id": "TCS-FUT-NOV",
+      "mode": "intraday",
+      "price": 3518.2,
+      "purpose": "OPEN",
+      "qty": 175,
+      "side": "BUY",
+      "trade_id": "intraday-20261117-102500-TCS",
+      "ts": "2026-11-17T10:25:00+05:30"
+     }
+    },
+    {
+     "seq": 185,
+     "type": "PositionOpened",
+     "agent": "5-futures-entry",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": "LONG",
+     "instrument_id": "TCS-FUT-NOV",
+     "summary": "",
+     "evidence": {
+      "entry_side": "BUY",
+      "first_fill": {
+       "client_order_id": "intraday-20261117-102500-TCS-OPEN-1",
+       "costs": {
+        "brokerage": 20.0,
+        "gst": 5.63,
+        "sebi": 0.62,
+        "stamp": 12.31,
+        "stt": 0.0,
+        "total": 49.21,
+        "txn": 10.65
+       },
+       "direction": "LONG",
+       "evidence": {
+        "ask": 3518.15,
+        "ask_qty": 875,
+        "bid": 3518.0,
+        "bid_qty": 875,
+        "model": "quote_top_of_book/1",
+        "quote_ts": "2026-11-17T10:25:00+05:30",
+        "source": "fixture"
+       },
+       "fill_id": "intraday-20261117-102500-TCS-OPEN-1-F1",
+       "instrument_id": "TCS-FUT-NOV",
+       "mode": "intraday",
+       "price": 3518.2,
+       "purpose": "OPEN",
+       "qty": 175,
+       "side": "BUY",
+       "trade_id": "intraday-20261117-102500-TCS",
+       "ts": "2026-11-17T10:25:00+05:30"
+      },
+      "lots": 1,
+      "units": 175
+     }
+    },
+    {
+     "seq": 186,
+     "type": "ExitPlanActivated",
+     "agent": "5-futures-entry",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": "LONG",
+     "instrument_id": "TCS-FUT-NOV",
+     "summary": "",
+     "evidence": {
+      "plan": {
+       "cutoff_grace_s": 600,
+       "evaluated_on": "bid (executable SELL side)",
+       "hard_max_stop_pct": 2.5,
+       "intraday_deadline": "2026-11-17T15:15:00+05:30",
+       "invalidation": {
+        "regime_change": false
+       },
+       "missing_quote_policy": "retry_until_quote",
+       "plan_version": "intraday-demo-1",
+       "regime_at_entry": null,
+       "stop": {
+        "basis": "pct",
+        "value": 1.0
+       },
+       "stop_price": 3483.018,
+       "target": {
+        "basis": "pct",
+        "value": 1.5
+       },
+       "target_price": 3570.973,
+       "time_exit": "15:15"
+      },
+      "version": 1
+     }
+    },
+    {
+     "seq": 187,
+     "type": "OverrideRequested",
+     "agent": "5-futures-entry",
+     "at": "2026-11-17T10:25:00+05:30",
+     "direction": "LONG",
+     "instrument_id": "TCS-FUT-NOV",
+     "summary": "",
+     "evidence": {
+      "allowed": [
+       "stop",
+       "target"
+      ],
+      "approval_id": "intraday-20261117-102500-TCS-override",
+      "deadline": "2026-11-17T10:30:00+05:30",
+      "default_plan": {
+       "cutoff_grace_s": 600,
+       "evaluated_on": "bid (executable SELL side)",
+       "hard_max_stop_pct": 2.5,
+       "intraday_deadline": "2026-11-17T15:15:00+05:30",
+       "invalidation": {
+        "regime_change": false
+       },
+       "missing_quote_policy": "retry_until_quote",
+       "plan_version": "intraday-demo-1",
+       "regime_at_entry": null,
+       "stop": {
+        "basis": "pct",
+        "value": 1.0
+       },
+       "stop_price": 3483.018,
+       "target": {
+        "basis": "pct",
+        "value": 1.5
+       },
+       "target_price": 3570.973,
+       "time_exit": "15:15"
+      },
+      "note": "the default plan stays active while waiting"
+     }
+    }
+   ]
+  },
+  {
+   "trade_id": "intraday-20261117-104500-INFY",
+   "mode": "intraday",
+   "direction": "LONG",
+   "underlying": "INFY",
+   "tradingsymbol": "INFY26NOVFUT",
+   "instrument_id": "INFY-FUT-NOV",
+   "expiry": "2026-11-24",
+   "status": "OPEN",
+   "lots": 1,
+   "units": 400,
+   "entry_filled_units": 400,
+   "entry_avg": 1578.25,
+   "mark": 1578.1,
+   "mark_side": "bid",
+   "mtm": -60.0,
+   "stop_price": 1562.4675,
+   "target_price": 1601.9237,
+   "plan_version": 1,
+   "plan": {
+    "cutoff_grace_s": 600,
+    "evaluated_on": "bid (executable SELL side)",
+    "hard_max_stop_pct": 2.5,
+    "intraday_deadline": "2026-11-17T15:15:00+05:30",
+    "invalidation": {
+     "regime_change": false
+    },
+    "missing_quote_policy": "retry_until_quote",
+    "plan_version": "intraday-demo-1",
+    "regime_at_entry": null,
+    "stop": {
+     "basis": "pct",
+     "value": 1.0
+    },
+    "stop_price": 1562.4675,
+    "target": {
+     "basis": "pct",
+     "value": 1.5
+    },
+    "target_price": 1601.9237,
+    "time_exit": "15:15"
+   },
+   "intraday_deadline": "2026-11-17T15:15:00+05:30",
+   "pre_expiry_deadline": null,
+   "sessions_held": null,
+   "max_holding_sessions": null,
+   "overnight": false,
+   "data_flag": null,
+   "exit": null,
+   "unresolved": null,
+   "label": "FIXTURE DEMO - paper",
+   "timeline": [
+    {
+     "seq": 253,
+     "type": "ScanRequested",
+     "agent": "scheduler",
+     "at": "2026-11-17T10:45:00+05:30",
+     "direction": null,
+     "instrument_id": null,
+     "summary": "",
+     "evidence": {
+      "as_of": "2026-11-17T10:45:00+05:30"
+     }
+    },
+    {
+     "seq": 254,
+     "type": "RegimeClassified",
+     "agent": "1-market-regime",
+     "at": "2026-11-17T10:45:00+05:30",
+     "direction": null,
+     "instrument_id": null,
+     "summary": "BULLISH -> permitted LONG",
+     "evidence": {
+      "evidence": {
+       "benchmark": "NIFTY 50",
+       "breadth": {
+        "advancers": 12,
+        "counted": 15,
+        "decliners": 3,
+        "ratio": 0.6,
+        "universe": 15
+       },
+       "lookback": {
+        "basis": "current_session",
+        "minutes": 30
+       },
+       "metrics": {
+        "benchmark_return_pct": 0.3835,
+        "breadth_ratio": 0.6,
+        "close_vs_sma_pct": 0.1253
+       },
+       "rules": [
+        {
+         "checks": [
+          {
+           "metric": "benchmark_return_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.25,
+           "value": 0.3835
+          },
+          {
+           "metric": "close_vs_sma_pct",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.0,
+           "value": 0.1253
+          },
+          {
+           "metric": "breadth_ratio",
+           "op": ">",
+           "result": "PASS",
+           "threshold": 0.1,
+           "value": 0.6
+          }
+         ],
+         "regime": "BULLISH",
+         "status": "PASS"
+        }
+       ],
+       "source": "fixture",
+       "window": {
+        "age_s": 0.0,
+        "available_at": "2026-11-17T10:45:00+05:30",
+        "basis": "current_session",
+        "effective": "30 min",
+        "end_price": 24288.0,
+        "end_ts": "2026-11-17T10:44:00+05:30",
+        "return_pct": 0.3835,
+        "start_price": 24195.2,
+        "start_ts": "2026-11-17T10:15:00+05:30",
+        "turnover_rs": 144683196.8
+       }
+      },
+      "permitted": [
+       "LONG"
+      ],
+      "reasons": [
+       "BULLISH: BULLISH PASS"
+      ],
+      "regime": "BULLISH"
+     }
+    },
+    {
+     "seq": 255,
+     "type": "SectorsRanked",
+     "agent": "2-sector-ranking",
+     "at": "2026-11-17T10:45:00+05:30",
+     "direction": null,
+     "instrument_id": null,
+     "summary": "LONG: 1.IT +1.31% (rel +0.92), 2.Bank +0.73% (rel +0.35)",
+     "evidence": {
+      "benchmark_return_pct": 0.3835,
+      "by_direction": {
+       "LONG": {
+        "assessed": [
+         {
+          "absolute_test": "PASS",
+          "breadth": {
+           "advancers": 4,
+           "decliners": 0
+          },
+          "constituents": 4,
+          "coverage": 1.0,
+          "fresh": 4,
+          "rank": 2,
+          "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +0.73% ok, relative +0.35% ok",
+          "relative_pct": 0.3461,
+          "relative_test": "PASS",
+          "result": "PASS",
+          "return_pct": 0.7296,
+          "sector": "Bank",
+          "source": "constituent_aggregation (turnover-weighted)",
+          "turnover_rs": 579910413.0
+         },
+         {
+          "absolute_test": "PASS",
+          "breadth": {
+           "advancers": 4,
+           "decliners": 0
+          },
+          "constituents": 4,
+          "coverage": 1.0,
+          "fresh": 4,
+          "rank": 1,
+          "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +1.31% ok, relative +0.92% ok",
+          "relative_pct": 0.9242,
+          "relative_test": "PASS",
+          "result": "PASS",
+          "return_pct": 1.3077,
+          "sector": "IT",
+          "source": "constituent_aggregation (turnover-weighted)",
+          "turnover_rs": 579898793.0
+         },
+         {
+          "absolute_test": "FAIL",
+          "breadth": {
+           "advancers": 0,
+           "decliners": 3
+          },
+          "constituents": 3,
+          "coverage": 1.0,
+          "fresh": 3,
+          "reason": "LONG needs positive absolute return and benchmark outperformance: absolute -0.44% fails, relative -0.83% fails",
+          "relative_pct": -0.828,
+          "relative_test": "FAIL",
+          "result": "FAIL",
+          "return_pct": -0.4445,
+          "sector": "Metal",
+          "source": "constituent_aggregation (turnover-weighted)",
+          "turnover_rs": 434974373.0
+         },
+         {
+          "absolute_test": "PASS",
+          "breadth": {
+           "advancers": 3,
+           "decliners": 0
+          },
+          "constituents": 3,
+          "coverage": 1.0,
+          "fresh": 3,
+          "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +0.19% ok, relative -0.19% fails",
+          "relative_pct": -0.191,
+          "relative_test": "FAIL",
+          "result": "FAIL",
+          "return_pct": 0.1925,
+          "sector": "Pharma",
+          "source": "constituent_aggregation (turnover-weighted)",
+          "turnover_rs": 434933018.0
+         }
+        ],
+        "qualifying": [
+         {
+          "absolute_test": "PASS",
+          "breadth": {
+           "advancers": 4,
+           "decliners": 0
+          },
+          "constituents": 4,
+          "coverage": 1.0,
+          "fresh": 4,
+          "rank": 1,
+          "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +1.31% ok, relative +0.92% ok",
+          "relative_pct": 0.9242,
+          "relative_test": "PASS",
+          "result": "PASS",
+          "return_pct": 1.3077,
+          "sector": "IT",
+          "source": "constituent_aggregation (turnover-weighted)",
+          "turnover_rs": 579898793.0
+         },
+         {
+          "absolute_test": "PASS",
+          "breadth": {
+           "advancers": 4,
+           "decliners": 0
+          },
+          "constituents": 4,
+          "coverage": 1.0,
+          "fresh": 4,
+          "rank": 2,
+          "reason": "LONG needs positive absolute return and benchmark outperformance: absolute +0.73% ok, relative +0.35% ok",
+          "relative_pct": 0.3461,
+          "relative_test": "PASS",
+          "result": "PASS",
+          "return_pct": 0.7296,
+          "sector": "Bank",
+          "source": "constituent_aggregation (turnover-weighted)",
+          "turnover_rs": 579910413.0
+         }
+        ]
+       }
+      },
+      "sectors": [
+       {
+        "breadth": {
+         "advancers": 4,
+         "decliners": 0
+        },
+        "constituents": 4,
+        "coverage": 1.0,
+        "fresh": 4,
+        "return_pct": 0.7296,
+        "sector": "Bank",
+        "source": "constituent_aggregation (turnover-weighted)",
+        "turnover_rs": 579910413.0
+       },
+       {
+        "breadth": {
+         "advancers": 4,
+         "decliners": 0
+        },
+        "constituents": 4,
+        "coverage": 1.0,
+        "fresh": 4,
+        "return_pct": 1.3077,
+        "sector": "IT",
+        "source": "constituent_aggregation (turnover-weighted)",
+        "turnover_rs": 579898793.0
+       },
+       {
+        "breadth": {
+         "advancers": 0,
+         "decliners": 3
+        },
+        "constituents": 3,
+        "coverage": 1.0,
+        "fresh": 3,
+        "return_pct": -0.4445,
+        "sector": "Metal",
+        "source": "constituent_aggregation (turnover-weighted)",
+        "turnover_rs": 434974373.0
+       },
+       {
+        "breadth": {
+         "advancers": 3,
+         "decliners": 0
+        },
+        "constituents": 3,
+        "coverage": 1.0,
+        "fresh": 3,
+        "return_pct": 0.1925,
+        "sector": "Pharma",
+        "source": "constituent_aggregation (turnover-weighted)",
+        "turnover_rs": 434933018.0
+       }
+      ],
+      "unmapped": [
+       {
+        "reason": "ambiguous sector mapping",
+        "symbol": "MYSTERYCO"
+       }
+      ]
+     }
+    },
+    {
+     "seq": 256,
+     "type": "CandidatesRanked",
+     "agent": "3-stock-screening",
+     "at": "2026-11-17T10:45:00+05:30",
+     "direction": null,
+     "instrument_id": null,
+     "summary": "1.INFY LONG +1.17, 2.TCS LONG +0.93, 3.HCLTECH LONG +0.84, 4.WIPRO LONG +0.75, 5.ICICIBANK LONG +0.44",
+     "evidence": {
+      "candidates": [
+       {
+        "available_at": "2026-11-17T10:45:00+05:30",
+        "bar_ts": "2026-11-17T10:44:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 1.5583
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 1.1748
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 1575.0,
+        "metrics": {
+         "rel_return_pct": 1.1748,
+         "return_pct": 1.5583,
+         "turnover_rs": 144977525.8333
+        },
+        "rank": 0,
+        "score": 1.1748,
+        "sector": "IT",
+        "sector_rank": 1,
+        "symbol": "INFY",
+        "window": "30 min"
+       },
+       {
+        "available_at": "2026-11-17T10:45:00+05:30",
+        "bar_ts": "2026-11-17T10:44:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 1.3159
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.9324
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 3542.8,
+        "metrics": {
+         "rel_return_pct": 0.9324,
+         "return_pct": 1.3159,
+         "turnover_rs": 144951044.2267
+        },
+        "rank": 1,
+        "score": 0.9324,
+        "sector": "IT",
+        "sector_rank": 1,
+        "symbol": "TCS",
+        "window": "30 min"
+       },
+       {
+        "available_at": "2026-11-17T10:45:00+05:30",
+        "bar_ts": "2026-11-17T10:44:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 1.2243
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.8408
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 1662.3999999999999,
+        "metrics": {
+         "rel_return_pct": 0.8408,
+         "return_pct": 1.2243,
+         "turnover_rs": 144974123.0933
+        },
+        "rank": 2,
+        "score": 0.8408,
+        "sector": "IT",
+        "sector_rank": 1,
+        "symbol": "HCLTECH",
+        "window": "30 min"
+       },
+       {
+        "available_at": "2026-11-17T10:45:00+05:30",
+        "bar_ts": "2026-11-17T10:44:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 1.1324
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.7489
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 259.0,
+        "metrics": {
+         "rel_return_pct": 0.7489,
+         "return_pct": 1.1324,
+         "turnover_rs": 144996099.9
+        },
+        "rank": 3,
+        "score": 0.7489,
+        "sector": "IT",
+        "sector_rank": 1,
+        "symbol": "WIPRO",
+        "window": "30 min"
+       },
+       {
+        "available_at": "2026-11-17T10:45:00+05:30",
+        "bar_ts": "2026-11-17T10:44:00+05:30",
+        "checks": [
+         {
+          "metric": "return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.3,
+          "value": 0.8233
+         },
+         {
+          "metric": "rel_return_pct",
+          "op": ">",
+          "result": "PASS",
+          "threshold": 0.0,
+          "value": 0.4398
+         }
+        ],
+        "direction": "LONG",
+        "last_price": 1333.8,
+        "metrics": {
+         "rel_return_pct": 0.4398,
+         "return_pct": 0.8233,
+         "turnover_rs": 144980338.4178
+        },
+        "rank": 4,
+        "score": 0.4398,
+        "sector": "Bank",
+        "sector_rank": 2,
+        "symbol": "ICICIBANK",
+        "window": "30 min"
+       }
+      ],
+      "expires_at": "2026-11-17T10:49:00+05:30",
+      "rejected": [],
+      "tie_break": "sector rank, then score desc, then symbol"
+     }
+    },
+    {
+     "seq": 257,
+     "type": "VerificationResult",
+     "agent": "4-desk-verification",
+     "at": "2026-11-17T10:45:00+05:30",
+     "direction": "LONG",
+     "instrument_id": null,
+     "summary": "INFY PASS: turnover_rs 450000000.0 >= 50000000: PASS; money_flow_net_rs 135000000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS",
+     "evidence": {
+      "checks": [
+       {
+        "metric": "turnover_rs",
+        "op": ">=",
+        "result": "PASS",
+        "threshold": 50000000,
+        "value": 450000000.0
+       },
+       {
+        "metric": "money_flow_net_rs",
+        "op": ">",
+        "result": "PASS",
+        "threshold": 0,
+        "value": 135000000.0
+       },
+       {
+        "metric": "oi_change_pct",
+        "op": ">",
+        "result": "PASS",
+        "threshold": -5,
+        "value": 3.0
+       }
+      ],
+      "direction": "LONG",
+      "evidence": {
+       "age_s": 0,
+       "available_at": "2026-11-17T10:45:00+05:30",
+       "kinds": {
+        "money_flow_net_rs": "estimate",
+        "oi_change_pct": "observed",
+        "order_block_dist_pct": "pattern",
+        "turnover_rs": "observed"
+       },
+       "metrics": {
+        "money_flow_net_rs": 135000000.0,
+        "oi_change_pct": 3.0,
+        "order_block_dist_pct": 1.2,
+        "turnover_rs": 450000000.0
+       },
+       "revision": null,
+       "shared_source_with_screening": false,
+       "snapshot_ts": "2026-11-17T10:45:00+05:30",
+       "source": "fixture desk"
+      },
+      "rank": 0,
+      "reasons": [
+       "turnover_rs 450000000.0 >= 50000000: PASS; money_flow_net_rs 135000000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+      ],
+      "status": "PASS",
+      "symbol": "INFY"
+     }
+    },
+    {
+     "seq": 258,
+     "type": "CandidateVerified",
+     "agent": "4-desk-verification",
+     "at": "2026-11-17T10:45:00+05:30",
+     "direction": "LONG",
+     "instrument_id": null,
+     "summary": "INFY verified",
+     "evidence": {
+      "candidate": {
+       "available_at": "2026-11-17T10:45:00+05:30",
+       "bar_ts": "2026-11-17T10:44:00+05:30",
+       "checks": [
+        {
+         "metric": "return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.3,
+         "value": 1.5583
+        },
+        {
+         "metric": "rel_return_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0.0,
+         "value": 1.1748
+        }
+       ],
+       "direction": "LONG",
+       "last_price": 1575.0,
+       "metrics": {
+        "rel_return_pct": 1.1748,
+        "return_pct": 1.5583,
+        "turnover_rs": 144977525.8333
+       },
+       "rank": 0,
+       "score": 1.1748,
+       "sector": "IT",
+       "sector_rank": 1,
+       "symbol": "INFY",
+       "window": "30 min"
+      },
+      "expires_at": "2026-11-17T10:49:00+05:30",
+      "rank": 0,
+      "verification": {
+       "checks": [
+        {
+         "metric": "turnover_rs",
+         "op": ">=",
+         "result": "PASS",
+         "threshold": 50000000,
+         "value": 450000000.0
+        },
+        {
+         "metric": "money_flow_net_rs",
+         "op": ">",
+         "result": "PASS",
+         "threshold": 0,
+         "value": 135000000.0
+        },
+        {
+         "metric": "oi_change_pct",
+         "op": ">",
+         "result": "PASS",
+         "threshold": -5,
+         "value": 3.0
+        }
+       ],
+       "direction": "LONG",
+       "evidence": {
+        "age_s": 0,
+        "available_at": "2026-11-17T10:45:00+05:30",
+        "kinds": {
+         "money_flow_net_rs": "estimate",
+         "oi_change_pct": "observed",
+         "order_block_dist_pct": "pattern",
+         "turnover_rs": "observed"
+        },
+        "metrics": {
+         "money_flow_net_rs": 135000000.0,
+         "oi_change_pct": 3.0,
+         "order_block_dist_pct": 1.2,
+         "turnover_rs": 450000000.0
+        },
+        "revision": null,
+        "shared_source_with_screening": false,
+        "snapshot_ts": "2026-11-17T10:45:00+05:30",
+        "source": "fixture desk"
+       },
+       "rank": 0,
+       "reasons": [
+        "turnover_rs 450000000.0 >= 50000000: PASS; money_flow_net_rs 135000000.0 > 0: PASS; oi_change_pct 3.0 > -5: PASS"
+       ],
+       "status": "PASS",
+       "symbol": "INFY"
+      }
+     }
+    },
+    {
+     "seq": 259,
+     "type": "EntryOrderSubmitted",
+     "agent": "5-futures-entry",
+     "at": "2026-11-17T10:45:00+05:30",
+     "direction": "LONG",
+     "instrument_id": "INFY-FUT-NOV",
+     "summary": "BUY 400 units (OPEN) INFY26NOVFUT",
+     "evidence": {
+      "client_order_id": "intraday-20261117-104500-INFY-OPEN-1",
+      "direction": "LONG",
+      "expiry": "2026-11-24",
+      "lots": 1,
+      "purpose": "OPEN",
+      "side": "BUY",
+      "tradingsymbol": "INFY26NOVFUT",
+      "units": 400
+     }
+    },
+    {
+     "seq": 260,
+     "type": "OrderFilled",
+     "agent": "paper_broker",
+     "at": "2026-11-17T10:45:00+05:30",
+     "direction": "LONG",
+     "instrument_id": "INFY-FUT-NOV",
+     "summary": "BUY 400 @ 1578.25 (OPEN, quote_top_of_book/1)",
+     "evidence": {
+      "client_order_id": "intraday-20261117-104500-INFY-OPEN-1",
+      "costs": {
+       "brokerage": 20.0,
+       "gst": 5.68,
+       "sebi": 0.63,
+       "stamp": 12.63,
+       "stt": 0.0,
+       "total": 49.86,
+       "txn": 10.92
+      },
+      "direction": "LONG",
+      "evidence": {
+       "ask": 1578.2,
+       "ask_qty": 2000,
+       "bid": 1578.1,
+       "bid_qty": 2000,
+       "model": "quote_top_of_book/1",
+       "quote_ts": "2026-11-17T10:45:00+05:30",
+       "source": "fixture"
+      },
+      "fill_id": "intraday-20261117-104500-INFY-OPEN-1-F1",
+      "instrument_id": "INFY-FUT-NOV",
+      "mode": "intraday",
+      "price": 1578.25,
+      "purpose": "OPEN",
+      "qty": 400,
+      "side": "BUY",
+      "trade_id": "intraday-20261117-104500-INFY",
+      "ts": "2026-11-17T10:45:00+05:30"
+     }
+    },
+    {
+     "seq": 261,
+     "type": "PositionOpened",
+     "agent": "5-futures-entry",
+     "at": "2026-11-17T10:45:00+05:30",
+     "direction": "LONG",
+     "instrument_id": "INFY-FUT-NOV",
+     "summary": "",
+     "evidence": {
+      "entry_side": "BUY",
+      "first_fill": {
+       "client_order_id": "intraday-20261117-104500-INFY-OPEN-1",
+       "costs": {
+        "brokerage": 20.0,
+        "gst": 5.68,
+        "sebi": 0.63,
+        "stamp": 12.63,
+        "stt": 0.0,
+        "total": 49.86,
+        "txn": 10.92
+       },
+       "direction": "LONG",
+       "evidence": {
+        "ask": 1578.2,
+        "ask_qty": 2000,
+        "bid": 1578.1,
+        "bid_qty": 2000,
+        "model": "quote_top_of_book/1",
+        "quote_ts": "2026-11-17T10:45:00+05:30",
+        "source": "fixture"
+       },
+       "fill_id": "intraday-20261117-104500-INFY-OPEN-1-F1",
+       "instrument_id": "INFY-FUT-NOV",
+       "mode": "intraday",
+       "price": 1578.25,
+       "purpose": "OPEN",
+       "qty": 400,
+       "side": "BUY",
+       "trade_id": "intraday-20261117-104500-INFY",
+       "ts": "2026-11-17T10:45:00+05:30"
+      },
+      "lots": 1,
+      "units": 400
+     }
+    },
+    {
+     "seq": 262,
+     "type": "ExitPlanActivated",
+     "agent": "5-futures-entry",
+     "at": "2026-11-17T10:45:00+05:30",
+     "direction": "LONG",
+     "instrument_id": "INFY-FUT-NOV",
+     "summary": "",
+     "evidence": {
+      "plan": {
+       "cutoff_grace_s": 600,
+       "evaluated_on": "bid (executable SELL side)",
+       "hard_max_stop_pct": 2.5,
+       "intraday_deadline": "2026-11-17T15:15:00+05:30",
+       "invalidation": {
+        "regime_change": false
+       },
+       "missing_quote_policy": "retry_until_quote",
+       "plan_version": "intraday-demo-1",
+       "regime_at_entry": null,
+       "stop": {
+        "basis": "pct",
+        "value": 1.0
+       },
+       "stop_price": 1562.4675,
+       "target": {
+        "basis": "pct",
+        "value": 1.5
+       },
+       "target_price": 1601.9237,
+       "time_exit": "15:15"
+      },
+      "version": 1
+     }
+    },
+    {
+     "seq": 263,
+     "type": "OverrideRequested",
+     "agent": "5-futures-entry",
+     "at": "2026-11-17T10:45:00+05:30",
+     "direction": "LONG",
+     "instrument_id": "INFY-FUT-NOV",
+     "summary": "",
+     "evidence": {
+      "allowed": [
+       "stop",
+       "target"
+      ],
+      "approval_id": "intraday-20261117-104500-INFY-override",
+      "deadline": "2026-11-17T10:50:00+05:30",
+      "default_plan": {
+       "cutoff_grace_s": 600,
+       "evaluated_on": "bid (executable SELL side)",
+       "hard_max_stop_pct": 2.5,
+       "intraday_deadline": "2026-11-17T15:15:00+05:30",
+       "invalidation": {
+        "regime_change": false
+       },
+       "missing_quote_policy": "retry_until_quote",
+       "plan_version": "intraday-demo-1",
+       "regime_at_entry": null,
+       "stop": {
+        "basis": "pct",
+        "value": 1.0
+       },
+       "stop_price": 1562.4675,
+       "target": {
+        "basis": "pct",
+        "value": 1.5
+       },
+       "target_price": 1601.9237,
+       "time_exit": "15:15"
+      },
+      "note": "the default plan stays active while waiting"
+     }
+    }
+   ]
+  }
+ ],
+ "orders": [
+  {
+   "client_order_id": "intraday-20261117-094500-INFY-OPEN-1",
+   "config_version": 1,
+   "created": "2026-11-17T09:45:00+05:30",
+   "direction": "LONG",
+   "filled_qty": 400,
+   "instrument_id": "INFY-FUT-NOV",
+   "lot_size": 400,
+   "lots": 1,
+   "mode": "intraday",
+   "purpose": "OPEN",
+   "quote_used": {
+    "2026-11-17T09:45:00+05:30": 400
+   },
+   "requested_qty": 400,
+   "side": "BUY",
+   "status": "FILLED",
+   "tick_size": 0.05,
+   "trade_id": "intraday-20261117-094500-INFY"
+  },
+  {
+   "client_order_id": "intraday-20261117-095000-TCS-OPEN-1",
+   "config_version": 1,
+   "created": "2026-11-17T09:50:00+05:30",
+   "direction": "LONG",
+   "filled_qty": 175,
+   "instrument_id": "TCS-FUT-NOV",
+   "lot_size": 175,
+   "lots": 1,
+   "mode": "intraday",
+   "purpose": "OPEN",
+   "quote_used": {
+    "2026-11-17T09:50:00+05:30": 175
+   },
+   "requested_qty": 175,
+   "side": "BUY",
+   "status": "FILLED",
+   "tick_size": 0.05,
+   "trade_id": "intraday-20261117-095000-TCS"
+  },
+  {
+   "client_order_id": "intraday-20261117-094500-INFY-CLOSE-1",
+   "config_version": 1,
+   "created": "2026-11-17T10:13:00+05:30",
+   "direction": "LONG",
+   "filled_qty": 400,
+   "instrument_id": "INFY-FUT-NOV",
+   "lot_size": 400,
+   "mode": "intraday",
+   "purpose": "CLOSE",
+   "quote_used": {
+    "2026-11-17T10:13:00+05:30": 400
+   },
+   "reason": "target",
+   "requested_qty": 400,
+   "side": "SELL",
+   "status": "FILLED",
+   "tick_size": 0.05,
+   "trade_id": "intraday-20261117-094500-INFY"
+  },
+  {
+   "client_order_id": "intraday-20261117-101500-INFY-OPEN-1",
+   "config_version": 1,
+   "created": "2026-11-17T10:15:00+05:30",
+   "direction": "LONG",
+   "filled_qty": 400,
+   "instrument_id": "INFY-FUT-NOV",
+   "lot_size": 400,
+   "lots": 1,
+   "mode": "intraday",
+   "purpose": "OPEN",
+   "quote_used": {
+    "2026-11-17T10:15:00+05:30": 400
+   },
+   "requested_qty": 400,
+   "side": "BUY",
+   "status": "FILLED",
+   "tick_size": 0.05,
+   "trade_id": "intraday-20261117-101500-INFY"
+  },
+  {
+   "client_order_id": "intraday-20261117-095000-TCS-CLOSE-1",
+   "config_version": 1,
+   "created": "2026-11-17T10:23:00+05:30",
+   "direction": "LONG",
+   "filled_qty": 175,
+   "instrument_id": "TCS-FUT-NOV",
+   "lot_size": 175,
+   "mode": "intraday",
+   "purpose": "CLOSE",
+   "quote_used": {
+    "2026-11-17T10:23:00+05:30": 175
+   },
+   "reason": "target",
+   "requested_qty": 175,
+   "side": "SELL",
+   "status": "FILLED",
+   "tick_size": 0.05,
+   "trade_id": "intraday-20261117-095000-TCS"
+  },
+  {
+   "client_order_id": "intraday-20261117-102500-TCS-OPEN-1",
+   "config_version": 1,
+   "created": "2026-11-17T10:25:00+05:30",
+   "direction": "LONG",
+   "filled_qty": 175,
+   "instrument_id": "TCS-FUT-NOV",
+   "lot_size": 175,
+   "lots": 1,
+   "mode": "intraday",
+   "purpose": "OPEN",
+   "quote_used": {
+    "2026-11-17T10:25:00+05:30": 175
+   },
+   "requested_qty": 175,
+   "side": "BUY",
+   "status": "FILLED",
+   "tick_size": 0.05,
+   "trade_id": "intraday-20261117-102500-TCS"
+  },
+  {
+   "client_order_id": "intraday-20261117-101500-INFY-CLOSE-1",
+   "config_version": 1,
+   "created": "2026-11-17T10:44:00+05:30",
+   "direction": "LONG",
+   "filled_qty": 400,
+   "instrument_id": "INFY-FUT-NOV",
+   "lot_size": 400,
+   "mode": "intraday",
+   "purpose": "CLOSE",
+   "quote_used": {
+    "2026-11-17T10:44:00+05:30": 400
+   },
+   "reason": "target",
+   "requested_qty": 400,
+   "side": "SELL",
+   "status": "FILLED",
+   "tick_size": 0.05,
+   "trade_id": "intraday-20261117-101500-INFY"
+  },
+  {
+   "client_order_id": "intraday-20261117-104500-INFY-OPEN-1",
+   "config_version": 1,
+   "created": "2026-11-17T10:45:00+05:30",
+   "direction": "LONG",
+   "filled_qty": 400,
+   "instrument_id": "INFY-FUT-NOV",
+   "lot_size": 400,
+   "lots": 1,
+   "mode": "intraday",
+   "purpose": "OPEN",
+   "quote_used": {
+    "2026-11-17T10:45:00+05:30": 400
+   },
+   "requested_qty": 400,
+   "side": "BUY",
+   "status": "FILLED",
+   "tick_size": 0.05,
+   "trade_id": "intraday-20261117-104500-INFY"
+  }
+ ],
+ "fills": [
+  {
+   "client_order_id": "intraday-20261117-094500-INFY-OPEN-1",
+   "costs": {
+    "brokerage": 20.0,
+    "gst": 5.61,
+    "sebi": 0.61,
+    "stamp": 12.23,
+    "stt": 0.0,
+    "total": 49.02,
+    "txn": 10.57
+   },
+   "direction": "LONG",
+   "evidence": {
+    "ask": 1528.1,
+    "ask_qty": 2000,
+    "bid": 1528.0,
+    "bid_qty": 2000,
+    "model": "quote_top_of_book/1",
+    "quote_ts": "2026-11-17T09:45:00+05:30",
+    "source": "fixture"
+   },
+   "fill_id": "intraday-20261117-094500-INFY-OPEN-1-F1",
+   "instrument_id": "INFY-FUT-NOV",
+   "mode": "intraday",
+   "price": 1528.15,
+   "purpose": "OPEN",
+   "qty": 400,
+   "side": "BUY",
+   "trade_id": "intraday-20261117-094500-INFY",
+   "ts": "2026-11-17T09:45:00+05:30"
+  },
+  {
+   "client_order_id": "intraday-20261117-095000-TCS-OPEN-1",
+   "costs": {
+    "brokerage": 20.0,
+    "gst": 5.6,
+    "sebi": 0.61,
+    "stamp": 12.12,
+    "stt": 0.0,
+    "total": 48.8,
+    "txn": 10.48
+   },
+   "direction": "LONG",
+   "evidence": {
+    "ask": 3462.5,
+    "ask_qty": 875,
+    "bid": 3462.35,
+    "bid_qty": 875,
+    "model": "quote_top_of_book/1",
+    "quote_ts": "2026-11-17T09:50:00+05:30",
+    "source": "fixture"
+   },
+   "fill_id": "intraday-20261117-095000-TCS-OPEN-1-F1",
+   "instrument_id": "TCS-FUT-NOV",
+   "mode": "intraday",
+   "price": 3462.55,
+   "purpose": "OPEN",
+   "qty": 175,
+   "side": "BUY",
+   "trade_id": "intraday-20261117-095000-TCS",
+   "ts": "2026-11-17T09:50:00+05:30"
+  },
+  {
+   "client_order_id": "intraday-20261117-094500-INFY-CLOSE-1",
+   "costs": {
+    "brokerage": 20.0,
+    "gst": 5.64,
+    "sebi": 0.62,
+    "stamp": 0.0,
+    "stt": 124.1,
+    "total": 161.1,
+    "txn": 10.73
+   },
+   "direction": "LONG",
+   "evidence": {
+    "ask": 1551.5,
+    "ask_qty": 2000,
+    "bid": 1551.35,
+    "bid_qty": 2000,
+    "model": "quote_top_of_book/1",
+    "quote_ts": "2026-11-17T10:13:00+05:30",
+    "source": "fixture"
+   },
+   "fill_id": "intraday-20261117-094500-INFY-CLOSE-1-F1",
+   "instrument_id": "INFY-FUT-NOV",
+   "mode": "intraday",
+   "price": 1551.3,
+   "purpose": "CLOSE",
+   "qty": 400,
+   "side": "SELL",
+   "trade_id": "intraday-20261117-094500-INFY",
+   "ts": "2026-11-17T10:13:00+05:30"
+  },
+  {
+   "client_order_id": "intraday-20261117-101500-INFY-OPEN-1",
+   "costs": {
+    "brokerage": 20.0,
+    "gst": 5.65,
+    "sebi": 0.62,
+    "stamp": 12.43,
+    "stt": 0.0,
+    "total": 49.44,
+    "txn": 10.75
+   },
+   "direction": "LONG",
+   "evidence": {
+    "ask": 1553.15,
+    "ask_qty": 2000,
+    "bid": 1553.05,
+    "bid_qty": 2000,
+    "model": "quote_top_of_book/1",
+    "quote_ts": "2026-11-17T10:15:00+05:30",
+    "source": "fixture"
+   },
+   "fill_id": "intraday-20261117-101500-INFY-OPEN-1-F1",
+   "instrument_id": "INFY-FUT-NOV",
+   "mode": "intraday",
+   "price": 1553.2,
+   "purpose": "OPEN",
+   "qty": 400,
+   "side": "BUY",
+   "trade_id": "intraday-20261117-101500-INFY",
+   "ts": "2026-11-17T10:15:00+05:30"
+  },
+  {
+   "client_order_id": "intraday-20261117-095000-TCS-CLOSE-1",
+   "costs": {
+    "brokerage": 20.0,
+    "gst": 5.63,
+    "sebi": 0.62,
+    "stamp": 0.0,
+    "stt": 123.02,
+    "total": 159.9,
+    "txn": 10.64
+   },
+   "direction": "LONG",
+   "evidence": {
+    "ask": 3515.0,
+    "ask_qty": 875,
+    "bid": 3514.85,
+    "bid_qty": 875,
+    "model": "quote_top_of_book/1",
+    "quote_ts": "2026-11-17T10:23:00+05:30",
+    "source": "fixture"
+   },
+   "fill_id": "intraday-20261117-095000-TCS-CLOSE-1-F1",
+   "instrument_id": "TCS-FUT-NOV",
+   "mode": "intraday",
+   "price": 3514.8,
+   "purpose": "CLOSE",
+   "qty": 175,
+   "side": "SELL",
+   "trade_id": "intraday-20261117-095000-TCS",
+   "ts": "2026-11-17T10:23:00+05:30"
+  },
+  {
+   "client_order_id": "intraday-20261117-102500-TCS-OPEN-1",
+   "costs": {
+    "brokerage": 20.0,
+    "gst": 5.63,
+    "sebi": 0.62,
+    "stamp": 12.31,
+    "stt": 0.0,
+    "total": 49.21,
+    "txn": 10.65
+   },
+   "direction": "LONG",
+   "evidence": {
+    "ask": 3518.15,
+    "ask_qty": 875,
+    "bid": 3518.0,
+    "bid_qty": 875,
+    "model": "quote_top_of_book/1",
+    "quote_ts": "2026-11-17T10:25:00+05:30",
+    "source": "fixture"
+   },
+   "fill_id": "intraday-20261117-102500-TCS-OPEN-1-F1",
+   "instrument_id": "TCS-FUT-NOV",
+   "mode": "intraday",
+   "price": 3518.2,
+   "purpose": "OPEN",
+   "qty": 175,
+   "side": "BUY",
+   "trade_id": "intraday-20261117-102500-TCS",
+   "ts": "2026-11-17T10:25:00+05:30"
+  },
+  {
+   "client_order_id": "intraday-20261117-101500-INFY-CLOSE-1",
+   "costs": {
+    "brokerage": 20.0,
+    "gst": 5.68,
+    "sebi": 0.63,
+    "stamp": 0.0,
+    "stt": 126.18,
+    "total": 163.4,
+    "txn": 10.91
+   },
+   "direction": "LONG",
+   "evidence": {
+    "ask": 1577.4,
+    "ask_qty": 2000,
+    "bid": 1577.25,
+    "bid_qty": 2000,
+    "model": "quote_top_of_book/1",
+    "quote_ts": "2026-11-17T10:44:00+05:30",
+    "source": "fixture"
+   },
+   "fill_id": "intraday-20261117-101500-INFY-CLOSE-1-F1",
+   "instrument_id": "INFY-FUT-NOV",
+   "mode": "intraday",
+   "price": 1577.2,
+   "purpose": "CLOSE",
+   "qty": 400,
+   "side": "SELL",
+   "trade_id": "intraday-20261117-101500-INFY",
+   "ts": "2026-11-17T10:44:00+05:30"
+  },
+  {
+   "client_order_id": "intraday-20261117-104500-INFY-OPEN-1",
+   "costs": {
+    "brokerage": 20.0,
+    "gst": 5.68,
+    "sebi": 0.63,
+    "stamp": 12.63,
+    "stt": 0.0,
+    "total": 49.86,
+    "txn": 10.92
+   },
+   "direction": "LONG",
+   "evidence": {
+    "ask": 1578.2,
+    "ask_qty": 2000,
+    "bid": 1578.1,
+    "bid_qty": 2000,
+    "model": "quote_top_of_book/1",
+    "quote_ts": "2026-11-17T10:45:00+05:30",
+    "source": "fixture"
+   },
+   "fill_id": "intraday-20261117-104500-INFY-OPEN-1-F1",
+   "instrument_id": "INFY-FUT-NOV",
+   "mode": "intraday",
+   "price": 1578.25,
+   "purpose": "OPEN",
+   "qty": 400,
+   "side": "BUY",
+   "trade_id": "intraday-20261117-104500-INFY",
+   "ts": "2026-11-17T10:45:00+05:30"
+  }
+ ],
+ "approvals": [],
+ "journal": [
+  {
+   "trade_id": "intraday-20261117-094500-INFY",
+   "mode": "intraday",
+   "direction": "LONG",
+   "underlying": "INFY",
+   "sector": "IT",
+   "tradingsymbol": "INFY26NOVFUT",
+   "instrument_id": "INFY-FUT-NOV",
+   "expiry": "2026-11-24",
+   "lots": 1,
+   "units": 400,
+   "entry_side": "BUY",
+   "exit_side": "SELL",
+   "status": "CLOSED",
+   "class": "settled",
+   "opened_at": "2026-11-17T09:45:00+05:30",
+   "closed_at": "2026-11-17T10:13:00+05:30",
+   "entry_avg": 1528.15,
+   "exit_avg": 1551.3,
+   "trigger_price": 1551.0722,
+   "closed_units": 400,
+   "gross_pnl": 9260.0,
+   "costs": 210.12,
+   "net_pnl": 9049.88,
+   "exit_reason": "target",
+   "exception": null,
+   "config_version": 1,
+   "label": "FIXTURE DEMO - paper"
+  },
+  {
+   "trade_id": "intraday-20261117-095000-TCS",
+   "mode": "intraday",
+   "direction": "LONG",
+   "underlying": "TCS",
+   "sector": "IT",
+   "tradingsymbol": "TCS26NOVFUT",
+   "instrument_id": "TCS-FUT-NOV",
+   "expiry": "2026-11-24",
+   "lots": 1,
+   "units": 175,
+   "entry_side": "BUY",
+   "exit_side": "SELL",
+   "status": "CLOSED",
+   "class": "settled",
+   "opened_at": "2026-11-17T09:50:00+05:30",
+   "closed_at": "2026-11-17T10:23:00+05:30",
+   "entry_avg": 3462.55,
+   "exit_avg": 3514.8,
+   "trigger_price": 3514.4882,
+   "closed_units": 175,
+   "gross_pnl": 9143.75,
+   "costs": 208.7,
+   "net_pnl": 8935.05,
+   "exit_reason": "target",
+   "exception": null,
+   "config_version": 1,
+   "label": "FIXTURE DEMO - paper"
+  },
+  {
+   "trade_id": "intraday-20261117-101500-INFY",
+   "mode": "intraday",
+   "direction": "LONG",
+   "underlying": "INFY",
+   "sector": "IT",
+   "tradingsymbol": "INFY26NOVFUT",
+   "instrument_id": "INFY-FUT-NOV",
+   "expiry": "2026-11-24",
+   "lots": 1,
+   "units": 400,
+   "entry_side": "BUY",
+   "exit_side": "SELL",
+   "status": "CLOSED",
+   "class": "settled",
+   "opened_at": "2026-11-17T10:15:00+05:30",
+   "closed_at": "2026-11-17T10:44:00+05:30",
+   "entry_avg": 1553.2,
+   "exit_avg": 1577.2,
+   "trigger_price": 1576.498,
+   "closed_units": 400,
+   "gross_pnl": 9600.0,
+   "costs": 212.84,
+   "net_pnl": 9387.16,
+   "exit_reason": "target",
+   "exception": null,
+   "config_version": 1,
+   "label": "FIXTURE DEMO - paper"
+  },
+  {
+   "trade_id": "intraday-20261117-102500-TCS",
+   "mode": "intraday",
+   "direction": "LONG",
+   "underlying": "TCS",
+   "sector": "IT",
+   "tradingsymbol": "TCS26NOVFUT",
+   "instrument_id": "TCS-FUT-NOV",
+   "expiry": "2026-11-24",
+   "lots": 1,
+   "units": 175,
+   "entry_side": null,
+   "exit_side": null,
+   "status": "OPEN",
+   "class": "open",
+   "opened_at": "2026-11-17T10:25:00+05:30",
+   "closed_at": null,
+   "entry_avg": null,
+   "exit_avg": null,
+   "trigger_price": null,
+   "closed_units": null,
+   "gross_pnl": null,
+   "costs": null,
+   "net_pnl": null,
+   "exit_reason": null,
+   "exception": null,
+   "config_version": 1,
+   "label": "FIXTURE DEMO - paper"
+  },
+  {
+   "trade_id": "intraday-20261117-104500-INFY",
+   "mode": "intraday",
+   "direction": "LONG",
+   "underlying": "INFY",
+   "sector": "IT",
+   "tradingsymbol": "INFY26NOVFUT",
+   "instrument_id": "INFY-FUT-NOV",
+   "expiry": "2026-11-24",
+   "lots": 1,
+   "units": 400,
+   "entry_side": null,
+   "exit_side": null,
+   "status": "OPEN",
+   "class": "open",
+   "opened_at": "2026-11-17T10:45:00+05:30",
+   "closed_at": null,
+   "entry_avg": null,
+   "exit_avg": null,
+   "trigger_price": null,
+   "closed_units": null,
+   "gross_pnl": null,
+   "costs": null,
+   "net_pnl": null,
+   "exit_reason": null,
+   "exception": null,
+   "config_version": 1,
+   "label": "FIXTURE DEMO - paper"
+  }
+ ],
+ "summary": {
+  "all": {
+   "settled": 3,
+   "excluded": 0,
+   "unresolved": 0,
+   "open": 2,
+   "gross_pnl": 28003.75,
+   "costs": 631.66,
+   "net_pnl": 27372.09,
+   "wins": 3,
+   "max_drawdown": 0.0,
+   "excluded_net_pnl": 0
+  },
+  "intraday:LONG": {
+   "settled": 3,
+   "excluded": 0,
+   "unresolved": 0,
+   "open": 2,
+   "gross_pnl": 28003.75,
+   "costs": 631.66,
+   "net_pnl": 27372.09,
+   "wins": 3,
+   "max_drawdown": 0.0,
+   "excluded_net_pnl": 0
+  },
+  "intraday:SHORT": {
+   "settled": 0,
+   "excluded": 0,
+   "unresolved": 0,
+   "open": 0,
+   "gross_pnl": 0,
+   "costs": 0,
+   "net_pnl": 0,
+   "wins": 0,
+   "max_drawdown": 0.0,
+   "excluded_net_pnl": 0
+  },
+  "swing:LONG": {
+   "settled": 0,
+   "excluded": 0,
+   "unresolved": 0,
+   "open": 0,
+   "gross_pnl": 0,
+   "costs": 0,
+   "net_pnl": 0,
+   "wins": 0,
+   "max_drawdown": 0.0,
+   "excluded_net_pnl": 0
+  },
+  "swing:SHORT": {
+   "settled": 0,
+   "excluded": 0,
+   "unresolved": 0,
+   "open": 0,
+   "gross_pnl": 0,
+   "costs": 0,
+   "net_pnl": 0,
+   "wins": 0,
+   "max_drawdown": 0.0,
+   "excluded_net_pnl": 0
+  }
+ },
+ "feeds": {
+  "source": "fixture",
+  "feeds": {
+   "benchmark_bars": "fixture",
+   "stock_bars": "fixture",
+   "sector_map": "fixture",
+   "futstk_master": "fixture",
+   "futstk_quotes": "fixture",
+   "desk_snapshot": "fixture"
+  }
+ },
+ "dead_letters": [],
+ "notes": [
+  "Paper trading and replay only. No order reaches a broker.",
+  "Equity spot prices select candidates; the futures contract's own quotes open, mark and close.",
+  "Money flow is an estimate from price x volume; order blocks are a chart pattern.",
+  "Not investment advice."
+ ]
+}

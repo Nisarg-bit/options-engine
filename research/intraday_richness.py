@@ -132,9 +132,10 @@ def study(day, bm, expiry, entry, exit_at):
         return None
     straddle = 0.5 * (sell + cover)
 
-    all_times = sorted(bm)
     n_full = V.trading_days(day, expiry)
-    s_left = n_full + (V.SESSION_MINUTES - all_times.index(t0)) / V.SESSION_MINUTES
+    h, m = map(int, t0.split(":"))
+    elapsed = h * 60 + m - (9 * 60 + 15)
+    s_left = n_full + (V.SESSION_MINUTES - elapsed) / V.SESSION_MINUTES
     imp = implied_session_sigma(straddle, s_left)
     if imp is None:
         return None
@@ -142,7 +143,13 @@ def study(day, bm, expiry, entry, exit_at):
     path = forward_path(bm, times)
     if len(path) < 30:
         return None
+    def minute(hm):
+        h, m = map(int, hm.split(':'))
+        return 60*h + m
+    history_eligible = (path[0][0] == entry and path[-1][0] == exit_at
+                        and len(path) == minute(exit_at) - minute(entry) + 1)
     return {
+        "history_eligible": history_eligible,
         "date": day, "dte": n_full, "straddle": straddle,
         "sessions_left": s_left, "implied": imp,
         "rv1": realised_sigma(path, 1),

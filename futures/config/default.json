@@ -1,0 +1,163 @@
+{
+  "schema": "stock-futures-config/1",
+  "label": "DEMO EXAMPLE RULES - not a strategy. Replace before enabling current-session entries.",
+  "rules_validated": false,
+  "live": {
+    "entries_enabled": false,
+    "required_feeds": ["benchmark_bars", "stock_bars", "sector_map", "futstk_master", "futstk_quotes", "desk_snapshot"]
+  },
+  "calendar": {
+    "exchange": "XBOM",
+    "session_open": "09:15",
+    "session_close": "15:30",
+    "extra_holidays": []
+  },
+  "shared": {
+    "mode_priority": ["intraday", "swing"],
+    "one_position_per_underlying": true,
+    "max_open_positions": 4,
+    "max_gross_notional_rs": 6000000,
+    "margin_pct_estimate": 0.20,
+    "margin_budget_rs": 1200000,
+    "daily_loss_limit_rs": 50000,
+    "costs": {
+      "label": "estimated NSE FUTSTK charges; check against your broker's contract note",
+      "brokerage_per_order_rs": 20.0,
+      "stt_sell_pct": 0.02,
+      "exchange_txn_pct": 0.00173,
+      "sebi_per_crore_rs": 10.0,
+      "stamp_buy_pct": 0.002,
+      "gst_pct": 18.0
+    },
+    "fill_policy": {
+      "model": "quote_top_of_book/1",
+      "slippage_ticks": 1,
+      "max_quote_age_s": 90,
+      "partial_fills": false,
+      "granularity": "lot",
+      "bar_model": "next_bar_open/1",
+      "bar_ambiguity": "stop_first"
+    },
+    "exit_precedence": ["hard_risk", "stop", "pre_expiry_deadline", "intraday_deadline", "max_holding", "invalidation", "target"]
+  },
+  "profiles": {
+    "intraday": {
+      "paused": false,
+      "benchmark": "NIFTY 50",
+      "scan_cadence_s": 300,
+      "candidate_ttl_s": 240,
+      "max_data_age_s": 180,
+      "entry_window": ["09:45", "14:30"],
+      "exit_deadline": "15:15",
+      "max_open_positions": 2,
+      "max_gross_notional_rs": 3000000,
+      "regime": {
+        "lookback": {"basis": "current_session", "minutes": 30},
+        "sma_bars": 20,
+        "required_metrics": ["benchmark_return_pct", "close_vs_sma_pct"],
+        "rules": [
+          {"regime": "BULLISH", "all": [["benchmark_return_pct", ">", 0.25], ["close_vs_sma_pct", ">", 0.0], ["breadth_ratio", ">", 0.1]]},
+          {"regime": "BEARISH", "all": [["benchmark_return_pct", "<", -0.25], ["close_vs_sma_pct", "<", 0.0], ["breadth_ratio", "<", -0.1]]}
+        ]
+      },
+      "direction_map": {"BULLISH": ["LONG"], "BEARISH": ["SHORT"], "SIDEWAYS": [], "UNAVAILABLE": []},
+      "sector": {
+        "lookback": {"basis": "current_session", "minutes": 30},
+        "require_absolute": true,
+        "require_relative": true,
+        "min_constituents": 2,
+        "min_coverage": 0.6,
+        "top_n": 3
+      },
+      "stock": {
+        "lookback": {"basis": "current_session", "minutes": 30},
+        "top_n": 5,
+        "min_turnover_rs": 50000000,
+        "long": {"all": [["return_pct", ">", 0.3], ["rel_return_pct", ">", 0.0]]},
+        "short": {"all": [["return_pct", "<", -0.3], ["rel_return_pct", "<", 0.0]]}
+      },
+      "verification": {
+        "long": {"all": [["turnover_rs", ">=", 50000000], ["money_flow_net_rs", ">", 0], ["oi_change_pct", ">", -5]]},
+        "short": {"all": [["turnover_rs", ">=", 50000000], ["money_flow_net_rs", "<", 0], ["oi_change_pct", ">", -5]]},
+        "max_age_s": 180
+      },
+      "contract": {
+        "expiry_preference": "nearest_eligible",
+        "min_days_to_expiry": 1,
+        "max_spread_ticks": 20,
+        "min_top_qty_lots": 1
+      },
+      "approval": {"entry_required": false, "entry_window_s": 120},
+      "override": {"enabled": true, "response_window_s": 300, "allowed": ["stop", "target"]},
+      "exit_plan": {
+        "plan_version": "intraday-demo-1",
+        "stop": {"basis": "pct", "value": 1.0},
+        "target": {"basis": "pct", "value": 1.5},
+        "hard_max_stop_pct": 2.5,
+        "time_exit": "15:15",
+        "invalidation": {"regime_change": false},
+        "missing_quote_policy": "retry_until_quote",
+        "cutoff_grace_s": 600
+      }
+    },
+    "swing": {
+      "paused": false,
+      "benchmark": "NIFTY 50",
+      "scan_cadence_s": 900,
+      "candidate_ttl_s": 600,
+      "max_data_age_s": 900,
+      "entry_window": ["14:30", "15:10"],
+      "max_open_positions": 2,
+      "max_gross_notional_rs": 3000000,
+      "regime": {
+        "lookback": {"basis": "completed_daily", "sessions": 5},
+        "sma_bars": 5,
+        "required_metrics": ["benchmark_return_pct", "close_vs_sma_pct"],
+        "rules": [
+          {"regime": "BULLISH", "all": [["benchmark_return_pct", ">", 0.5], ["close_vs_sma_pct", ">", 0.0]]},
+          {"regime": "BEARISH", "all": [["benchmark_return_pct", "<", -0.5], ["close_vs_sma_pct", "<", 0.0]]}
+        ]
+      },
+      "direction_map": {"BULLISH": ["LONG"], "BEARISH": ["SHORT"], "SIDEWAYS": [], "UNAVAILABLE": []},
+      "sector": {
+        "lookback": {"basis": "completed_daily", "sessions": 5},
+        "require_absolute": true,
+        "require_relative": true,
+        "min_constituents": 2,
+        "min_coverage": 0.6,
+        "top_n": 3
+      },
+      "stock": {
+        "lookback": {"basis": "completed_daily", "sessions": 5},
+        "top_n": 5,
+        "min_turnover_rs": 50000000,
+        "long": {"all": [["return_pct", ">", 1.0], ["rel_return_pct", ">", 0.0]]},
+        "short": {"all": [["return_pct", "<", -1.0], ["rel_return_pct", "<", 0.0]]}
+      },
+      "verification": {
+        "long": {"all": [["turnover_rs", ">=", 50000000], ["oi_change_pct", ">", 0]]},
+        "short": {"all": [["turnover_rs", ">=", 50000000], ["oi_change_pct", ">", 0]]},
+        "max_age_s": 900
+      },
+      "contract": {
+        "expiry_preference": "nearest_eligible",
+        "pre_expiry_buffer_sessions": 1,
+        "max_spread_ticks": 20,
+        "min_top_qty_lots": 1
+      },
+      "approval": {"entry_required": false, "entry_window_s": 600},
+      "override": {"enabled": true, "response_window_s": 1800, "allowed": ["stop", "target", "max_holding_sessions"]},
+      "exit_plan": {
+        "plan_version": "swing-demo-1",
+        "stop": {"basis": "pct", "value": 3.0},
+        "target": {"basis": "pct", "value": 6.0},
+        "hard_max_stop_pct": 6.0,
+        "max_holding_sessions": 5,
+        "holding_count": "sessions_after_entry",
+        "session_exit_time": "15:15",
+        "invalidation": {"regime_change": false},
+        "missing_quote_policy": "retry_until_quote"
+      }
+    }
+  }
+}

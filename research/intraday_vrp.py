@@ -208,12 +208,16 @@ def theoretical_decay(day, expiry, entry_idx, exit_idx):
 
 
 def simulate(bm, day, expiry, width, entry="09:20", exit_at="15:15",
-             stop_frac=0.30, target_frac=None, lot=DEFAULT_LOT):
+             stop_frac=0.30, target_frac=None, lot=DEFAULT_LOT, costs=None):
     """One session, one structure. Returns a dict or None if unpriceable.
 
     Marks every minute at what it would COST TO CLOSE, which is the only
     mark that tells a short position the truth.
     """
+    if not ("09:15" <= entry < exit_at <= "15:15"):
+        raise ValueError("entry and exit must be intraday, with exit by 15:15")
+    if lot <= 0:
+        raise ValueError("lot must be positive")
     times = sorted(t for t in bm if entry <= t <= exit_at)
     if len(times) < 2:
         return None
@@ -272,13 +276,17 @@ def simulate(bm, day, expiry, width, entry="09:20", exit_at="15:15",
         exit_time, exit_cost = marks[-1]
 
     pnl_pts = credit - exit_cost
-    fees = P.transaction_costs(credit, lot, 1, defined_risk=False, costs=COSTS)
+    fills = [("sell", bm[t0][k][ot][0], lot) for k, ot in legs]
+    fills += [("buy", bm[exit_time][k][ot][1], lot) for k, ot in legs]
+    fees = P.fill_costs(fills, costs=costs or COSTS)
 
     # Position of entry and exit within the whole session, so the theoretical
     # decay knows how much of today is already gone.
-    all_times = sorted(bm)
-    ei = all_times.index(t0)
-    xi = all_times.index(exit_time) if exit_time in bm else len(all_times) - 1
+    def minute(hm):
+        h, m = map(int, hm.split(":"))
+        return h * 60 + m
+    ei = minute(t0) - minute("09:15")
+    xi = minute(exit_time) - minute("09:15")
 
     f0, f1 = forward(bm[t0]), forward(bm[exit_time])
 
@@ -328,12 +336,24 @@ def simulate(bm, day, expiry, width, entry="09:20", exit_at="15:15",
     # trade that happened to decay very little. It showed up as a theoretical
     # decay of 3.1 points at 3 DTE where a comparable session gave 28.7.
     last_minute = max(bm)
-    complete = last_minute >= exit_at
+    complete = closed or exit_time == exit_at
+    held_times = [t for t, _ in marks if t <= exit_time]
+    expected = minute(exit_time) - minute(t0) + 1
+    quality_flags = []
+    if t0 != entry:
+        quality_flags.append("late_entry")
+    if len(held_times) != expected:
+        quality_flags.append("missing_held_quotes")
+    if not complete:
+        quality_flags.append("missing_exit")
 
     return {
         "date": day, "expiry": expiry, "width": width,
         "dte": trading_days(day, expiry),
         "complete": complete, "last_minute": last_minute,
+        "sample_eligible": complete and not quality_flags,
+        "quality_flags": quality_flags,
+        "cost_model": "executed_orders_v1_current_tariff",
         "legs": legs, "atm": atm, "step": step,
         "entry": t0, "exit": exit_time, "exit_reason": exit_reason,
         "credit": credit, "cover": exit_cost,

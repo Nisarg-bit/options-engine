@@ -58,6 +58,21 @@ INDEX_SYMBOLS = ["NSE:NIFTY 50", "NSE:NIFTY BANK", "NSE:INDIA VIX",
 MIN_EXPECTED = 1200
 OUT_DIR = "data/instruments"
 
+# STOCKS (added 11 Nov 2026, for the website's market pages)
+#
+# Every F&O stock: its NSE cash share (price, volume) and its nearest-month
+# future (price, OI). Roughly 200 names, so about 400 tokens on top of the
+# option chains. Strictly optional: anything that goes wrong here prints a
+# warning and the option universe is written exactly as before -- collecting
+# the chains is this box's first job and the stock layer must never cost it.
+# Switch off with STOCKS=0 in .env (read in build(), after .env is loaded).
+# Index futures live in the same NFO list as stock futures; these are not stocks.
+INDEX_FUT_NAMES = {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "NIFTYNXT50"}
+# Kite caps one websocket (it reports 4,000; the docs say 3,000) and allows 3
+# per API key. collector.py splits the universe over connections of 3,500.
+# Capping the total at 7,000 keeps it to two, leaving the third spare.
+MAX_TOKENS = 7000
+
 
 def _as_date(v):
     return v.date() if isinstance(v, datetime) else v
@@ -90,6 +105,81 @@ def choose(instruments, universe, today):
     return chosen, expiries
 
 
+def choose_stocks(nfo_rows, nse_rows, today):
+    """Stock rows (cash share + nearest future per F&O stock). Pure, so testable.
+
+    The F&O list decides WHICH stocks: anything with a live stock future. The
+    cash token is looked up in the NSE equity list under the same symbol; a
+    stock whose symbol does not match there is skipped rather than guessed.
+    """
+    near = {}
+    for i in nfo_rows:
+        if i.get("instrument_type") != "FUT" or i.get("name") in INDEX_FUT_NAMES:
+            continue
+        e = _as_date(i["expiry"])
+        if e < today:
+            continue
+        n = i["name"]
+        if n not in near or e < _as_date(near[n]["expiry"]):
+            near[n] = i
+    eq = {i["tradingsymbol"]: i for i in nse_rows
+          if i.get("instrument_type") == "EQ" and i.get("segment", "NSE") == "NSE"}
+    rows = []
+    for n in sorted(near):
+        cash, fut = eq.get(n), near[n]
+        if cash is None:
+            continue
+        rows.append({"instrument_token": cash["instrument_token"], "tradingsymbol": n,
+                     "name": n, "expiry": None, "strike": None,
+                     "instrument_type": "EQ", "lot_size": fut["lot_size"],
+                     "kind": "stock"})
+        rows.append({"instrument_token": fut["instrument_token"],
+                     "tradingsymbol": fut["tradingsymbol"], "name": n,
+                     "expiry": str(_as_date(fut["expiry"])), "strike": None,
+                     "instrument_type": "FUT", "lot_size": fut["lot_size"],
+                     # tick_size: required by the stock-futures paper system
+                     # (futures/) for tick-rounded fills; Kite's dump carries it.
+                     "tick_size": fut.get("tick_size"),
+                     "kind": "stock_fut"})
+    return rows
+
+
+def add_prev_close(kite, stock_rows, batch=500):
+    """Yesterday's close on every stock row, for % change on the market pages.
+
+    Read before the open, Kite's OHLC `close` is the previous session's close.
+    Best effort: a row without it simply shows no % change until tomorrow.
+    """
+    keys = {}
+    for r in stock_rows:
+        ex = "NSE" if r["kind"] == "stock" else "NFO"
+        keys[f"{ex}:{r['tradingsymbol']}"] = r
+    names = list(keys)
+    for i in range(0, len(names), batch):
+        try:
+            got = kite.ohlc(names[i:i + batch])
+        except Exception as e:  # noqa: BLE001
+            print(f"WARNING previous closes not fetched: {type(e).__name__}: {e}")
+            return
+        for k, v in got.items():
+            c = (v.get("ohlc") or {}).get("close")
+            if k in keys and c:
+                keys[k]["prev_close"] = float(c)
+
+
+def fit_budget(option_rows, stock_rows, cap=MAX_TOKENS):
+    """Trim the stock layer so the whole subscription stays under the cap.
+    Futures go first (their OI is the nice-to-have); cash shares last."""
+    room = cap - len(option_rows)
+    if len(stock_rows) <= room:
+        return stock_rows
+    cash = [r for r in stock_rows if r["kind"] == "stock"]
+    if len(cash) <= room:
+        futs = [r for r in stock_rows if r["kind"] == "stock_fut"][:room - len(cash)]
+        return cash + futs
+    return cash[:max(room, 0)]
+
+
 def build():
     kite = get_kite()
     today = today_ist()
@@ -101,13 +191,14 @@ def build():
                 "last_price": v["last_price"]}
                for k, v in ltp.items()]
 
-    chosen, expiries = [], {}
+    chosen, expiries, downloaded = [], {}, {}
     # One download per segment, not per name: kite.instruments() returns the
     # whole segment and the BFO list alone is 4,500 rows.
     for segment in sorted({u["segment"] for u in UNIVERSE.values()}):
         want = {n: u for n, u in UNIVERSE.items() if u["segment"] == segment}
         print(f"downloading {segment} instrument master...")
         rows = kite.instruments(segment)
+        downloaded[segment] = rows
         got, exp = choose(rows, want, today)
         chosen.extend(got)
         expiries.update(exp)
@@ -122,10 +213,31 @@ def build():
              "kind": "option"}
             for i in chosen] + indices
 
+    stock_rows = []
+    # Read here, not at import: get_kite() above is what loads .env, so a
+    # STOCKS=0 line there only takes effect from this point.
+    if os.environ.get("STOCKS", "1") != "0":
+        try:
+            nfo = downloaded.get("NFO") or kite.instruments("NFO")
+            stock_rows = fit_budget(rows, choose_stocks(nfo, kite.instruments("NSE"), today))
+            add_prev_close(kite, stock_rows)
+            try:
+                import sectors
+                sectors.refresh()
+            except Exception as e:  # noqa: BLE001
+                print(f"WARNING sector map not refreshed: {type(e).__name__}: {e}")
+        except Exception as e:  # noqa: BLE001 -- optional layer, see STOCKS above
+            print(f"WARNING stock layer skipped: {type(e).__name__}: {e}")
+            stock_rows = []
+    option_count = len(rows)
+    rows = rows + stock_rows
+
     out = {"date": str(today),
            "generated_at": datetime.now(timezone.utc).isoformat(),
            "expiries": expiries,
            "count": len(rows),
+           "stocks": sum(1 for r in stock_rows if r["kind"] == "stock"),
+           "stock_futures": sum(1 for r in stock_rows if r["kind"] == "stock_fut"),
            "instruments": rows}
 
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -137,6 +249,7 @@ def build():
         n = sum(1 for r in rows if r["name"] == name)
         print(f"{name:10s} {len(expiries.get(name, [])):d} expiries, "
               f"{n:>5,} contracts: {', '.join(expiries.get(name, [])) or 'NONE'}")
+    print(f"stocks            : {out['stocks']} cash + {out['stock_futures']} futures")
     print(f"\ntotal instruments : {len(rows)}")
     print(f"written to        : {path}")
 
@@ -151,8 +264,10 @@ def build():
               f"`name` field in that segment, and the entitlement")
         sys.exit(1)
 
-    if len(rows) < MIN_EXPECTED:
-        print(f"\nFAIL: only {len(rows)} instruments, expected at least {MIN_EXPECTED}")
+    # The floor is on the OPTION universe; stocks must not be able to hide a
+    # thin chain by padding the total.
+    if option_count < MIN_EXPECTED:
+        print(f"\nFAIL: only {option_count} option/index instruments, expected at least {MIN_EXPECTED}")
         sys.exit(1)
     return out
 

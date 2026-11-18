@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0b1020">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nifty Desk">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<script src="/pwa.js" defer></script>
 <script>(function(){var t='light';try{t=localStorage.getItem('desk-theme')||'light'}catch(e){}document.documentElement.dataset.theme=t;})();</script>
 <title>NIFTY options desk</title>
 <style>
@@ -625,6 +634,10 @@ p.note .wdot{margin:0 3px 0 6px}
 }
 
 </style>
+<link rel="stylesheet" href="/desk.css">
+<link rel="stylesheet" href="/studio.css">
+<link rel="stylesheet" href="/pulse.css">
+<link rel="stylesheet" href="/futures.css">
 </head>
 <body>
 
@@ -675,6 +688,7 @@ here is investment advice. It exists to show what these strategies really do, in
      border:1px solid rgba(255,200,87,.38);background:rgba(255,200,87,.07);
      border-radius:13px;font-size:13px;line-height:1.65;color:#d8c9a4"></div>
 
+<aside class="banner" id="research-policy"><b>Daily intraday paper research.</b> New NIFTY opening-spread rules start 26 October: entry 09:45, stop/target or exit by 15:00. One entry per valid session. The old 09:20 straddle remains a control. No strategy is approved for live capital; historical tests do not establish profitability.</aside>
 <main>
 
   <!-- ========================================================= 1 TODAY -->
@@ -835,7 +849,7 @@ here is investment advice. It exists to show what these strategies really do, in
       columns in the option chain (Tools) inherit the same VIX-derived &sigma;. Today's
       paper trade and its full record are below.</p>
     </div>
-    <div class="subhead">The daily paper trade, in full<small>Today&rsquo;s position, where the premium goes, and every session recorded.</small></div>
+    <div class="subhead">The old straddle control, in full<small>Today&rsquo;s position, where the premium goes, and every session recorded.</small></div>
     
     <div class="grid g3" id="dtcards"></div>
 
@@ -844,7 +858,7 @@ here is investment advice. It exists to show what these strategies really do, in
         <h2>Cumulative net &mdash; paper, per lot</h2>
         <div class="chartbox" id="dtequity"></div>
         <p class="note">Every settled session, in order, after the measured
-        spread and real charges. The shape matters more than the level: a line
+        spread and estimated order charges. The shape matters more than the level: a line
         that climbs gently and then drops a long way is the short-volatility
         payoff, and it is the reason the median and the mean below disagree.</p>
       </div>
@@ -2192,7 +2206,7 @@ async function loadSignal(){
   $('#sigrec').innerHTML=`
   ${rec?`
   <div class="card glow">
-    <h2>Recommended &mdash; weekly &nbsp; ${rec.defined_risk?'<span class="pill def">defined risk</span>':'<span class="pill no">undefined risk</span>'}</h2>
+    <h2>Legacy weekly model &nbsp; ${rec.defined_risk?'<span class="pill def">defined risk</span>':'<span class="pill no">undefined risk</span>'}</h2>
     <div class="big" style="font-size:20px;margin-bottom:12px">${rec.label}</div>
     ${rec.legs.map(l=>`<div class="kv"><span>${l.qty<0?'SELL':'BUY'} ${num(l.strike)} ${l.kind}</span><span>${num(l.premium,2)}</span></div>`).join('')}
     <div class="kv"><span>credit</span><span>${num(rec.credit_pts,1)} pts · ${rs(rec.credit_rs)}</span></div>
@@ -2204,7 +2218,7 @@ async function loadSignal(){
     twenty scored signals.</p>
   </div>`:`
   <div class="card">
-    <h2>Recommended &mdash; weekly</h2>
+    <h2>Legacy weekly model</h2>
     <div class="big hero neg">NO TRADE</div>
     <p class="note">${S.gate_reason||''}</p>
     <p class="note"><span id="gatelast"></span> The strategy behind this gate was
@@ -2349,9 +2363,10 @@ async function priceBuilder(){
 
   const lots=LEGS.reduce((m,l)=>Math.max(m,Math.abs(l.qty)),0);
   const defined=LEGS.some(l=>l.qty>0);
+  const lotSz=(CHAIN&&CHAIN.lot)||65;
   const margin = defined ? Math.abs(p.max_loss_rs)
-                         : S.spot*65*lots*0.10;
-  const fees = p.net_premium_pts>0 ? p.net_premium_pts*65*lots*0.00164 + 80*(defined?2:1) : 0;
+                         : S.spot*lotSz*lots*0.10;
+  const fees = p.net_premium_pts>0 ? p.net_premium_pts*lotSz*lots*0.00164 + 80*(defined?2:1) : 0;
   const netEV = (p.gross_ev_rs!=null) ? p.gross_ev_rs - fees : null;
 
   $('#bstats').innerHTML=`
@@ -2710,24 +2725,28 @@ function sizing(st, s){
   const maxLoss = cap * riskPct;
   // SL points: the sheet stops out at a multiple of the premium collected.
   const slPts = st.credit_pts * slPct;
-  const lossPerLot = slPts * lot;
+  // Defined risk: size on the contractual max loss (wing width minus credit). A stop
+  // set as a % of a small credit gave a tiny loss per lot -- the card once allowed
+  // 81 lots of an iron condor -- and a gap can jump straight past the stop anyway.
+  const capped = st.defined_risk && Number.isFinite(+st.max_loss_pts) && +st.max_loss_pts > 0;
+  const lossPerLot = capped ? +st.max_loss_pts * lot : slPts * lot;
 
   // Third limit: never tie up more than this share of capital in margin. Without
   // it the card recommended 2 lots of a strangle at 96% utilisation.
   const marginCap = Math.max(0, Math.min(1, (+($('#marginpct') || {}).value || 100) / 100));
   const byMargin = marginLot > 0 ? Math.floor(cap * marginCap / marginLot) : 0;
   const byRisk   = lossPerLot > 0 ? Math.floor(maxLoss / lossPerLot) : 0;
-  const lots = Math.max(0, Math.min(byMargin, byRisk));
+  const lots = 0; // Research only: no strategy has passed deployment validation.
 
   // Kelly: p from the model's POP, b from win over loss -- both NET of the
   // round-trip fees and slippage the EV column charges. On gross credit
   // against the bare stop, the card showed full Kelly +70.9% beside a net EV
   // of -717: a bet sized on an edge the costs had already eaten.
   const costs = (+st.fees_rs || 0) + (+st.slippage_rs || 0);
-  const p = st.pop, win = st.credit_rs - costs, loss = Math.abs(slPts * lot) + costs;
+  const p = st.pop, win = st.credit_rs - costs, loss = Math.abs(lossPerLot) + costs;
   const b = (loss > 0 && win > 0) ? win / loss : 0;
   // No edge after costs means no bet, whatever the binary approximation says.
-  const noEdge = !(st.net_ev_rs > 0);
+  const noEdge = true; // Binary Kelly does not model this strategy's return distribution.
   const kelly = q => (b > 0 && !noEdge) ? Math.max(0, (q * b - (1 - q)) / b) : 0;
   const full = kelly(p);
 
@@ -2888,11 +2907,12 @@ async function loadDash(){
     <div class="kv"><span>margin per lot of this structure</span><span>${rs(z.marginLot)}</span></div>
     <div class="kv"><span>stop-loss</span><span>${num(z.slPts,1)} pts of ${num(rec.credit_pts,1)} credit</span></div>
     <div class="kv"><span>lots the margin allows <span class="dimtxt">(≤ ${pct(z.marginCap,0)} of capital)</span></span><span>${z.byMargin}</span></div>
-    <div class="kv"><span>lots the risk rule allows</span><span>${z.byRisk}</span></div>
-    <div class="kv"><span><b style="color:var(--ink)">recommended lots</b></span>
+    <div class="kv"><span>lots the risk rule allows <span class="dimtxt">(${rec.defined_risk?'on max loss per lot':'on the stop-loss'})</span></span><span>${z.byRisk}</span></div>
+    <div class="kv"><span><b style="color:var(--ink)">approved live lots (research only)</b></span>
         <span class="big" style="font-size:20px">${z.lots}</span></div>
     <div class="kv"><span>margin used</span><span>${rs(z.marginUsed)} (${pct(z.utilisation)})</span></div>
-    <div class="kv"><span>worst case at stop</span><span class="neg">${rs(z.worst)} (${pct(z.worstPct)})</span></div>
+    <div class="kv"><span>Contractual loss per paper lot</span><span class="neg">${rec.defined_risk && Number.isFinite(rec.max_loss_pts) ? rs(Math.abs(rec.max_loss_pts) * (S.lot || 65)) : "Not capped by a stop"}</span></div>
+    <div class="kv"><span>planned stop loss (not a loss cap)</span><span class="neg">${rs(z.worst)} (${pct(z.worstPct)})</span></div>
     <div class="kv"><span>payoff ratio b</span><span>${num(z.b,3)}</span></div>
     ${z.noEdge ? `<div class="kv"><span>Kelly</span><span class="neg">0% &mdash; no edge (net EV ${sign(rec.net_ev_rs)} after costs)</span></div>` : ''}
     <div class="kv"><span>full Kelly <span class="dimtxt">p = POP ${pct(z.p)}, net of costs</span></span><span class="${z.full>0?'pos':'neg'}">${(z.full*100).toFixed(1)}%</span></div>
@@ -3799,22 +3819,22 @@ async function renderIntradayRec(){
   // and any previous one removed, rather than blindly appended to.
   host.querySelectorAll('.intraday-rec').forEach(n => n.remove());
   const card = el('div', 'card intraday-rec',
-                  '<h2>Recommended &mdash; intraday</h2>'
+                  '<h2>Control baseline &mdash; old 09:20 straddle</h2>'
                   + '<div class="empty">loading…</div>');
   host.appendChild(card);
 
   let d;
   try{ d = await DATA.daytrade(); }
   catch(e){
-    card.innerHTML = '<h2>Recommended &mdash; intraday</h2>'
+    card.innerHTML = '<h2>Control baseline &mdash; old 09:20 straddle</h2>'
                    + `<div class="err">${e.message}</div>`;
     return;
   }
-  const t = d.today, s = d.summary, pnl = +t.pnl_now_rs;
+  const t = d.today, s = d.summary, pnl = t.net_rs == null ? NaN : +t.net_rs;
   const live = d.status !== 'settled';
   card.className = 'card glow intraday-rec';
   card.innerHTML = `
-    <h2>Recommended &mdash; intraday &nbsp;<span class="pill no">paper</span> <span class="dimtxt" style="font-weight:400;text-transform:none;letter-spacing:0">ATM fixed at 09:20</span></h2>
+    <h2>Control baseline &mdash; old 09:20 straddle &nbsp;<span class="pill no">paper</span> <span class="dimtxt" style="font-weight:400;text-transform:none;letter-spacing:0">ATM fixed at 09:20</span></h2>
     <div class="big" style="font-size:20px;margin-bottom:12px">Sell the
       ${num(t.atm)} straddle</div>
     <div class="kv"><span>SELL ${num(t.atm)} CE + ${num(t.atm)} PE</span>
@@ -3823,7 +3843,7 @@ async function renderIntradayRec(){
       <span>${num(t.stop_level,2)}</span></div>
     <div class="kv"><span>exit</span><span>15:15, or the stop</span></div>
     <div class="kv"><span>cost to close now</span><span>${num(t.mark,2)}</span></div>
-    <div class="kv"><span>P&amp;L ${live?'now':'settled'}</span><span>${sign(pnl,0)}</span></div>
+    <div class="kv"><span>Net P&amp;L ${live?'now':'settled'}</span><span>${sign(pnl,0)}</span></div>
     <div class="kv"><span>richness at entry</span><span>${
       t.richness ? (+t.richness).toFixed(2) : '–'}</span></div>
     <p class="note">There is one every market day, because the entry is
@@ -3846,10 +3866,10 @@ async function loadIntraday(){
   const t = d.today, s = d.summary, o = d.overnight || {};
   exportable('journal', `journal_${d.underlying}_${d.session}.csv`, d.journal||[]);
   const live = d.status !== 'settled';
-  const pnl = +t.pnl_now_rs;
+  const pnl = t.net_rs == null ? NaN : +t.net_rs;
 
   $('#dtcards').innerHTML = `
-  <div class="card"><h2>Today &mdash; paper</h2>
+  <div class="card"><h2>Control baseline &mdash; paper</h2>
     <div class="big hero ${pnl>0?'pos':(pnl<0?'neg':'')}">${sign(pnl,0)}</div>
     <div class="sub">${live ? 'open · marked at ' + t.exit
                             : 'settled · ' + t.exit_reason + ' at ' + t.exit}</div>
@@ -3902,8 +3922,7 @@ async function loadIntraday(){
     <div class="kv"><span>today, modelled at entry</span><span>${t.p_stop_vix!==''&&t.p_stop_vix!=null
       ? `${pct(+t.p_stop_vix)} <span class="dimtxt">VIX</span> · ${t.p_stop_implied!==''&&t.p_stop_implied!=null?pct(+t.p_stop_implied):'–'} <span class="dimtxt">implied</span>`
       : '–'}</span></div>
-    <p class="note">The median and the mean disagreeing <b>is</b> the finding.
-    Most sessions pay a little; a few take it all back. Until the mean settles
+    <p class="note">Read average win, average loss and net expectancy together; the observed win rate alone does not measure an edge. Until the mean settles
     down, neither number is a result.</p>
     <p class="note">Modelled P(stop) is the chance, as it stood at 09:20, that the
     straddle's cost to close reaches the stop before 15:15: Monte Carlo on the
@@ -3967,9 +3986,7 @@ async function loadIntraday(){
               with the overnight gap, which an intraday seller never carries and
               therefore never earns`
           : ''}.</p>
-      <p class="note dimtxt">${nrat} sessions with every one on the same side of
-      1.0 is a streak, not a distribution. It takes a session above 1.0 to learn
-      anything about how big the other tail is.</p>`;
+      <p class="note dimtxt">This sample does not establish the size of rare losses. A realised/implied ratio below one is not a profitability test.</p>`;
   } else {
     $('#rvbox').innerHTML = '<div class="empty">needs two priced sessions</div>';
     $('#rvratio').innerHTML = ''; $('#rvstats').innerHTML = '';
@@ -4045,8 +4062,7 @@ async function loadIntraday(){
        market or of the &radic;(sessions) path this model assumes is not
        settled here.</p>` : '')
     + `<p class="note dimtxt">Decay is a model number — the Bachelier value the
-       structure would have shed had the forward not moved. The other three
-       are measured. The decomposition reconciles to credit minus cover to
+       structure would have shed had the forward not moved. Movement is modelled too; volatility/repricing is a residual, not an independent observation. The decomposition reconciles to credit minus cover to
        within ${Math.abs(unexp)<1?'a rupee':num(Math.abs(unexp),0)+' rupees'}
        across the whole journal${at.length<40?`, on ${at.length} sessions against a floor of 40`:''}.</p>`;
   } else {
@@ -4228,7 +4244,7 @@ function renderVerdict(s, c){
   }else if(s.gate_passed){
     tone = 'go'; head = `The model <em>would sell premium</em> today — ${r ? esc(r.label.toLowerCase()) : 'see chapter 3'}, paper only.`;
   }else{
-    tone = 'no'; head = `<em>No trade today.</em> ${s.c_over_sigma != null && s.c_over_sigma < s.cs_gate
+    tone = 'no'; head = `<em>Weekly model: no entry.</em> ${s.c_over_sigma != null && s.c_over_sigma < s.cs_gate
       ? 'The premium on offer is too thin for the risk.' : 'Nothing clears its costs.'}`;
   }
   const chips = [];
@@ -4256,7 +4272,7 @@ function renderBrief(s, c){
   if(!host || !s) return;
   const sd = s.sigma, sp = s.spot, rw = richWord(s.ratio);
   const P = [];
-  P.push(`${esc(UND)} is at <b>${num(sp, 0)}</b>. The options market is pricing a typical move of about
+  P.push(`${esc(UND)} is at <b>${num(sp, 0)}</b>. The selected volatility benchmark implies a model move of about
     <b>±${num(sd, 0)} points</b> (${(sd / sp * 100).toFixed(1)}%) by the ${fmtDate(s.expiry)} expiry,
     ${s.dte === 0 ? 'which is today' : s.dte + ' day' + (s.dte === 1 ? '' : 's') + ' away'}. Two days in three should end inside
     <b>${num(sp - sd, 0)}–${num(sp + sd, 0)}</b> — if the usual model holds, which in big moves it often does not.`);
@@ -4456,7 +4472,7 @@ function riskDraw(){
   $('#rkout').innerHTML = `
     <div class="sub">${lots} lot${lots > 1 ? 's' : ''} · ${esc(st.label.toLowerCase())} · ${esc(UND)} at ${num(sp + move)} ${when}</div>
     <div class="big ${v >= 0 ? 'pos' : 'neg'}">${v >= 0 ? '+' : ''}${rsK(v)}</div>
-    ${cap ? `<div class="sub">${v >= 0 ? '+' : ''}${(v / cap * 100).toFixed(2)}% of your ₹${num(cap)} capital (set on the sizing card)</div>` : ''}
+    ${cap ? `<div class="sub">${v >= 0 ? '+' : ''}${(v / cap * 100).toFixed(2)}% of the illustrative ₹${num(cap)} capital (editable example)</div>` : ''}
     <p>If ${esc(UND)} is at <b>${num(sp + move)}</b> ${when}, this position would be
     ${v >= 0 ? `up about <b class="pos">${rsK(v)}</b>` : `down about <b class="neg">${rsK(v)}</b>`} after estimated charges.
     ${stopped
@@ -4511,7 +4527,29 @@ function riskChart(host, o){
     ${o.matched ? '' : '<span class="neg">the model could not match the market price; shown on the site’s σ</span>'}`;
   host.appendChild(lg);
 }
-async function trade(){ riskSetup(S); }
+async function trade(){
+  riskSetup(S);
+  let card = $('#spread-policy');
+  if(!card){ card = el('div', 'card wide'); card.id = 'spread-policy'; $('#sigrec').before(card); }
+  if(UND !== 'NIFTY'){ card.textContent = 'The new spread paper experiment is NIFTY-only. Other indices retain the control baseline.'; return; }
+  try{
+    const data = await DATA.daytrade(), policy = data.paper_policy;
+    if(!policy){ card.textContent = 'New paper-policy data is not available yet. The straddle below is the old control baseline.'; return; }
+    const r = policy.today;
+    const legs = r?.legs?.map(([k,ot,q]) => `${q>0?'BUY':'SELL'} ${num(k)} ${ot}`).join(' + ');
+    card.innerHTML = `<h2>New daily paper rules · opening spread v1</h2>
+      <p>Starts <b>${esc(policy.activation)}</b> · NIFTY · one lot · one entry per valid session · paper only, unvalidated.</p>
+      <p>Observe 09:20–09:44. At <b>09:45</b>, buy a call debit spread for a nonnegative opening move or a put debit spread for a downward move. Buy the ATM option and sell an option two strike steps further in that direction, same expiry. No neutral-selling branch or weekly entry gate.</p>
+      <p><b>Exit:</b> net loss of 35% of R, net profit of 50% of R, or <b>15:00</b>, whichever is observed first. No re-entry. R is the gross maximum expiry loss of the complete structure; fees and intraday execution can add to it. Missing quotes are flagged.</p>
+      ${r ? `<p><b>${esc(r.status)} · ${esc(r.shape || 'awaiting signal')}</b><br>${esc(legs || '')}<br>
+        Net P&amp;L: <b>${r.net_rs == null?'not marked yet':rsK(r.net_rs)}</b>
+        ${r.exit ? ` · ${esc(r.exit_reason)} at ${esc(r.exit)}` : ''}<br>
+        Planned stop: ${r.stop_net_rs == null?'–':rsK(r.stop_net_rs)} · target: ${r.target_net_rs == null?'–':rsK(r.target_net_rs)}
+        ${r.quality_flags?.length ? `<br>Data flags: ${esc(r.quality_flags.join(', '))}` : ''}</p>`
+        : '<p>No prospective trade yet. Historical simulations are not counted as forward trades.</p>'}
+      <p>Clean forward sessions: <b>${policy.forward_sessions}</b> · net: <b>${rsK(policy.forward_net_rs)}</b>. The old 09:20 straddle remains a separately labelled control.</p>`;
+  }catch(e){ card.textContent = 'New paper-policy data unavailable: ' + e.message; }
+}
 
 /* ============================================================ TRACK RECORD */
 async function proof(){
@@ -4533,12 +4571,20 @@ async function proof(){
   host.innerHTML = `
     <div class="brief" style="margin-bottom:18px"><p>Every market day the desk paper-trades the same simple trade —
       sell the at-the-money straddle at 09:20, stop at 30% of the premium, close by 15:15 — and records what really
-      happened, at real bid/ask prices and real charges. <b>${n}</b> sessions are finished so far (target ${floor}).
+      happened, at recorded bid/ask quotes and estimated order charges. <b>${n}</b> sessions are finished so far (target ${floor}).
       It made money on <b>${wins}</b>${wr != null ? ` (${pct(wr, 0)})` : ''}${wci ? `, but with this few sessions the true
       win rate could be anywhere from <b>${pct(wci[0], 0)}</b> to <b>${pct(wci[1], 0)}</b>` : ''}.
       Running total: <b class="${tot >= 0 ? 'pos' : 'neg'}">${tot >= 0 ? '+' : ''}${rsK(tot)}</b> per lot.
       ${skew ? `A typical day made <b>${rsK(sm.median_net)}</b> but the average is <b>${rsK(sm.mean_net)}</b> — most days pay a little and a few big ones take it back. That shape is what selling options looks like.` : ''}
-      ${n < floor ? `<span class="hl">Too few sessions to call this a result yet.</span>` : ''}</p></div>
+      <span class="hl">${floor} sessions is a collection milestone, not validation.</span>
+      Clean verified scheduled-entry sample: <b>${sm.clean_sample?.settled ?? 0}</b>;
+      unverified or excluded: <b>${sm.unverified_or_excluded ?? n}</b>.
+      ${d.journal_version ? 'Version 2 ledger: rebuilt with order costs and elapsed clock time. The original ledger is preserved separately.' : 'Legacy ledger: historical rows may use older cost assumptions.'}
+      Clean-sample net: <b>${sm.clean_sample?.total_net == null ? '–' : rsK(sm.clean_sample.total_net)}</b>.
+      Average winner / loser: <b>${sm.average_win == null ? '–' : rsK(sm.average_win)} / ${sm.average_loss == null ? '–' : rsK(-sm.average_loss)}</b>.
+      Profit factor: <b>${sm.profit_factor == null ? '–' : num(sm.profit_factor, 2)}</b>.</p></div>
+    ${sm.p_stop_vix_mean != null && sci && sm.p_stop_vix_mean < sci[0]
+      ? '<p class="banner"><b>Stop model warning:</b> observed stops exceed the model estimate. Its sampling-error band excludes model uncertainty. Do not use this probability or binary Kelly for capital sizing.</p>' : ''}
     <div class="kpis">
       <div class="kpi"><div class="k">Sessions recorded</div><div class="v">${n}<span class="dimtxt" style="font-size:14px"> / ${floor}</span></div>
         <div class="bar good" style="margin-top:10px"><i style="width:${Math.min(100, n / floor * 100)}%"></i></div></div>
@@ -4576,11 +4622,36 @@ async function proof(){
   if(curve.length > 1) lineChart($('#trcurve'), [{name: 'running total ₹', values: curve, color: '#10b981', w: 3}],
     {xLabels: rows.map(r => String(r.date).slice(5)), fmtY: v => (Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(0)), W: 1100, H: 260});
   else $('#trcurve').innerHTML = '<div class="empty">needs two settled sessions</div>';
+  let comparison = $('#intraday-comparison');
+  if(!comparison){ comparison = el('div', 'card wide'); comparison.id = 'intraday-comparison'; host.appendChild(comparison); }
+  try{
+    const response = await fetch('/intraday-validation.json');
+    if(!response.ok) throw new Error('report unavailable');
+    const report = await response.json();
+    const names = {baseline:'09:20–15:15 ATM straddle', later_entry:'09:45–15:15 ATM straddle',
+      shorter_window:'09:45–14:30 ATM straddle', two_strike_strangle:'09:20–15:15 two-strike strangle'};
+    comparison.innerHTML = `<h2>Daily intraday schedule audit · 25 October 2026</h2>
+      <p class="note">All candidates enter every valid session and close the same day. These are historical comparisons, not a prospective validation. Three incomplete sessions were excluded from every candidate. No candidate has been promoted.</p>
+      <div class="scroll"><table><thead><tr><th>Schedule</th><th>Earlier period net</th><th>Later period net</th><th>Later sessions</th></tr></thead><tbody>${Object.entries(report.candidates || {}).map(([name,r]) =>
+        `<tr><td>${esc(names[name] || name)}</td><td>${rsK(r.train.net)}</td><td>${rsK(r.holdout.net)}</td><td>${r.holdout.sessions}</td></tr>`).join('')}</tbody></table></div>
+      <p class="note">Later period begins ${esc(report.holdout_start)}. All four lost after estimated costs in that period. One-minute quotes cannot reproduce intraminute fills, depth or latency. Daily trading remains paper research.</p>`;
+  }catch(e){ comparison.textContent = 'Intraday comparison report unavailable; no replacement strategy is approved.'; }
+  let spreads = $('#spread-research');
+  if(!spreads){ spreads = el('div', 'card wide'); spreads.id = 'spread-research'; host.appendChild(spreads); }
+  try{
+    const response = await fetch('/daily-spread-research.json');
+    if(!response.ok) throw new Error('unavailable');
+    const report = await response.json();
+    spreads.innerHTML = `<h2>New spread rules · historical comparison</h2>
+      <p>Previously inspected historical data, not independent validation. Equal lots are not equal risk. The new prospective record starts at zero on 26 October.</p>
+      <div class="scroll"><table><thead><tr><th>Candidate</th><th>Earlier net</th><th>Later net</th><th>Later stressed net</th><th>Worst day</th></tr></thead><tbody>${Object.entries(report.candidates || {}).map(([name,r]) =>
+        `<tr><td>${esc(name)}</td><td>${rsK(r.earlier.net)}</td><td>${rsK(r.later.net)}</td><td>${r.later_stress?rsK(r.later_stress.net):'–'}</td><td>${rsK(r.all.worst)}</td></tr>`).join('')}</tbody></table></div>
+      <p>Stress adds one premium point per leg on entry and exit. It is not a worst-case execution model. Trend is selected for forward paper research after inspecting these results; it lost over the full historical period. No candidate is validated for real capital.</p>`;
+  }catch(e){ spreads.textContent = 'Spread comparison unavailable; no profitability claim is supported.'; }
 }
 
 window.V2 = {today, trade, proof};
 })();
-
 </script>
 <script>
 /* ======================================================= v3: strategy builder
@@ -4682,6 +4753,12 @@ let PINS = {A: null, B: null};
 let SCORED = null;           // structures payload (for tile badges), may be null
 let NEXTID = 1;
 let STRATNAME = '';
+/* The strategy the legs came from, and their shape. Editing lots evenly keeps the name;
+   any other edit shows it as edited instead of silently dropping or keeping a wrong name. */
+let STRATBASE = null;
+const gcd2 = (a, b) => b ? gcd2(b, a % b) : a;
+const sigOf = L => { const g = L.reduce((a, l) => gcd2(a, l.lots), 0) || 1;
+  return L.map(l => [l.exp, l.strike, l.kind, l.side, l.lots / g].join(':')).sort().join('|'); };
 
 const esc2 = t => String(t == null ? '' : t).replace(/[&<>"]/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -4964,7 +5041,7 @@ async function loadChains(){
 
 SB.load = async function(){
   const key = UND + '|' + (SESSION || '');
-  if(key !== KEY){ LEGSX = []; PINS = {A: null, B: null}; KEY = key; CHAINS = {}; STRATNAME = ''; }
+  if(key !== KEY){ LEGSX = []; PINS = {A: null, B: null}; KEY = key; CHAINS = {}; STRATNAME = ''; STRATBASE = null; }
   let info;
   try{ info = await loadChains(); }catch(e){ info = {list: [], errs: {_: e.message}}; }
   try{ SCORED = NEAR ? await DATA.structures(NEAR) : null; }catch(e){ SCORED = null; }
@@ -5059,7 +5136,7 @@ function renderTiles(){
     const def = CATDEF.strategies.find(s => s.key === b.dataset.k);
     const t = buildDef(def);
     if(t.why) return;
-    LEGSX = t.legs; STRATNAME = def.label; DAYOFF = 0;
+    LEGSX = t.legs; STRATNAME = def.label; STRATBASE = {name: def.label, sig: sigOf(LEGSX)}; DAYOFF = 0;
     renderTiles(); renderLegsX(); renderOut(); renderChainX();
   });
   $('#sbtiles').querySelectorAll('.sbengb').forEach(b => b.onclick = () => {
@@ -5069,12 +5146,14 @@ function renderTiles(){
       return {id: NEXTID++, exp: NEAR, strike: l.strike, kind: l.kind, side: l.qty < 0 ? -1 : 1,
               lots: Math.abs(l.qty) || 1, premium: m != null ? m : l.premium, custom: false};
     });
-    STRATNAME = st.label.toLowerCase(); DAYOFF = 0;
+    STRATNAME = st.label; STRATBASE = {name: st.label, sig: sigOf(LEGSX)}; DAYOFF = 0;
     renderTiles(); renderLegsX(); renderOut(); renderChainX();
   });
 }
 
-function changed(){ STRATNAME = ''; renderTiles(); renderLegsX(); renderOut(); renderChainX(); }
+function changed(){
+  STRATNAME = !STRATBASE || !LEGSX.length ? '' : sigOf(LEGSX) === STRATBASE.sig ? STRATBASE.name : 'custom (edited from ' + STRATBASE.name + ')';
+  renderTiles(); renderLegsX(); renderOut(); renderChainX(); }
 
 function renderLegsX(){
   const box = $('#sblegs');
@@ -5090,9 +5169,9 @@ function renderLegsX(){
                : v.src === 'atm' ? 'no IV at this strike: the ATM IV is used'
                : 'no IV: the chain volatility (VIX units) is used';
       return `<tr data-id="${l.id}">
-        <td><button class="sbside ${l.side > 0 ? 'b' : 's'}" data-a="side" title="click to switch buy / sell">${l.side > 0 ? 'B' : 'S'}</button></td>
-        <td><select data-a="exp">${EXPS.filter(e => CHAINS[e]).map(e => `<option value="${e}"${e === l.exp ? ' selected' : ''}>${fmtExp(e)}</option>`).join('')}</select></td>
-        <td><select data-a="strike">${ks.map(k => `<option value="${k}"${k === l.strike ? ' selected' : ''}>${num(k)}</option>`).join('')}</select></td>
+        <td><select class="sbside ${l.side > 0 ? 'b' : 's'}" data-a="side" aria-label="Leg ${l.id} buy or sell"><option value="1"${l.side > 0 ? ' selected' : ''}>Buy</option><option value="-1"${l.side < 0 ? ' selected' : ''}>Sell</option></select></td>
+        <td><select data-a="exp" aria-label="Leg ${l.id} expiry">${EXPS.filter(e => CHAINS[e]).map(e => `<option value="${e}"${e === l.exp ? ' selected' : ''}>${fmtExp(e)}</option>`).join('')}</select></td>
+        <td><select data-a="strike" aria-label="Leg ${l.id} strike">${ks.map(k => `<option value="${k}"${k === l.strike ? ' selected' : ''}>${num(k)}</option>`).join('')}</select></td>
         <td><button class="sbkind" data-a="kind" title="click to switch call / put">${l.kind}</button></td>
         <td><span class="stepper"><button data-a="lm">–</button><span>${l.lots}</span><button data-a="lp">+</button></span></td>
         <td><input class="sbpx${l.custom ? ' custom' : ''}" data-a="px" type="number" step="0.05" min="0" value="${(+l.premium).toFixed(2)}" title="Entry price. Type one to price a position you already hold; untouched legs follow the chain's mid."></td>
@@ -5106,7 +5185,7 @@ function renderLegsX(){
       const reprice = () => { const p = mid(l.exp, l.strike, l.kind); if(p != null){ l.premium = p; l.custom = false; return true; } return false; };
       tr.querySelectorAll('[data-a]').forEach(c => {
         const a = c.dataset.a;
-        if(a === 'side') c.onclick = () => { l.side = -l.side; changed(); };
+        if(a === 'side') c.onchange = e => { l.side = +e.target.value === -1 ? -1 : 1; changed(); };
         if(a === 'kind') c.onclick = () => { const was = l.kind; l.kind = l.kind === 'CE' ? 'PE' : 'CE'; if(!reprice()) l.kind = was; changed(); };
         if(a === 'lm') c.onclick = () => { l.lots = Math.max(1, l.lots - 1); changed(); };
         if(a === 'lp') c.onclick = () => { l.lots += 1; changed(); };
@@ -5589,7 +5668,13 @@ if(baseRenderWorld){
 })();
 
 })();
-
 </script>
+<script src="/desk.js"></script>
+<script src="/guide.js"></script>
+<script src="/studio.js"></script>
+<script src="/pulse.js"></script>
+<script src="/options.js"></script>
+<script src="/futures.js"></script>
+<script src="/expand.js"></script>
 </body>
 </html>
