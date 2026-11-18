@@ -153,6 +153,46 @@ class MarketRegime(Agent):
         cfg = self.e.cfg(ev["config_version"])
         prof = cfg["profiles"][ev["mode"]]
         rc = prof["regime"]
+        method = rc.get("method", "rules")
+        if method == "opening_range_fib_vwap":
+            regime, reasons, evidence = self.intraday(c, ev, prof, rc, now)
+        elif method == "return_structure":
+            regime, reasons, evidence = self.swing(prof, rc, now)
+        else:
+            regime, reasons, evidence = self.rules(prof, rc, now)
+        self.finish(c, ev, prof, regime, reasons, evidence, now)
+
+    def intraday(self, c, ev, prof, rc, now):
+        import sf_regime as R
+        bench = prof["benchmark"]
+        src = (rc.get("vwap_source") or {}).get("symbol")
+        key = f"or_levels:{ev['mode']}:{now.date()}"
+        raw = self.st.control(key)
+        frozen = json.loads(raw) if raw else None
+        out = R.classify_intraday(self.e.data.bars(bench, now, "1m"),
+                                  self.e.data.bars(src, now, "1m") if src else [],
+                                  now, rc, self.e.cal, prof["max_data_age_s"], frozen=frozen)
+        if not frozen and out.get("levels", {}).get("status") == "READY":
+            lv = R.opening_range(self.e.data.bars(bench, now, "1m"), now.date(),
+                                 rc["opening_range"].get("start", self.e.cal.open),
+                                 rc["opening_range"].get("minutes", 15), now,
+                                 fibs=tuple(rc.get("fib", {}).get(k, d) for k, d in
+                                            (("low", 0.380), ("mid", 0.500), ("high", 0.618))))
+            c.execute("INSERT OR REPLACE INTO control(key,value,updated,actor) VALUES(?,?,?,?)",
+                      (key, json.dumps(lv), iso(now), self.name))
+        out.update(benchmark=bench, source=self.e.data.name)
+        return out["regime"], [out["reason"]], out
+
+    def swing(self, prof, rc, now):
+        import sf_regime as R
+        bench = prof["benchmark"]
+        out = R.classify_swing(self.e.data.bars(bench, now, "1d"), now, rc, self.e.cal,
+                               last_completed_session(now, self.e.cal))
+        out.update(benchmark=bench, source=self.e.data.name)
+        return out["regime"], [out["reason"]], out
+
+    def rules(self, prof, rc, now):
+        """The original generic rule engine (config "method": "rules")."""
         bench = prof["benchmark"]
         basis = rc["lookback"]["basis"]
         interval = "1m" if basis == "current_session" else "1d"
@@ -183,11 +223,14 @@ class MarketRegime(Agent):
                     regime = rule["regime"]
                     break
             reasons.append(f"{regime}: " + ("; ".join(f"{r['regime']} {r['status']}" for r in rule_log)))
-        permitted = list(prof["direction_map"].get(regime, []))
-        prev = self.st.control(f"regime:{ev['mode']}")
-        evidence = {"benchmark": bench, "source": self.e.data.name, "window": _strip(bm),
+        evidence = {"method": "rules", "benchmark": bench, "source": self.e.data.name, "window": _strip(bm),
                     "metrics": {k: _r(v) for k, v in metrics.items()}, "breadth": br,
                     "rules": rule_log, "lookback": rc["lookback"]}
+        return regime, reasons, evidence
+
+    def finish(self, c, ev, prof, regime, reasons, evidence, now):
+        permitted = list(prof["direction_map"].get(regime, []))
+        prev = self.st.control(f"regime:{ev['mode']}")
         c.execute("INSERT OR REPLACE INTO control(key,value,updated,actor) VALUES(?,?,?,?)",
                   (f"regime:{ev['mode']}", regime, iso(now), self.name))
         if prev and prev != regime:
@@ -232,9 +275,13 @@ class SectorRanking(Agent):
         sc = prof["sector"]
         basis = sc["lookback"]["basis"]
         interval = "1m" if basis == "current_session" else "1d"
-        bwin = ev["payload"]["evidence"]["window"] or {}
-        start = parse_ts(bwin.get("start_ts")) if basis == "current_session" and bwin else None
-        bench_ret = ev["payload"]["evidence"]["metrics"].get("benchmark_return_pct")
+        # The benchmark over THIS agent's window; every sector is measured from the same start.
+        bwin = window_metrics(self.e.data.bars(prof["benchmark"], now, interval), basis, sc["lookback"], now, self.e.cal)
+        if not fresh(bwin, prof):
+            return self.stop_scan(c, ev, now, f"{prof['benchmark']} data missing or stale for the sector comparison window",
+                                  "sector_ranking")
+        start = parse_ts(bwin["start_ts"]) if basis == "current_session" else None
+        bench_ret = bwin["return_pct"]
         smap = self.e.data.sector_map(now)
         uni = self.e.data.universe(now)
         members, unmapped = {}, []
@@ -272,7 +319,8 @@ class SectorRanking(Agent):
             row["breadth"] = {"advancers": adv, "decliners": dec}
             return row
         rows = list(POOL.map(sector, sorted(members)))
-        out = {"benchmark_return_pct": bench_ret, "unmapped": unmapped, "by_direction": {}, "sectors": rows}
+        out = {"benchmark_return_pct": bench_ret, "benchmark_window": _strip(bwin), "unmapped": unmapped,
+               "by_direction": {}, "sectors": rows}
         any_q = False
         for d in ev["payload"]["permitted"]:
             assessed = []
@@ -324,6 +372,8 @@ class StockScreening(Agent):
         cfg = self.e.cfg(ev["config_version"])
         prof = cfg["profiles"][ev["mode"]]
         sk = prof["stock"]
+        if sk.get("method") == "opening_range_breakout_vwap":
+            return self.breakout(c, ev, now, prof, sk)
         basis = sk["lookback"]["basis"]
         interval = "1m" if basis == "current_session" else "1d"
         bench_ret = ev["payload"]["benchmark_return_pct"]
@@ -361,14 +411,59 @@ class StockScreening(Agent):
                               "available_at": m["available_at"], "window": m["effective"]})
         dir_order = {d: i for i, d in enumerate(ev["payload"]["by_direction"])}
         cands.sort(key=lambda x: (dir_order[x["direction"]], x["sector_rank"], -x["score"], x["symbol"]))
-        cands = cands[:sk["top_n"]]
+        self.publish(c, ev, now, prof, cands[:sk["top_n"]], rejected, "sector rank, then score desc, then symbol")
+
+    def breakout(self, c, ev, now, prof, sk):
+        """Intraday: opening-range breakout + VWAP + NIFTY-relative (sf_screen.py)."""
+        import sf_screen as S
+        smap = self.e.data.sector_map(now)
+        uni = self.e.data.universe(now)
+        bench = self.e.data.bars(prof["benchmark"], now, "1m")
+        cands, rejected = [], []
+        for d, block in ev["payload"]["by_direction"].items():
+            rank_of = {a["sector"]: a["rank"] for a in block["qualifying"]}
+            syms = sorted(s for s in uni if (smap.get(s) or {}).get("sector") in rank_of
+                          and not smap[s].get("ambiguous"))
+
+            def one(sym, d=d):
+                key = f"or_stock:{now.date()}:{sym}"
+                raw = self.st.control(key)
+                frozen = json.loads(raw) if raw else None
+                bars = self.e.data.bars(sym, now, "1m")
+                r = S.screen_one(sym, bars, bench, d, now, sk, self.e.cal, prof["max_data_age_s"], frozen)
+                return key, frozen, r
+            passed = []
+            for key, frozen, r in POOL.map(one, syms):
+                sec = smap[r["symbol"]]["sector"]
+                r.update(sector=sec, sector_rank=rank_of[sec])
+                if not frozen and (r.get("opening_range") or {}).get("status") == "READY":
+                    lv = r["opening_range"]
+                    c.execute("INSERT OR REPLACE INTO control(key,value,updated,actor) VALUES(?,?,?,?)",
+                              (key, json.dumps(dict(lv, status="READY")), iso(now), self.name))
+                if r["status"] != "PASS":
+                    rejected.append({"symbol": r["symbol"], "direction": d, "sector": sec, "status": r["status"],
+                                     "reason": r["reason"], "metrics": r.get("metrics"), "checks": r.get("checks")})
+                    continue
+                passed.append(r)
+            for r in S.rank(passed, d):
+                m = r["metrics"]
+                cands.append({"symbol": r["symbol"], "sector": r["sector"], "sector_rank": r["sector_rank"],
+                              "direction": d, "score": r["score"], "rank_reason": r["rank_reason"],
+                              "metrics": dict(m, rel_return_pct=m["excess_return_pct"]), "checks": r["checks"],
+                              "opening_range": r["opening_range"], "inputs": r["inputs"],
+                              "last_price": m["close"], "bar_ts": r["inputs"]["bar_ts"],
+                              "available_at": r["inputs"]["bar_available_at"], "window": "aligned with NIFTY 50"})
+        self.publish(c, ev, now, prof, cands[:sk["top_n"]], rejected,
+                     "excess return vs NIFTY (desc for longs, asc for shorts), then turnover desc, then symbol")
+
+    def publish(self, c, ev, now, prof, cands, rejected, tie_break):
         for i, x in enumerate(cands):
             x["rank"] = i
         expires = now + timedelta(seconds=prof["candidate_ttl_s"])
         c.execute("UPDATE scans SET body=json_set(COALESCE(body,'{}'),'$.expires_at',?) WHERE scan_id=?",
                   (iso(expires), ev["scan_id"]))
         self.emit(c, "CandidatesRanked", now, {"candidates": cands, "rejected": rejected,
-                  "expires_at": iso(expires), "tie_break": "sector rank, then score desc, then symbol"},
+                  "expires_at": iso(expires), "tie_break": tie_break},
                   src=ev, event_id=f"{ev['scan_id']}:candidates")
         if not cands:
             self.stop_scan(c, ev, now, "no stock in the qualifying sectors passed screening", "stock_screening",
@@ -562,6 +657,15 @@ class FuturesEntry(Agent):
         if why:
             return self.reject(c, ev, now, cand, f"contract: {why}")
         side = open_side(cand["direction"])
+        risk = None
+        if (prof["exit_plan"].get("stop") or {}).get("basis") == "opening_range_edge":
+            risk = or_risk_pct(cand["direction"], cand)
+            cap = prof["exit_plan"].get("hard_max_stop_pct")
+            if risk is None:
+                return self.reject(c, ev, now, cand, "exit plan: no opening-range edge to place the stop")
+            if cap and risk * 100 > cap:
+                return self.reject(c, ev, now, cand, f"exit plan: opening-range stop is {risk * 100:.2f}% away, "
+                                   f"beyond the hard limit of {cap}%")
         ref = q["ask"] if side == BUY else q["bid"]
         notional = ref * k["lot_size"]
         lim = self.limits(c, mode, cfg, notional, now)
@@ -581,7 +685,7 @@ class FuturesEntry(Agent):
              "tick_size": k["tick_size"], "lots": 1, "requested_qty": k["lot_size"],
              "config_version": ev["config_version"], "created_at": iso(now), "candidate": cand,
              "verification": ev["payload"]["verification"], "contract": k, "entry_quote": q,
-             "notional_reserved": notional, "flags": [], "label": self.e.label}
+             "notional_reserved": notional, "flags": [], "label": self.e.label, "stop_risk_pct": risk}
         if k.get("pre_expiry_deadline"):
             t["pre_expiry_deadline"] = k["pre_expiry_deadline"]
         ap = prof.get("approval", {})
@@ -739,10 +843,28 @@ def pre_expiry_deadline(expiry, buffer_sessions, prof, cal):
     return ist(d, prof["exit_plan"].get("session_exit_time", "15:15"))
 
 
-def plan_levels(direction, entry, plan):
+def or_risk_pct(direction, cand):
+    """Stop distance for basis "opening_range_edge", measured on the STOCK (its
+    signal close to its own opening-range edge) as a fraction, so it can be
+    applied to the futures fill without mixing the two price series."""
+    m = (cand or {}).get("metrics") or {}
+    close, edge = m.get("close"), m.get("or_low") if direction == LONG else m.get("or_high")
+    if not close or not edge:
+        return None
+    r = (close - edge) / close if direction == LONG else (edge - close) / close
+    return r if r > 0 else None
+
+
+def plan_levels(direction, entry, plan, risk=None):
+    s = -1 if direction == LONG else 1
+
     def lvl(spec, sign):
         if not spec:
             return None
+        if spec["basis"] == "opening_range_edge":
+            return None if risk is None else round(entry * (1 + sign * risk), 4)
+        if spec["basis"] == "r_multiple":
+            return None if risk is None else round(entry * (1 + sign * spec["value"] * risk), 4)
         if spec["basis"] == "pct":
             return round(entry * (1 + sign * spec["value"] / 100), 4)
         if spec["basis"] == "points":
@@ -750,13 +872,19 @@ def plan_levels(direction, entry, plan):
         if spec["basis"] == "price":
             return spec["value"]
         raise ValueError(f"unknown basis {spec['basis']}")
-    s = -1 if direction == LONG else 1
     return lvl(plan.get("stop"), s), lvl(plan.get("target"), -s)
 
 
 def activate_plan(prof, t, entry, now, cal):
     p = json.loads(json.dumps(prof["exit_plan"]))
-    p["stop_price"], p["target_price"] = plan_levels(t["direction"], entry, p)
+    risk = t.get("stop_risk_pct")
+    p["stop_price"], p["target_price"] = plan_levels(t["direction"], entry, p, risk)
+    if risk is not None:
+        m = t["candidate"]["metrics"]
+        p["stop_evidence"] = {"basis": "stock opening-range edge, applied to the futures fill as a %",
+                              "stock_close": m.get("close"), "stock_edge": m.get("or_low") if t["direction"] == LONG else m.get("or_high"),
+                              "risk_pct": round(risk * 100, 4), "futures_entry": round(entry, 4),
+                              "target_multiple": (p.get("target") or {}).get("value")}
     p["evaluated_on"] = f"{exit_quote_side(t['direction'])} (executable {close_side(t['direction'])} side)"
     if t["mode"] == "intraday":
         p["intraday_deadline"] = iso(ist(now.date(), prof["exit_deadline"]))

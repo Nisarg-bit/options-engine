@@ -174,7 +174,7 @@ futures contract's own quotes and metadata are used to open, mark and close.
 
 ```bash
 pip install -r requirements.txt
-pytest -q tests/test_stock_futures.py          # 43 acceptance tests, synthetic fixtures
+pytest -q tests/test_stock_futures.py tests/test_futures_regime.py tests/test_futures_screen.py   # 86 tests, synthetic fixtures
 
 # Fixture demos (synthetic data, injected clock, labelled FIXTURE)
 python futures/sf_cli.py demo --scenario bullish        --mode intraday   # LONG: BUY then SELL
@@ -214,31 +214,65 @@ authorised override changes one trade's active plan. The shipped rules are
   "intraday": {
     "benchmark": "NIFTY 50", "scan_cadence_s": 300, "candidate_ttl_s": 240, "max_data_age_s": 180,
     "entry_window": ["09:45", "14:30"], "exit_deadline": "15:15",
-    "regime": { "lookback": {"basis": "current_session", "minutes": 30},
-                "rules": [{"regime": "BULLISH", "all": [["benchmark_return_pct", ">", 0.25], ["close_vs_sma_pct", ">", 0], ["breadth_ratio", ">", 0.1]]},
-                          {"regime": "BEARISH", "all": [["benchmark_return_pct", "<", -0.25], ...]}] },
+    "regime": { "method": "opening_range_fib_vwap", "opening_range": {"start": "09:15", "minutes": 15},
+                "fib": {"low": 0.380, "mid": 0.500, "high": 0.618}, "confirm_interval_min": 1,
+                "vwap_source": {"symbol": "NIFTY FUT", "label": "NIFTY near-month futures (VWAP proxy)", "kind": "proxy"} },
     "direction_map": {"BULLISH": ["LONG"], "BEARISH": ["SHORT"], "SIDEWAYS": [], "UNAVAILABLE": []},
     "sector": {"require_absolute": true, "require_relative": true, "min_coverage": 0.6, "top_n": 3},
-    "stock":  {"top_n": 5, "long": {"all": [["return_pct", ">", 0.3], ["rel_return_pct", ">", 0]]}, "short": {...}},
-    "verification": {"long": {"all": [["turnover_rs", ">=", 5e7], ["money_flow_net_rs", ">", 0], ["oi_change_pct", ">", -5]]}, ...},
+    "stock":  {"method": "opening_range_breakout_vwap", "opening_range": {"start": "09:15", "minutes": 15},
+               "lookback": {"basis": "current_session", "minutes": 30}, "top_n": 5, "min_turnover_rs": 50000000},
+    "verification": {"long":  {"all": [["turnover_rs", ">=", 5e7], ["money_flow_net_rs", ">", 0], ["oi_read", "==", "long buildup"]]},
+                     "short": {"all": [["turnover_rs", ">=", 5e7], ["money_flow_net_rs", "<", 0], ["oi_read", "==", "short buildup"]]}},
     "contract": {"expiry_preference": "nearest_eligible", "max_spread_ticks": 20, "min_top_qty_lots": 1},
     "approval": {"entry_required": false, "entry_window_s": 120},
     "override": {"enabled": true, "response_window_s": 300, "allowed": ["stop", "target"]},
-    "exit_plan": {"stop": {"basis": "pct", "value": 1.0}, "target": {"basis": "pct", "value": 1.5}, "hard_max_stop_pct": 2.5,
+    "exit_plan": {"stop": {"basis": "opening_range_edge"}, "target": {"basis": "r_multiple", "value": 2}, "hard_max_stop_pct": 2.5,
                   "missing_quote_policy": "retry_until_quote", "cutoff_grace_s": 600}
   },
-  "swing": { "regime": {"lookback": {"basis": "completed_daily", "sessions": 5}}, "entry_window": ["14:30", "15:10"],
+  "swing": { "regime": {"method": "return_structure", "lookback_sessions": 5, "threshold": 0.005}, "entry_window": ["14:30", "15:10"],
              "contract": {"pre_expiry_buffer_sessions": 1},
              "exit_plan": {"stop": {"basis": "pct", "value": 3.0}, "target": {"basis": "pct", "value": 6.0},
                            "max_holding_sessions": 5, "holding_count": "sessions_after_entry", "session_exit_time": "15:15"} }
 },
-"shared": { "mode_priority": ["intraday", "swing"], "one_position_per_underlying": true, "max_open_positions": 4,
+"shared": { "mode_priority": ["intraday", "swing"], "one_position_per_underlying": true, "max_open_positions": 6,   // 3 per mode
             "max_gross_notional_rs": 6000000, "margin_pct_estimate": 0.20, "margin_budget_rs": 1200000, "daily_loss_limit_rs": 50000,
             "fill_policy": {"slippage_ticks": 1, "max_quote_age_s": 90, "partial_fills": false, "granularity": "lot",
                             "bar_model": "next_bar_open/1", "bar_ambiguity": "stop_first"},
             "exit_precedence": ["hard_risk", "stop", "pre_expiry_deadline", "intraday_deadline", "max_holding", "invalidation", "target"],
             "costs": {"brokerage_per_order_rs": 20, "stt_sell_pct": 0.02, "exchange_txn_pct": 0.00173, "stamp_buy_pct": 0.002, "gst_pct": 18} }
 ```
+
+Market regime rules (your specification, [`futures/sf_regime.py`](futures/sf_regime.py)):
+- **Intraday.** The opening range is the completed NIFTY 50 bars in [09:15, 09:30); nothing at or after 09:30 counts.
+  Fib_038 / Fib_050 / Fib_0618 are measured up from the range low and frozen for the session. BULLISH means the NIFTY 50
+  close is above Fib_0618 *and* the VWAP source closes above its own session VWAP. BEARISH is the mirror image below Fib_038.
+  A close inside or exactly on the zone, a close exactly at VWAP, or disagreement between the two checks is NEUTRAL (shown as
+  SIDEWAYS: no entries). The status is NOT_READY while the range is forming. Missing, stale or misaligned data gives
+  UNAVAILABLE. Only completed-bar closes count, so a wick through a level does not.
+- **VWAP source.** The NIFTY 50 index has no traded volume, so VWAP comes from a NIFTY near-month futures contract (a
+  proxy, labelled on the page). Its own close is compared with its own VWAP; prices are never mixed across instruments.
+  **The collector does not record NIFTY futures today**, so this feed is missing and Intraday stays UNAVAILABLE until it is added.
+- **Swing.** ret = Close[t] / Close[t-5] - 1 over exchange sessions (needs six completed closes). BULLISH: ret > +0.5% and a
+  higher high (High[t] > High[t-1]). BEARISH: ret < -0.5% and a lower low. An outside day is settled by the return.
+  Comparisons are strict, so exactly ±0.5% and equal highs or lows do not count. A gap or stale data gives UNAVAILABLE.
+
+Stock, verification and exit rules (your specification):
+- **Intraday screening** ([`futures/sf_screen.py`](futures/sf_screen.py)). This runs only inside sectors that qualify. Each stock
+  gets its own [09:15, 09:30) high and low, frozen for the session. The breakout bar is the latest completed bar starting at
+  or after 09:30. **LONG** needs close > the stock's session VWAP, close > its opening high, return > NIFTY 50's return over
+  the same aligned window, and the minimum turnover. **SHORT** is the mirror image (below VWAP, below the opening low,
+  return < NIFTY). Comparisons are strict, so a close exactly at VWAP or on the range edge fails and a wick does not count.
+  Incomplete, zero-width, stale or misaligned inputs give UNAVAILABLE. Longs rank by excess return descending, shorts
+  ascending, then by higher turnover, then symbol. The page explains why the first candidate leads. Stock VWAP uses the
+  collector's 1-minute traded value (tick price × volume) ÷ volume. Swing keeps its own screener.
+- **Verification (both modes).** Long: estimated money flow > 0 **and** the futures OI reading is *long buildup* (price up,
+  OI up). Short: money flow < 0 **and** *short buildup*. The reading is the same one the Pulse page shows. Minimum turnover
+  still applies.
+- **Intraday exit.** The stop sits at the stock's opening-range edge and the target is 2× that risk. Because the stop is
+  defined on the stock but the trade is in futures, the distance is measured as a percentage on the stock (signal close →
+  opening low/high) and applied to the futures fill. Both levels are recorded. If the distance is beyond
+  `hard_max_stop_pct` (2.5%), the entry is skipped. Everything is closed by 15:15 at the latest.
+- **Swing exit.** Stop 3%, target 6%, maximum 5 trading sessions, plus the pre-expiry deadline.
 
 Rules that are fixed in code, whatever the config says:
 - An entry is always one lot of the resolved contract. If one lot breaks a
@@ -278,6 +312,7 @@ ahead.
 | Feed (`live.required_feeds`) | Where it comes from now | What is missing for current-session paper entries |
 |---|---|---|
 | `benchmark_bars` | `data/bars_1m/date=*/underlying=INDEX` (`NIFTY 50`) | Nothing for Intraday. Swing builds daily bars from collected sessions, so it needs ≥ 6 collected sessions. |
+| `vwap_source_bars` | Read from `data/bars_1m/…/underlying=NIFTY` rows with `opt_type` FUT, if they exist | **Missing.** The collector skips index futures (`INDEX_FUT_NAMES` in `instruments.py`). Subscribe the NIFTY near-month future (one more token) so Intraday has a real traded-volume VWAP. |
 | `stock_bars` | `data/stocks_1m/…/underlying=EQ` (collector, QUOTE mode) | Nothing, once the stock layer runs (STOCKS≠0). |
 | `sector_map` | `data/sectors.json` (`pipeline/sectors.py`). `Others` is treated as unresolved and excluded. | Nothing. Sector indices are not collected, so sector returns are aggregated from constituents (labelled on the page). |
 | `futstk_master` | `data/instruments/<day>.json` (`kind: stock_fut`) | **`tick_size`**: `pipeline/instruments.py` now writes it on the next master build. Until a master has it, contracts are rejected. **Only the nearest expiry is collected**, so Swing cannot choose next month. To allow that, add further FUTSTK expiries to `choose_stocks`, which costs extra websocket tokens. Listing/trading status is assumed `listed` because Kite's dump has no status field. |

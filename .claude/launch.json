@@ -4,8 +4,9 @@
     {
       "name": "site-static",
       "runtimeExecutable": ".venv/Scripts/python.exe",
-      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "firebase/public", "--bind", "127.0.0.1"],
-      "port": 8765
+      "runtimeArgs": ["-m", "http.server", "8767", "--directory", "firebase/public", "--bind", "127.0.0.1"],
+      "port": 8767,
+      "autoPort": false
     }
   ]
 }

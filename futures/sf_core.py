@@ -103,6 +103,20 @@ def parse_ts(s):
 
 # ---------------------------------------------------------------- calendar
 
+_XCAL = {}
+
+
+def _exchange_calendar(name):
+    """exchange_calendars is slow to build (seconds); one instance per process."""
+    if name not in _XCAL:
+        try:
+            import exchange_calendars as xc
+            _XCAL[name] = xc.get_calendar(name)
+        except Exception:  # noqa: BLE001
+            _XCAL[name] = None
+    return _XCAL[name]
+
+
 class Calendar:
     """Exchange sessions from exchange_calendars (the same XBOM calendar
     pipeline/market.py uses) minus any configured extra holidays. Falls back
@@ -113,14 +127,16 @@ class Calendar:
         self.open = cfg.get("session_open", "09:15")
         self.close = cfg.get("session_close", "15:30")
         self.extra = {date.fromisoformat(d) for d in cfg.get("extra_holidays", [])}
-        self._cal = None
-        try:
-            import exchange_calendars as xc
-            self._cal = xc.get_calendar(cfg.get("exchange", "XBOM"))
-        except Exception:  # noqa: BLE001
-            self._cal = None
+        self._cal = _exchange_calendar(cfg.get("exchange", "XBOM"))
+        self._sessions = {}
 
     def is_session(self, d):
+        hit = self._sessions.get(d)
+        if hit is None:
+            hit = self._sessions[d] = self._is_session(d)
+        return hit
+
+    def _is_session(self, d):
         if d in self.extra or d.weekday() >= 5:
             return False
         if self._cal is not None:

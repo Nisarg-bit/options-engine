@@ -21,6 +21,8 @@ from datetime import date, datetime, timedelta
 from sf_core import IST, Calendar, BUY, SELL, ist, iso, round_to_tick, load_config
 
 BENCH = "NIFTY 50"
+NIFTY_FUT = "NIFTY FUT"            # VWAP proxy symbol, as in config intraday.regime.vwap_source
+NIFTY_FUT_BASIS = 0.004
 SECTORS = {
     "IT": ["INFY", "TCS", "WIPRO", "HCLTECH"],
     "Bank": ["HDFCBANK", "ICICIBANK", "AXISBANK", "KOTAKBANK"],
@@ -38,6 +40,12 @@ TICK = 0.05
 EXPIRIES = {"NOV": ("2026-11-24", 0.002), "DEC": ("2026-12-29", 0.006)}
 
 
+def oi_read(price_chg_pct, oi_chg_pct):
+    """The same four readings the Pulse page uses (quant/market_pulse.classify_oi)."""
+    import market_pulse
+    return market_pulse.classify_oi(price_chg_pct / 100, oi_chg_pct / 100)
+
+
 def symbols():
     return [s for v in SECTORS.values() for s in v] + [AMBIGUOUS]
 
@@ -48,7 +56,7 @@ def iid(sym, tag):
 
 class Scenario:
     def __init__(self, day0, moves, bench_move, days=None, hist=None, bench_hist=0.0, cal=None,
-                 oi_change=3.0, flow_sign=None, ramp_minutes=90):
+                 oi_change=3.0, flow_sign=None, ramp_minutes=90, bench_path=None):
         self.cal = cal or Calendar()
         self.day0 = day0
         self.moves = {s: moves.get(s, 0.0) for s in symbols()}
@@ -63,6 +71,7 @@ class Scenario:
         self.oi_change = oi_change
         self.flow_sign = flow_sign
         self.ramp = ramp_minutes
+        self.bench_path = bench_path       # optional f(minutes_since_open) -> % move, day 0 only
         self.data = None
 
     # ------------------------------------------------------------ paths
@@ -72,6 +81,8 @@ class Scenario:
             return BASE[sym]
         k = max(i for i, s in enumerate(self.sessions) if s <= d)
         open_t = ist(self.sessions[k], "09:15")
+        if k == 0 and sym == BENCH and self.bench_path:
+            return BASE[sym] * (1 + self.bench_path((t - open_t).total_seconds() / 60) / 100)
         if k == 0:
             frac = min(max((t - open_t).total_seconds() / 60 / self.ramp, 0), 1)
             return BASE[sym] * (1 + self.moves[sym] / 100 * frac)
@@ -116,6 +127,14 @@ class Scenario:
                               "volume": sum(b["volume"] for b in day_bars),
                               "turnover": sum(b["turnover"] for b in day_bars)})
             d["bars"][sym] = {"1m": minute, "1d": daily}
+            if sym == BENCH:      # NIFTY near-month futures: the VWAP proxy (the index has no volume)
+                fut = []
+                for b in minute:
+                    o, cl = b["open"] * (1 + NIFTY_FUT_BASIS), b["close"] * (1 + NIFTY_FUT_BASIS)
+                    vol = 75 * 400
+                    fut.append({"ts": b["ts"], "available_at": b["available_at"], "open": o, "high": max(o, cl),
+                                "low": min(o, cl), "close": cl, "volume": vol, "turnover": (o + cl) / 2 * vol})
+                d["bars"][NIFTY_FUT] = {"1m": fut}
         listed = iso(ist(hist_days[0], "08:00"))
         for sym in symbols():
             for tag, (exp, basis) in EXPIRIES.items():
@@ -147,14 +166,18 @@ class Scenario:
                 n = 0
                 while t <= ist(sd, "15:30"):
                     n += 5
+                    trend = self.moves[sym] or self.hist.get(sym, 0.0)
                     sign = self.flow_sign.get(sym, 1) if isinstance(self.flow_sign, dict) else \
-                        (1 if self.moves[sym] >= 0 else -1)
+                        (1 if trend >= 0 else -1)
                     snaps.append({"symbol": sym, "ts": iso(t), "available_at": iso(t), "source": "fixture desk",
                                   "metrics": {"turnover_rs": n * 5_000_000.0,
                                               "money_flow_net_rs": sign * n * 1_500_000.0,
-                                              "oi_change_pct": self.oi_change, "order_block_dist_pct": 1.2},
+                                              "oi_change_pct": self.oi_change, "fut_price_change_pct": trend,
+                                              "oi_read": oi_read(trend, self.oi_change),
+                                              "order_block_dist_pct": 1.2},
                                   "kinds": {"turnover_rs": "observed", "money_flow_net_rs": "estimate",
-                                            "oi_change_pct": "observed", "order_block_dist_pct": "pattern"}})
+                                            "oi_change_pct": "observed", "fut_price_change_pct": "observed",
+                                            "oi_read": "derived (price x OI)", "order_block_dist_pct": "pattern"}})
                     t += timedelta(minutes=5)
             d["desk"][sym] = snaps
         self.data = d
@@ -179,24 +202,33 @@ SWING_DAY = date(2026, 11, 20)          # Friday; Mon 23 trades, Tue 24 is an ex
 
 def bullish(day=INTRADAY_DAY, **kw):
     """NIFTY up; IT strongest (INFY leads); Pharma up but lagging NIFTY; Metal down."""
-    return Scenario(day, {"INFY": 5.0, "TCS": 4.2, "WIPRO": 3.6, "HCLTECH": 3.9,
-                          "HDFCBANK": 2.4, "ICICIBANK": 2.6, "AXISBANK": 2.0, "KOTAKBANK": 2.2,
-                          "TATASTEEL": -1.5, "HINDALCO": -1.2, "JSWSTEEL": -1.4,
-                          "SUNPHARMA": 0.6, "CIPLA": 0.5, "DRREDDY": 0.7, AMBIGUOUS: 9.0},
+    return Scenario(day, {"INFY": 2.0, "TCS": 1.7, "WIPRO": 1.45, "HCLTECH": 1.55,
+                          "HDFCBANK": 0.95, "ICICIBANK": 1.05, "AXISBANK": 0.8, "KOTAKBANK": 0.9,
+                          "TATASTEEL": -0.6, "HINDALCO": -0.5, "JSWSTEEL": -0.55,
+                          "SUNPHARMA": 0.25, "CIPLA": 0.2, "DRREDDY": 0.3, AMBIGUOUS: 3.6},
                     bench_move=1.2, **kw)
 
 
 def bearish(day=INTRADAY_DAY, **kw):
     """NIFTY down; Metal weakest (TATASTEEL leads lower); Pharma down less than NIFTY
     (negative absolute but outperforming -> fails the short rule); IT up."""
-    return Scenario(day, {"INFY": 0.6, "TCS": 0.4, "WIPRO": 0.5, "HCLTECH": 0.3,
-                          "HDFCBANK": -1.8, "ICICIBANK": -1.6, "AXISBANK": -2.0, "KOTAKBANK": -1.7,
-                          "TATASTEEL": -6.0, "HINDALCO": -4.8, "JSWSTEEL": -5.1,
-                          "SUNPHARMA": -0.4, "CIPLA": -0.3, "DRREDDY": -0.5, AMBIGUOUS: -9.0},
+    return Scenario(day, {"INFY": 0.25, "TCS": 0.15, "WIPRO": 0.2, "HCLTECH": 0.1,
+                          "HDFCBANK": -0.7, "ICICIBANK": -0.65, "AXISBANK": -0.8, "KOTAKBANK": -0.7,
+                          "TATASTEEL": -2.4, "HINDALCO": -1.9, "JSWSTEEL": -2.05,
+                          "SUNPHARMA": -0.15, "CIPLA": -0.1, "DRREDDY": -0.2, AMBIGUOUS: -3.6},
                     bench_move=-1.4, **kw)
 
 
+def _sideways_path(m):
+    """NIFTY rises 0.30% in the opening range, then settles at +0.15% (inside the
+    0.38-0.618 Fibonacci zone of that range) for the rest of the day."""
+    if m <= 15:
+        return 0.30 * m / 15
+    return max(0.15, 0.30 - 0.15 * (m - 15) / 15)
+
+
 def sideways(day=INTRADAY_DAY, **kw):
+    kw.setdefault("bench_path", _sideways_path)
     return Scenario(day, {s: 0.1 for s in symbols()}, bench_move=0.05, **kw)
 
 

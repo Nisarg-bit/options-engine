@@ -639,7 +639,8 @@ def test_s9_late_and_invalid_overrides_are_rejected(tmp_path):
     run_to(e, clock, clock.now() + timedelta(minutes=6))       # window is 300 s
     ok, why = apply_override(st, e, t["trade_id"], {"stop_price": t["entry_avg"] * 0.995}, "op", clock.now())
     assert not ok and why.startswith("late")
-    assert st.trade(t["trade_id"])["body"]["exit_plan"]["stop"]["basis"] == "pct"     # default untouched
+    after = st.trade(t["trade_id"])["body"]
+    assert after["exit_plan"]["stop"]["basis"] == "opening_range_edge" and len(after["plan_history"]) == 1   # default untouched
     assert len(st.q("SELECT * FROM audit WHERE action='override' AND outcome='rejected'")) == 4
 
 

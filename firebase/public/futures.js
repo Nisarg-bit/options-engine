@@ -42,7 +42,7 @@ function show(){
 }
 btn.addEventListener('click',show);
 // Market Pulse claims the landing page on load; a #sfut deep link takes it back once everything has mounted.
-if(location.hash==='#sfut'){ show(); addEventListener('load',()=>setTimeout(()=>{if(location.hash==='#sfut'||!sec.classList.contains('on'))show();},50),{once:true}); }
+if(location.hash==='#sfut'){ show(); addEventListener('load',()=>[50,400,1200].forEach(ms=>setTimeout(()=>{if(location.hash==='#sfut'&&!sec.classList.contains('on'))show();},ms)),{once:true}); }
 
 let MODE='intraday', VIEW='scan', SIG='', S=null, SRCKIND='', JF={mode:'',dir:'',cls:''};
 qa('[data-m]',sec).forEach(b=>b.onclick=()=>{MODE=b.dataset.m;qa('[data-m]',sec).forEach(x=>x.setAttribute('aria-selected',x===b));paint(true);});
@@ -92,7 +92,7 @@ function scanView(s){
     <p class="sf-note">Source: ${esc(s.feeds.source)}${s.feeds.stock_futures!=null?` · ${s.feeds.stock_futures} FUTSTK contracts in master`:''}</p></div>`:'';
   if(!sc) return `<div class="sf-grid sf-g2">${prof}${feeds}</div>`+empty('No scan has run for this mode yet.');
   const reg=sc.regime||{}, ev=reg.evidence||{};
-  const regime=`<div class="sf-card"><h3>Market regime ${badge(reg.regime||'—',reg.regime==='BULLISH'?'ok':reg.regime==='BEARISH'?'bad':'warn')}</h3>
+  const regime=ev.method==='opening_range_fib_vwap'||ev.method==='return_structure'?regimeCard(reg,ev):`<div class="sf-card"><h3>Market regime ${badge(reg.regime||'—',reg.regime==='BULLISH'?'ok':reg.regime==='BEARISH'?'bad':'warn')}</h3>
     <p>Permitted: ${(reg.permitted||[]).map(dir).join(' ')||badge('no new entries','warn')}</p>
     ${kv(Object.entries(ev.metrics||{}).map(([k,v])=>[k,n(v,3)]).concat([
       ['Window',esc(ev.window?`${dt(ev.window.start_ts)} → ${dt(ev.window.end_ts)} (${ev.window.effective})`:'—')],
@@ -107,9 +107,11 @@ function scanView(s){
   const rej={}; (sc.rejections||[]).forEach(r=>rej[r.symbol]=r.reason);
   const stocks=`<div class="sf-card sf-wide"><h3>Ranked stocks</h3>${cands.length?`<div class="sf-scroll"><table class="sf-t"><thead><tr><th>#</th><th>Symbol</th><th>Dir</th><th>Sector</th><th>Score</th><th>Return</th><th>vs bench</th><th>Turnover</th><th>Verification</th><th>Entry</th></tr></thead><tbody>
     ${cands.map(c=>{const v=ver[c.symbol];return `<tr><td>${c.rank+1}</td><td><b>${esc(c.symbol)}</b></td><td>${dir(c.direction)}</td><td>${esc(c.sector)} (#${c.sector_rank})</td><td>${n(c.score,2)}</td><td class="${cls(c.metrics.return_pct)}">${pc(c.metrics.return_pct)}</td><td class="${cls(c.metrics.rel_return_pct)}">${pc(c.metrics.rel_return_pct)}</td><td>${rs(c.metrics.turnover_rs)}</td><td>${v?res(v.status)+` <span class="sf-why">${esc((v.reasons||[]).join('; '))}</span>`:'—'}</td><td class="sf-why">${rej[c.symbol]?esc(rej[c.symbol]):sc.trade_id&&sc.trade_id.endsWith(c.symbol)?badge('entered','ok'):''}</td></tr>`;}).join('')}
-    </tbody></table></div><p class="sf-note">Tie-break: ${esc(sc.candidates.tie_break)} · candidates expire ${t5(sc.candidates.expires_at)} IST</p>`:empty('No candidates in this scan.')}</div>`;
+    </tbody></table></div><p class="sf-note">Tie-break: ${esc(sc.candidates.tie_break)} · candidates expire ${t5(sc.candidates.expires_at)} IST${cands[0]?.rank_reason?`<br><b>Why ${esc(cands[0].symbol)} ranked first:</b> ${esc(cands[0].rank_reason)}`:''}</p>`:empty('No candidates in this scan.')}</div>`
+    +(cands.some(c=>c.metrics.vwap!=null)||(sc.candidates?.rejected||[]).some(r=>r.checks)?breakoutCard(cands,sc.candidates?.rejected||[]):'');
   const v0=(sc.verification||[]).find(v=>v.status==='PASS');
-  const verif=v0?`<div class="sf-card"><h3>Nifty Desk verification · ${esc(v0.symbol)}</h3>${kv(Object.entries(v0.evidence?.metrics||{}).map(([k,v])=>[k+' ('+(v0.evidence.kinds?.[k]||'?')+')',n(v,2)]).concat([
+  const val=v=>typeof v==='string'?esc(v):n(v,2);
+  const verif=v0?`<div class="sf-card"><h3>Nifty Desk verification · ${esc(v0.symbol)}</h3>${kv(Object.entries(v0.evidence?.metrics||{}).map(([k,v])=>[k+' ('+(v0.evidence.kinds?.[k]||'?')+')',val(v)]).concat([
       ['Snapshot',`${dt(v0.evidence.snapshot_ts)} (${v0.evidence.age_s}s old)`],['Source',esc(v0.evidence.source)],
       ['Shares a source with screening',v0.evidence.shared_source_with_screening?badge('yes','warn'):'no']]))}</div>`:'';
   const k=sc.contract;
@@ -119,6 +121,35 @@ function scanView(s){
   return `<p class="sf-sub">Last scan ${esc(sc.scan_id)} · ${esc(sc.status)} · config v${sc.config_version}</p>${stop}
     <div class="sf-grid sf-g3">${prof}${regime}${feeds}</div><div class="sf-grid">${sectors}${stocks}</div>
     <div class="sf-grid sf-g2">${verif}${contract}</div>${timelineCard('Scan timeline',sc.timeline)}`;
+}
+function breakoutCard(cands,rejected){
+  const row=(x,status,why)=>{const m=x.metrics||{}, i=x.inputs||{};
+    return `<tr><td><b>${esc(x.symbol)}</b></td><td>${dir(x.direction)}</td><td>${res(status)}</td><td>${n(m.close)}</td><td>${n(m.vwap)}</td><td>${n(m.or_high)} / ${n(m.or_low)}</td><td>${pc(m.breakout_distance_pct)}</td><td class="${cls(m.return_pct)}">${pc(m.return_pct)}</td><td>${pc(m.nifty_return_pct)}</td><td class="${cls(m.excess_return_pct)}">${pc(m.excess_return_pct)}</td><td>${rs(m.turnover_rs)}</td><td class="sf-why">${i.bar_ts?'bar '+t5(i.bar_ts)+', window from '+t5(i.window_start):''}</td><td class="sf-why">${esc(why)}</td></tr>`;};
+  const rows=cands.map(c=>row(c,'PASS',c.rank_reason||'')).concat(rejected.map(r=>row(r,r.status||'FAIL',r.reason)));
+  return `<div class="sf-card sf-wide"><h3>Opening-range breakout screen</h3><div class="sf-scroll"><table class="sf-t"><thead><tr><th>Symbol</th><th>Dir</th><th>Result</th><th>Close</th><th>VWAP</th><th>Open high / low</th><th>Breakout</th><th>Return</th><th>NIFTY</th><th>Excess</th><th>Turnover</th><th>Inputs</th><th>Why</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>
+   <p class="sf-note">Each stock's own 09:15–09:30 high/low (frozen for the session), its session VWAP from 1-minute traded value, and returns over the same window as NIFTY 50. Closes exactly at VWAP or on the range edge fail; wicks do not count.</p></div>`;
+}
+function regimeCard(reg,ev){
+  const m=ev.metrics||{}, lv=ev.levels||{};
+  const shown=reg.regime==='SIDEWAYS'&&ev.readiness==='READY'?'NEUTRAL':reg.regime;
+  const head=`<h3>Market regime ${badge(shown||'—',shown==='BULLISH'?'ok':shown==='BEARISH'?'bad':'warn')} ${ev.readiness&&ev.readiness!=='READY'?badge(ev.readiness,'warn'):''}</h3>
+    <p>Permitted: ${(reg.permitted||[]).map(dir).join(' ')||badge('no new entries','warn')}</p>`;
+  let rows;
+  if(ev.method==='opening_range_fib_vwap'){
+    const src=ev.vwap_source||{};
+    rows=[['Opening range',lv.start?`${t5(lv.start)}–${t5(lv.end)} IST${lv.frozen?' · frozen':''}`:'—'],
+      ['OR high / low',`${n(m.or_high??lv.or_high)} / ${n(m.or_low??lv.or_low)}`],
+      ['Fib 0.380 / 0.500 / 0.618',`${n(m.fib_038??lv.fib_038)} / ${n(m.fib_050??lv.fib_050)} / ${n(m.fib_0618??lv.fib_0618)}`],
+      ['NIFTY 50 close',n(m.nifty_close)+(ev.confirm_bar?` <span class="sf-why">bar ${t5(ev.confirm_bar.start)}–${t5(ev.confirm_bar.end)}</span>`:'')],
+      ['VWAP source',`${esc(src.label||src.symbol||'—')} ${src.kind==='proxy'?badge('proxy','warn'):''}`],
+      ['Source close / VWAP',`${n(m.vwap_source_close)} / ${n(m.vwap)}`]];
+  }else{
+    rows=[[`${ev.lookback_sessions}-session return`,pc(m.return_pct)+` <span class="sf-why">threshold ±${n(Number(ev.threshold)*100,2)}%</span>`],
+      ['Baseline close',`${n(m.baseline_close)} (${esc(m.baseline_session||'—')})`],['Latest close',`${n(m.latest_close)} (${esc(m.latest_session||'—')})`],
+      ['High: latest / prior',`${n(m.latest_high)} / ${n(m.prior_high)}`],['Low: latest / prior',`${n(m.latest_low)} / ${n(m.prior_low)}`]];
+  }
+  const checks=(ev.checks||[]).map(c=>[c.name,`${badge(c.result,/ABOVE|UP|YES/.test(c.result)?'ok':/BELOW|DOWN/.test(c.result)?'bad':'n')} <span class="sf-why">${esc(c.detail)}</span>`]);
+  return `<div class="sf-card">${head}${kv(rows.concat(checks))}<p class="sf-note">${esc(ev.reason||(reg.reasons||[]).join('; '))}${ev.vwap_source?.note?'<br>'+esc(ev.vwap_source.note):''}</p></div>`;
 }
 function timelineCard(title,tl){
   if(!tl||!tl.length) return '';

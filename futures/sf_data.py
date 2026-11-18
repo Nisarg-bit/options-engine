@@ -97,7 +97,7 @@ class FixtureData:
 
     def health(self, as_of):
         return {"source": "fixture", "feeds": {k: "fixture" for k in (
-            "benchmark_bars", "stock_bars", "sector_map", "futstk_master", "futstk_quotes", "desk_snapshot")}}
+            "benchmark_bars", "vwap_source_bars", "stock_bars", "sector_map", "futstk_master", "futstk_quotes", "desk_snapshot")}}
 
 
 class PointInTime:
@@ -235,6 +235,14 @@ class RepoData:
             if symbol in ("NIFTY 50", "NIFTY BANK"):
                 df = self._part(self.bars_dir, day, "INDEX")
                 df = None if df is None else df[df["tradingsymbol"] == symbol]
+            elif symbol.endswith(" FUT"):
+                # An index future (VWAP proxy), if the collector writes one into the
+                # option tier: underlying=NIFTY rows with opt_type FUT, nearest expiry.
+                df = self._part(self.bars_dir, day, symbol[:-4])
+                if df is not None and "opt_type" in df:
+                    df = df[df["opt_type"] == "FUT"]
+                    if not df.empty:
+                        df = df[df["expiry"] == df["expiry"].min()]
             else:
                 df = self._part(self.stocks, day, "EQ")
                 df = None if df is None else df[df["underlying"] == symbol]
@@ -314,24 +322,35 @@ class RepoData:
         prev = {r["tradingsymbol"]: r.get("prev_close") for r in m["instruments"] if r.get("prev_close")}
         tbl = MP.stock_table(e.assign(ts=e["ts"].dt.tz_convert("UTC")), prev, {})
         row = tbl.iloc[0]
-        oi_chg = None
+        oi_chg = px_chg = read = None
         if fut is not None:
-            f = fut[(fut["underlying"] == symbol) & (fut["ts"] <= cut)]["oi"].dropna()
+            g = fut[(fut["underlying"] == symbol) & (fut["ts"] <= cut)].sort_values("ts")
+            f = g["oi"].dropna()
             if len(f) and f.iloc[0]:
                 oi_chg = (float(f.iloc[-1]) / float(f.iloc[0]) - 1) * 100
+            if len(g):
+                pc = prev.get(g["tradingsymbol"].iloc[-1])
+                if pc:
+                    px_chg = (float(g["close"].iloc[-1]) / pc - 1) * 100
+            if px_chg is not None and oi_chg is not None:
+                read = MP.classify_oi(px_chg / 100, oi_chg / 100)
         t = e["ts"].iloc[-1].to_pydatetime() + timedelta(minutes=1)
         return {"symbol": symbol, "ts": iso(t), "available_at": iso(t), "source": "stocks_1m via market_pulse",
                 "metrics": {"turnover_rs": float(row["turnover"]), "money_flow_net_rs": float(row["net"]),
-                            "oi_change_pct": oi_chg},
+                            "oi_change_pct": oi_chg, "fut_price_change_pct": px_chg, "oi_read": read},
                 "kinds": {"turnover_rs": "observed", "money_flow_net_rs": "estimate",
-                          "oi_change_pct": "observed"}}
+                          "oi_change_pct": "observed", "fut_price_change_pct": "observed",
+                          "oi_read": "derived (price x OI, as on the Pulse page)"}}
 
     def health(self, as_of):
         day = str(as_of.date())
         m = self._master(as_of)
         futs = [r for r in (m or {}).get("instruments", []) if r.get("kind") == "stock_fut"]
+        nf = self._part(self.bars_dir, day, "NIFTY")
+        has_fut = nf is not None and "opt_type" in nf and (nf["opt_type"] == "FUT").any()
         feeds = {
             "benchmark_bars": "ok" if self._part(self.bars_dir, day, "INDEX") is not None else "missing",
+            "vwap_source_bars": "ok" if has_fut else "missing: NIFTY futures not collected (index has no volume)",
             "stock_bars": "ok" if self._part(self.stocks, day, "EQ") is not None else "missing",
             "futstk_quotes": "ok" if self._part(self.stocks, day, "STKFUT") is not None else "missing",
             "sector_map": "ok" if os.path.exists(os.path.join(self.root, "data", "sectors.json")) else "missing",
