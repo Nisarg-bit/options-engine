@@ -1,9 +1,9 @@
 {
   "schema": "stock-futures-config/1",
-  "label": "DEMO EXAMPLE RULES - not a strategy. Replace before enabling current-session entries.",
-  "rules_validated": false,
+  "label": "Strategy rules supplied by Nisarg (18 Nov 2026): opening-range Fib + VWAP / 5-session return + structure; ORB screener; flow + OI buildup; OR-edge stop, 2R.",
+  "rules_validated": true,
   "live": {
-    "entries_enabled": false,
+    "entries_enabled": true,
     "required_feeds": [
       "benchmark_bars",
       "vwap_source_bars",

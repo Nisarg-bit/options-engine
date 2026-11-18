@@ -122,6 +122,15 @@ function scanView(s){
     <div class="sf-grid sf-g3">${prof}${regime}${feeds}</div><div class="sf-grid">${sectors}${stocks}</div>
     <div class="sf-grid sf-g2">${verif}${contract}</div>${timelineCard('Scan timeline',sc.timeline)}`;
 }
+function summaryCard(d){
+  if(!d) return '';
+  const rows=Object.entries(d.by_mode_direction||{}).map(([k,b])=>`<tr><td>${esc(k)}</td><td>${b.trades}</td><td>${b.wins}</td><td class="${cls(b.gross)}">${srs(b.gross)}</td><td>${rs(b.costs)}</td><td class="${cls(b.net)}"><b>${srs(b.net)}</b></td></tr>`).join('');
+  const reg=Object.entries(d.regimes||{}).filter(([,c])=>Object.keys(c).length).map(([m,c])=>`${esc(m)}: `+Object.entries(c).map(([k,v])=>`${esc(k)} ${v}`).join(', ')).join(' · ');
+  return `<div class="sf-card sf-wide"><h3>Daily summary · ${esc(d.session)}</h3>
+   <div class="sf-tiles"><div><span>Scans (intraday / swing)</span><b>${d.scans?.intraday??0} / ${d.scans?.swing??0}</b></div><div><span>Opened / closed</span><b>${d.opened} / ${d.closed}</b></div><div><span>Open now</span><b>${d.open_overnight}</b></div><div><span>Net P&amp;L</span><b class="${cls(d.net)}">${srs(d.net)}</b></div><div><span>Unresolved</span><b>${(d.unresolved||[]).length}</b></div></div>
+   ${rows?`<div class="sf-scroll"><table class="sf-t sf-narrow"><thead><tr><th>Mode:direction</th><th>Trades</th><th>Wins</th><th>Gross</th><th>Costs</th><th>Net</th></tr></thead><tbody>${rows}</tbody></table></div>`:''}
+   <p class="sf-note">${reg?'Market labels through the day: '+reg+'<br>':''}${(d.top_no_trade_reasons||[]).length?'Most common no-trade reasons: '+d.top_no_trade_reasons.map(([k,n])=>`${n}× ${esc(k)}`).join('; '):''}</p></div>`;
+}
 function breakoutCard(cands,rejected){
   const row=(x,status,why)=>{const m=x.metrics||{}, i=x.inputs||{};
     return `<tr><td><b>${esc(x.symbol)}</b></td><td>${dir(x.direction)}</td><td>${res(status)}</td><td>${n(m.close)}</td><td>${n(m.vwap)}</td><td>${n(m.or_high)} / ${n(m.or_low)}</td><td>${pc(m.breakout_distance_pct)}</td><td class="${cls(m.return_pct)}">${pc(m.return_pct)}</td><td>${pc(m.nifty_return_pct)}</td><td class="${cls(m.excess_return_pct)}">${pc(m.excess_return_pct)}</td><td>${rs(m.turnover_rs)}</td><td class="sf-why">${i.bar_ts?'bar '+t5(i.bar_ts)+', window from '+t5(i.window_start):''}</td><td class="sf-why">${esc(why)}</td></tr>`;};
@@ -191,7 +200,7 @@ function journalView(s){
   const tiles=[['Settled',st.length],['Excluded',rows.filter(r=>r.class==='excluded').length],['Unresolved',rows.filter(r=>r.class==='unresolved').length],
     ['Gross P&L',srs(sum('gross_pnl'))],['Est. costs',rs(sum('costs'))],['Net P&L',srs(sum('net_pnl'))],['Max drawdown',rs(dd)]];
   const sel=(id,opts,v)=>`<select id="${id}">${opts.map(([k,l])=>`<option value="${k}"${k===v?' selected':''}>${l}</option>`).join('')}</select>`;
-  return `<div class="sf-card sf-wide"><h3>Futures paper journal ${badge(SRCKIND==='demo'?'FIXTURE':(s.label||'PAPER'),'warn')}</h3>
+  return summaryCard(s.daily_summary)+`<div class="sf-card sf-wide"><h3>Futures paper journal ${badge(SRCKIND==='demo'?'FIXTURE':(s.label||'PAPER'),'warn')}</h3>
    <div class="sf-toolbar"><label>Mode ${sel('sf-jm',[['','All'],['intraday','Intraday'],['swing','Swing']],JF.mode)}</label>
    <label>Direction ${sel('sf-jd',[['','All'],['LONG','Long'],['SHORT','Short']],JF.dir)}</label>
    <label>Class ${sel('sf-jc',[['','All'],['settled','Settled'],['excluded','Excluded'],['unresolved','Unresolved'],['open','Open']],JF.cls)}</label>

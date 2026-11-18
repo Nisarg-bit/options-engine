@@ -15,9 +15,11 @@ RestartSec=10
 
 # This process is a reader. Enforce that rather than trust it: the whole
 # filesystem is read-only to it, so a bug that tries to write into data/
-# fails loudly instead of corrupting a Parquet part mid-soak. Nothing is
-# listed as writable because nothing needs to be.
+# fails loudly instead of corrupting a Parquet part mid-soak.
+# One exception (18 Nov 2026): the stock-futures operator controls (pause,
+# approve, override; Basic-auth only) write to the paper-trading database.
 ProtectSystem=strict
+ReadWritePaths=/home/ubuntu/data/futures
 PrivateTmp=true
 NoNewPrivileges=true
 Environment=PYTHONDONTWRITEBYTECODE=1

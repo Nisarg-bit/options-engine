@@ -19,7 +19,11 @@ from zoneinfo import ZoneInfo
 
 IST = ZoneInfo("Asia/Kolkata")
 HERE = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_CONFIG = os.path.join(HERE, "config", "default.json")
+# Repo: futures/config/default.json. Server (one flat folder): futures_config.json
+# beside the modules. SF_CONFIG overrides both.
+DEFAULT_CONFIG = os.environ.get("SF_CONFIG") or next(
+    (p for p in (os.path.join(HERE, "config", "default.json"), os.path.join(HERE, "futures_config.json"))
+     if os.path.exists(p)), os.path.join(HERE, "config", "default.json"))
 SCHEMA_VERSION = 1
 
 LONG, SHORT = "LONG", "SHORT"

@@ -144,6 +144,29 @@ def choose_stocks(nfo_rows, nse_rows, today):
     return rows
 
 
+def choose_index_future(nfo_rows, today, name="NIFTY"):
+    """The nearest-expiry index future (default NIFTY), as a row of its own kind.
+
+    Added 18 Nov 2026 for the stock-futures paper system (futures/): the NIFTY
+    50 index carries no traded volume, so its Intraday market check takes VWAP
+    from this contract. It is written to its own partition (stocks_1m/IDXFUT),
+    so the option chain and Market Pulse never see it. One extra token.
+    """
+    best = None
+    for i in nfo_rows:
+        if i.get("instrument_type") != "FUT" or i.get("name") != name:
+            continue
+        e = _as_date(i["expiry"])
+        if e >= today and (best is None or e < _as_date(best["expiry"])):
+            best = i
+    if best is None:
+        return None
+    return {"instrument_token": best["instrument_token"], "tradingsymbol": best["tradingsymbol"],
+            "name": name, "expiry": str(_as_date(best["expiry"])), "strike": None,
+            "instrument_type": "FUT", "lot_size": best["lot_size"], "tick_size": best.get("tick_size"),
+            "kind": "index_fut"}
+
+
 def add_prev_close(kite, stock_rows, batch=500):
     """Yesterday's close on every stock row, for % change on the market pages.
 
@@ -220,6 +243,9 @@ def build():
         try:
             nfo = downloaded.get("NFO") or kite.instruments("NFO")
             stock_rows = fit_budget(rows, choose_stocks(nfo, kite.instruments("NSE"), today))
+            idx_fut = choose_index_future(nfo, today)
+            if idx_fut:
+                stock_rows.append(idx_fut)          # outside the budget trim: one token, always kept
             add_prev_close(kite, stock_rows)
             try:
                 import sectors

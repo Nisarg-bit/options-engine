@@ -131,10 +131,21 @@ def cmd_worker(a):
     db = a.db or os.environ.get("SF_DB", sf_api.DB_DEFAULT)
     os.makedirs(os.path.dirname(db), exist_ok=True)
     store = Store(db)
-    cfg = load_config(a.config) if a.config or store.config()[1] is None else None
+    # Always load the file: an edited config becomes a new version (future trades only);
+    # an unchanged one matches its stored hash and nothing changes.
+    cfg = load_config(a.config)
     modes = MODES if a.mode == "both" else (a.mode,)
-    e = Engine(store, data, SystemClock(), cfg, env="paper", modes=modes)
+    import sf_report
+    from datetime import timedelta
+    started = SystemClock().now()
+    # Alerts go through pipeline/notify.py (TELEGRAM_TOKEN / TELEGRAM_CHAT_ID in .env;
+    # without them it just prints). Events from before this start are not re-sent.
+    notifier = sf_report.Notifier(store, since=started - timedelta(minutes=2))
+    e = Engine(store, data, SystemClock(), cfg, env="paper", modes=modes, notifier=notifier)
     gate = e.live_gate()
+    with store.tx() as c:
+        store.emit(c, "WorkerStarted", "worker", started, {"worker": e.worker_id, "gate": gate,
+                   "modes": list(modes), "config_version": e.config_version})
     print(f"stock-futures worker {e.worker_id}: db {db}, modes {modes}, config v{e.config_version}")
     print("entries:", gate or "ENABLED (paper)")
     e.start(poll_s=a.poll)

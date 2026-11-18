@@ -104,7 +104,7 @@ def run_live(dry_run=False):
     # Options and indices keep their tier and FULL mode (depth = bid/ask).
     # Stocks go to their own tier in QUOTE mode: price, volume and OI is all
     # the market pages need, at a fraction of FULL's bandwidth.
-    stk_map = {t: m for t, m in imap.items() if m.get("kind") in ("stock", "stock_fut")}
+    stk_map = {t: m for t, m in imap.items() if m.get("kind") in ("stock", "stock_fut", "index_fut")}
     opt_map = {t: m for t, m in imap.items() if t not in stk_map}
     opt_tokens, stk_tokens = list(opt_map), list(stk_map)
     print(f"instruments : {len(tokens):,} from {path} "
@@ -143,7 +143,7 @@ def run_live(dry_run=False):
           + (f" -- WARNING {dropped:,} instruments over the cap, not subscribed" if dropped else ""))
     def bump():
         stats["reconnects"] += 1
-    futs = {t for t, m in stk_map.items() if m.get("kind") == "stock_fut"}
+    futs = {t for t, m in stk_map.items() if m.get("kind") in ("stock_fut", "index_fut")}
     conns = open_connections(os.environ["KITE_API_KEY"], access_token, shards,
                              set(stk_tokens), on_ticks, on_reconnect=bump, full_set=futs)
 

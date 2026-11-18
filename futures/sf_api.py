@@ -194,6 +194,7 @@ def state(store, now, data=None, engine=None):
             "profiles": profiles, "positions": positions, "orders": orders, "fills": fills,
             "approvals": approvals, "journal": rows, "summary": summary(rows), "feeds": health,
             "dead_letters": store.q("SELECT * FROM failures WHERE attempts>=5"),
+            "daily_summary": (store.events("type='DailySummary'")[-1:] or [{"payload": None}])[0]["payload"],
             "notes": ["Paper trading and replay only. No order reaches a broker.",
                       "Equity spot prices select candidates; the futures contract's own quotes open, mark and close.",
                       "Money flow is an estimate from price x volume; order blocks are a chart pattern.",

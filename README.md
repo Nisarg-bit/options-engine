@@ -354,6 +354,20 @@ use the CLI on the box. Deployment templates (not installed):
 [`deploy/run_futures.sh`](deploy/run_futures.sh). On the server, copy
 `futures/*.py` into the flat folder and `futures/config/` beside them.
 
+### Live operation: alerts, daily summary, checks
+
+- **Telegram alerts** ([`futures/sf_report.py`](futures/sf_report.py)) go through the existing `pipeline/notify.py` bot
+  (`TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`). You get a message when a paper trade opens or closes (with net P&L), when an exit
+  is unresolved, when an override is applied, when the worker starts, and for the daily summary. Each alert is claimed in
+  the database before it is sent, so a crash can drop one but never send it twice. A Telegram outage never blocks trading.
+- **Daily summary**: once per session after 15:35 IST, the worker stores the day's scans, market labels, trades, P&L by
+  mode and direction, unresolved exits and most common no-trade reasons. It appears on the Journal tab and in Telegram.
+- **Check script** (read-only): `bash ~/futures_check.sh` on the server shows services, memory, the worker's footprint,
+  today's NIFTY-futures bars, master tick sizes, feed health, the latest scan per mode, positions and recent worker errors.
+- **Server footprint**: measured on a full synthetic day (220 stocks, both modes), the worker peaks at about 190 MB and a
+  scan cycle takes about 9 s. The unit caps it at 230 MB soft and 320 MB hard, and the kernel stops the worker, never the
+  collector. The NIFTY near-month future is recorded in `stocks_1m/IDXFUT` (one extra token).
+
 ### Operator runbook
 
 | Situation | What to do | What the system does |

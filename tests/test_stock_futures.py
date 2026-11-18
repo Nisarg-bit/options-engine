@@ -787,8 +787,15 @@ def test_config_versions_bind_to_trades(tmp_path):
     assert not ok and "cutoff" in err
 
 
+def gated_config():
+    cfg = F.demo_config()
+    cfg["rules_validated"] = False
+    cfg["live"]["entries_enabled"] = False
+    return cfg
+
+
 def test_live_paper_entries_are_disabled_until_configured(tmp_path):
-    sc, data, clock, st, e = make(tmp_path, F.bullish(), env="paper")
+    sc, data, clock, st, e = make(tmp_path, F.bullish(), env="paper", cfg=gated_config())
     scan(e)
     stop = ev(st, "ScanStopped")[0]["payload"]["reason"]
     assert "current-session entries disabled" in stop and "rules_validated" in stop
@@ -797,6 +804,7 @@ def test_live_paper_entries_are_disabled_until_configured(tmp_path):
 
 
 def test_dashboard_state_and_operator_auth(tmp_path, monkeypatch):
+    pytest.importorskip("httpx")                      # FastAPI's TestClient needs it
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
     from sf_api import make_router
@@ -882,7 +890,7 @@ def test_repo_adapter_reads_the_collectors_layout(tmp_path):
     assert r2.health(now)["feeds"]["futstk_master"] == "incomplete: no tick_size"
     # the live gate names exactly what is missing
     st = Store(str(tmp_path / "g.db"))
-    e = Engine(st, r2, ReplayClock(now), F.demo_config(), env="paper")
+    e = Engine(st, r2, ReplayClock(now), gated_config(), env="paper")
     gate = e.live_gate()
     assert "entries_enabled is false" in gate and "futstk_master: incomplete" in gate
 
@@ -899,3 +907,11 @@ def test_snapshot_is_what_the_read_only_services_serve(tmp_path, monkeypatch):
     assert "may be stopped" in out["notes"][0]          # fixture clock is in the past -> flagged stale
     monkeypatch.setenv("SF_SNAPSHOT", str(tmp_path / "missing.json"))
     assert sf_api.publish()["available"] is False
+
+
+def test_enabled_config_still_waits_for_healthy_feeds(tmp_path):
+    cfg = F.demo_config()
+    assert cfg["rules_validated"] and cfg["live"]["entries_enabled"]      # shipped config: entries on
+    sc, data, clock, st, e = make(tmp_path, F.bullish(), env="paper", cfg=cfg)
+    gate = e.live_gate()
+    assert gate and "feeds not ready" in gate and "entries_enabled" not in gate

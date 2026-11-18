@@ -47,6 +47,13 @@ def load_instrument_map(path):
                 "expiry": date.fromisoformat(i["expiry"]) if i.get("expiry") else None,
                 "strike": None, "opt_type": "EQ" if kind == "stock" else "FUT",
                 "partition": "EQ" if kind == "stock" else "STKFUT", "kind": kind}
+        elif kind == "index_fut":
+            # The NIFTY near-month future (VWAP source for futures/): its own
+            # partition in the stock tier, so the chain and Pulse never read it.
+            m[i["instrument_token"]] = {
+                "tradingsymbol": i["tradingsymbol"], "underlying": i["name"],
+                "expiry": date.fromisoformat(i["expiry"]), "strike": None, "opt_type": "FUT",
+                "partition": "IDXFUT", "kind": kind}
         elif kind == "index":
             m[i["instrument_token"]] = {
                 "tradingsymbol": i["tradingsymbol"], "underlying": "INDEX",

@@ -29,8 +29,9 @@ from sf_data import PointInTime
 
 class Engine:
     def __init__(self, store, data, clock=None, cfg=None, env="fixture", fill_mode="quotes",
-                 worker_id=None, actor="system", modes=MODES):
+                 worker_id=None, actor="system", modes=MODES, notifier=None):
         self.store = store
+        self.notifier = notifier            # sf_report.Notifier (Telegram) or None
         self.modes = tuple(modes)
         self.data = PointInTime(data)
         self.clock = clock or SystemClock()
@@ -155,7 +156,18 @@ class Engine:
         entry.poll(now)
         for ag in self.a[:5]:
             work += self.consume(ag, now)
+        self.housekeeping(now)
         return work
+
+    def housekeeping(self, now):
+        """End-of-day report and alerts. Never allowed to stop trading."""
+        import sf_report
+        for fn in (lambda: sf_report.end_of_day(self, now),
+                   lambda: self.notifier.poll(now) if self.notifier else None):
+            try:
+                fn()
+            except Exception as e:  # noqa: BLE001
+                print(f"[sf] housekeeping: {type(e).__name__}: {e}")
 
     def run_until_idle(self, now=None, max_passes=30):
         now = now or self.clock.now()
@@ -181,7 +193,7 @@ class Engine:
                 except Exception as e:  # noqa: BLE001
                     print(f"[sf] {fn.__qualname__}: {type(e).__name__}: {e}")
                 self._stop.wait(every)
-        jobs = [(self.schedule, poll_s), (self.broker.step, poll_s)]
+        jobs = [(self.schedule, poll_s), (self.broker.step, poll_s), (self.housekeeping, poll_s * 5)]
         for ag in self.a:
             if ag.consumes:
                 jobs.append((lambda now, ag=ag: self.consume(ag, now), poll_s / 2))

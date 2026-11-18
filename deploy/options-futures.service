@@ -3,8 +3,8 @@ Description=Stock-futures paper worker (seven agents, FUTSTK paper trading only)
 After=network-online.target options-collector.service
 Wants=network-online.target
 
-# NOT INSTALLED. Template only: copy futures/*.py and futures/config/ next to the
-# other modules, then install like the other units. Nothing here places an order.
+# Installed by deploy/deploy-futures-live-2026-11-18.ps1. Paper trading only:
+# nothing here places a broker order.
 [Service]
 Type=simple
 User=ubuntu
@@ -14,6 +14,16 @@ ExecStart=/home/ubuntu/run_futures.sh
 
 Restart=always
 RestartSec=15
+
+# The collector comes first on this 2 GB box. If memory runs short the kernel
+# takes this worker, never the collector; it restarts and resumes from SQLite.
+# Measured 18 Nov 2026 on a full synthetic day (220 stocks, both modes): peak ~190 MB.
+MemoryHigh=230M
+MemoryMax=320M
+Environment=MALLOC_ARENA_MAX=2
+OOMScoreAdjust=600
+Nice=10
+CPUQuota=60%
 
 # Reads the collector's data; writes only its own SQLite state and snapshot.
 ProtectSystem=strict
