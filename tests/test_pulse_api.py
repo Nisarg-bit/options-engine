@@ -128,3 +128,58 @@ def test_closes_on_reads_past_session_without_touching_the_live_cache(tmp_path, 
     assert "sentinel-today" in api._parts                     # today's cache left alone
     assert "2026-11-10" in PA._closes                         # remembered: past sessions never change
     api._parts.pop("sentinel-today")
+
+
+# --- closes_on reads only the newest parts (18 Nov 2026: 16-minute cold starts) ---
+
+ALL4 = ["NIFTY 50", "NIFTY BANK", "SENSEX", "INDIA VIX"]
+
+
+def _day_parts(tmp_path, n, symbols_for=lambda i: ALL4, day="2026-11-10"):
+    d = tmp_path / "bars" / f"date={day}" / "underlying=INDEX"
+    d.mkdir(parents=True)
+    for i in range(n):
+        syms = symbols_for(i)
+        pd.DataFrame({"ts": [i] * len(syms), "tradingsymbol": syms,
+                      "close": [1000.0 + i + k for k, _ in enumerate(syms)],
+                      "open": [0.0] * len(syms)}).to_parquet(d / f"part-{i:05d}.parquet")
+    return d
+
+
+def _setup(tmp_path, monkeypatch):
+    from datetime import date as D
+    import api
+    monkeypatch.setattr(api, "BARS", str(tmp_path / "bars"))
+    monkeypatch.setattr(api, "latest_session", lambda: D(2026, 11, 12))
+    PA._closes.clear()
+    reads = []
+    real = PA._read_closes
+    monkeypatch.setattr(PA, "_read_closes", lambda p: reads.append(p) or real(p))
+    return D(2026, 11, 10), reads
+
+
+def test_closes_on_reads_only_the_last_parts_and_matches_a_full_read(tmp_path, monkeypatch):
+    import glob, os
+    d = _day_parts(tmp_path, 375)
+    day, reads = _setup(tmp_path, monkeypatch)
+    got = PA.closes_on(day)
+    assert len(reads) == PA.TAIL_PARTS                      # 5 files, not 375
+    full = PA._closes_from(sorted(glob.glob(os.path.join(str(d), "*.parquet"))))
+    assert got == full and got["NIFTY 50"] == 1374.0 and got["INDIA VIX"] == 1377.0
+
+
+def test_closes_on_falls_back_when_a_series_stopped_early(tmp_path, monkeypatch):
+    # SENSEX stops publishing at part 200: its last close is only in the early parts.
+    _day_parts(tmp_path, 375, symbols_for=lambda i: ALL4 if i < 200 else ALL4[:2] + ALL4[3:])
+    day, reads = _setup(tmp_path, monkeypatch)
+    got = PA.closes_on(day)
+    assert got["SENSEX"] == 1000.0 + 199 + 2                 # found by the full read
+    assert len(reads) == PA.TAIL_PARTS + 375
+
+
+def test_closes_on_falls_back_on_an_unreadable_tail_part(tmp_path, monkeypatch):
+    d = _day_parts(tmp_path, 50)
+    (d / "part-00049.parquet").write_bytes(b"not parquet")
+    day, reads = _setup(tmp_path, monkeypatch)
+    got = PA.closes_on(day)
+    assert got["NIFTY 50"] == 1048.0                         # last readable part

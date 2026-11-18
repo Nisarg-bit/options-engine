@@ -87,24 +87,67 @@ def closes_on(day):
     drops every other session's parts when asked for a different day, so one
     look at yesterday would make the next chain/structures build re-read all of
     today's ~1,500 parts. During market hours that is the difference between a
-    publisher pass of seconds and one of many minutes."""
+    publisher pass of seconds and one of many minutes.
+
+    Reads from the END (18 Nov 2026). Only the last close is wanted, and the
+    writer numbers parts part-00000, part-00001, ... monotonically per
+    partition, so the newest parts hold it. Reading every part of every past
+    session made each publisher cold start read ~375 files per session ever
+    collected (15,053 files at 54 sessions, a 16-minute first pass). Now it
+    reads the last few parts and stops once every series that appears in the
+    session's final part has a close; anything odd falls back to a full read."""
     key = str(day)
     if key in _closes:
         return _closes[key]
     import api
-    frames = []
-    for path in sorted(glob.glob(os.path.join(api.BARS, f"date={day}", "underlying=INDEX", "*.parquet"))):
-        try:
-            frames.append(pd.read_parquet(path, columns=["ts", "tradingsymbol", "close"]))
-        except Exception:  # noqa: BLE001 -- a bad part is skipped
-            continue
-    out = {}
-    if frames:
-        df = pd.concat(frames, ignore_index=True).sort_values("ts")
-        out = {str(k): float(v) for k, v in df.groupby("tradingsymbol")["close"].last().items()}
+    paths = sorted(glob.glob(os.path.join(api.BARS, f"date={day}", "underlying=INDEX", "*.parquet")))
+    out = _closes_from_tail(paths)
+    if out is None:
+        out = _closes_from(paths)
     if day != api.latest_session():
         _closes[key] = out
     return out
+
+
+def _read_closes(path):
+    try:
+        return pd.read_parquet(path, columns=["ts", "tradingsymbol", "close"])
+    except Exception:  # noqa: BLE001 -- a bad part is skipped
+        return None
+
+
+def _closes_from(paths):
+    frames = [f for f in (_read_closes(p) for p in paths) if f is not None]
+    if not frames:
+        return {}
+    df = pd.concat(frames, ignore_index=True).sort_values("ts", kind="stable")
+    return {str(k): float(v) for k, v in df.groupby("tradingsymbol")["close"].last().items()}
+
+
+TAIL_PARTS = 5
+
+
+def _closes_from_tail(paths):
+    """Closes from the newest parts only, or None to ask for a full read.
+
+    The final part defines which series the session ended with. If the last
+    TAIL_PARTS parts do not give each of them a close, or a part is unreadable,
+    the answer is not trusted and the caller reads everything."""
+    if not paths:
+        return {}
+    tail = [_read_closes(p) for p in paths[-TAIL_PARTS:]]
+    if any(f is None for f in tail):
+        return None
+    last = tail[-1]
+    if last.empty:
+        return None
+    # Every index this page uses, plus anything else the session ended with: a
+    # series that stopped early is then missing from the tail and the full read
+    # (which would still find its last close) takes over. Same answers as before.
+    want = set(INDEX_NAMES) | set(map(str, last["tradingsymbol"].dropna().unique()))
+    df = pd.concat(tail, ignore_index=True).dropna(subset=["close"]).sort_values("ts", kind="stable")
+    out = {str(k): float(v) for k, v in df.groupby("tradingsymbol")["close"].last().items()}
+    return out if want <= set(out) else None
 
 
 def vix_history():
