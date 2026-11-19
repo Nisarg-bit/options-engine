@@ -259,11 +259,19 @@ def read_parts(day, underlying):
         _parts[path] = (sig, df)
         frames.append(df)
 
-    # The box has 2 GB and the collector is the tenant that matters. Hold only
-    # the session being viewed; yesterday's parts would otherwise accumulate
-    # until the process was restarted.
-    prefix = os.path.join(BARS, f"date={day}")
-    for stale in [k for k in _parts if not k.startswith(prefix)]:
+    # The box has 2 GB and the collector is the tenant that matters. Hold the
+    # session being read plus the newest one; older parts would otherwise
+    # accumulate until the process was restarted.
+    #
+    # The newest session is never evicted (19 Nov 2026). Before, any read of
+    # an older day -- session_moves walks twenty of them -- dropped every
+    # cached part of today, so the next chain build re-read the whole session
+    # from disk: the publisher's 50-100 s "slow node: chain" spikes.
+    keep = [os.path.join(BARS, f"date={day}") + os.sep]
+    newest = latest_session()
+    if newest is not None:
+        keep.append(os.path.join(BARS, f"date={newest}") + os.sep)
+    for stale in [k for k in _parts if not k.startswith(tuple(keep))]:
         del _parts[stale]
 
     if not frames:
@@ -284,6 +292,56 @@ def sessions():
 def latest_session():
     days = sessions()
     return days[-1] if days else None
+
+
+_day_index = {}   # day -> (file signature, summary): completed sessions only
+
+
+def _index_summary(d):
+    """{instrument_token: (median close, first close, last close, bars)} for one
+    session's INDEX partition, or None. Key None when the partition has no
+    instrument_token column.
+
+    A completed session never changes, so its summary is kept for the life of
+    the process, checked against the files' names, sizes and mtimes. Before
+    (19 Nov 2026) session_moves re-read twenty sessions of INDEX parts --
+    about 7,500 files -- every time the publisher's memory housekeeping
+    pruned its cache entry, i.e. every ten minutes. The newest session is
+    still being collected, so it is always recomputed (from read_parts'
+    cache, which holds it)."""
+    sig = None
+    if d != latest_session():
+        files = sorted(glob.glob(os.path.join(BARS, f"date={d}",
+                                              "underlying=INDEX", "*.parquet")))
+        try:
+            sig = tuple((os.path.basename(f), os.stat(f).st_size,
+                         os.stat(f).st_mtime) for f in files)
+        except OSError:
+            sig = None
+        hit = _day_index.get(d)
+        if sig and hit and hit[0] == sig:
+            return hit[1]
+
+    df = read_parts(d, "INDEX")
+    if df is None or df.empty or "close" not in df.columns:
+        summ = None
+    else:
+        if "ts" in df.columns:
+            df = df.sort_values("ts")
+        def one(s):
+            c = s.astype(float)
+            return (float(c.median()), float(c.iloc[0]), float(c.iloc[-1]), len(c))
+        if "instrument_token" in df.columns:
+            summ = {tok: one(g) for tok, g in df.groupby("instrument_token")["close"]}
+        else:
+            summ = {None: one(df["close"])}
+
+    if sig:                     # only real files on disk are remembered
+        _day_index[d] = (sig, summ)
+        if len(_day_index) > 60:
+            for old in sorted(_day_index)[:-60]:
+                _day_index.pop(old, None)
+    return summ
 
 
 def session_moves(spot, lookback=None):
@@ -321,25 +379,25 @@ def session_moves(spot, lookback=None):
     def build():
         out = []
         for d in days:
-            df = read_parts(d, "INDEX")
-            if df is None or df.empty or "close" not in df.columns:
+            summ = _index_summary(d)
+            if not summ:
                 continue
-            if "instrument_token" in df.columns:
+            if None in summ:                     # no instrument_token column
+                med, first, last, n = summ[None]
+            else:
                 # Nearest median close to spot, and only if it is actually
                 # near -- 20% is far wider than any session gap and far
                 # narrower than the gap to a volatility index.
-                med = df.groupby("instrument_token")["close"].median()
-                med = med[med > 0]
-                if med.empty:
+                cands = {t: v for t, v in summ.items() if v[0] > 0}
+                if not cands:
                     continue
-                tok = (med - spot).abs().idxmin()
-                if abs(float(med.loc[tok]) - spot) > 0.20 * spot:
+                tok = min(cands, key=lambda t: abs(cands[t][0] - spot))
+                med, first, last, n = cands[tok]
+                if abs(med - spot) > 0.20 * spot:
                     continue
-                df = df[df["instrument_token"] == tok]
-            s = df.sort_values("ts")["close"].astype(float)
-            if len(s) < 2:
+            if n < 2:
                 continue
-            out.append(float(s.iloc[-1]) - float(s.iloc[0]))
+            out.append(last - first)
         return out
 
     # spot moves intraday, so it is rounded out of the cache key -- otherwise
