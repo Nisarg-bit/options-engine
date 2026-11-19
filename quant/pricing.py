@@ -16,6 +16,7 @@ with a lognormal terminal distribution is Phase 2.4.
 
 from math import sqrt, pi, exp, erf, floor
 from datetime import datetime
+import math
 
 TRADING_DAYS_BASIS = 365.0          # Option_Chain!B16 divides by sqrt(365)
 SQRT_2_OVER_PI = sqrt(2.0 / pi)     # 0.797885 -- Daily_Signal!J9
@@ -236,6 +237,32 @@ def current_costs_for(underlying):
         _MODELS[rate] = CostModel(exchange_per_side=rate,
                                   stt_on_sell=STT_ON_SELL)
     return _MODELS[rate]
+
+
+def fill_costs(fills, costs=None):
+    """Estimated charges from executed orders, not net strategy credit.
+
+    Each fill is (side, premium, quantity). One item represents one executed
+    order; callers must include both entry and exit, including protective legs.
+    Rates are supplied explicitly for historical tariff studies.
+    """
+    costs = costs or CURRENT_COSTS
+    sell = buy = brokerage = 0.0
+    for side, premium, quantity in fills:
+        if side not in ("buy", "sell") or not math.isfinite(premium) or premium < 0:
+            raise ValueError("invalid fill side or premium")
+        if not math.isfinite(quantity) or quantity <= 0:
+            raise ValueError("fill quantity must be positive")
+        if side == "sell":
+            sell += premium * quantity
+        else:
+            buy += premium * quantity
+        brokerage += costs.brokerage_per_order
+    exchange = (buy + sell) * costs.exchange_per_side
+    sebi = (buy + sell) * costs.sebi_per_side
+    gst = (brokerage + exchange + sebi) * costs.gst
+    return (brokerage + exchange + sebi + gst + sell * costs.stt_on_sell
+            + buy * costs.stamp_buy)
 
 
 def transaction_costs(credit_pts, lot_size, lots=1, defined_risk=False,

@@ -121,7 +121,7 @@ function renderVerdict(s, c){
   }else if(s.gate_passed){
     tone = 'go'; head = `The model <em>would sell premium</em> today — ${r ? esc(r.label.toLowerCase()) : 'see chapter 3'}, paper only.`;
   }else{
-    tone = 'no'; head = `<em>No trade today.</em> ${s.c_over_sigma != null && s.c_over_sigma < s.cs_gate
+    tone = 'no'; head = `<em>Weekly model: no entry.</em> ${s.c_over_sigma != null && s.c_over_sigma < s.cs_gate
       ? 'The premium on offer is too thin for the risk.' : 'Nothing clears its costs.'}`;
   }
   const chips = [];
@@ -149,7 +149,7 @@ function renderBrief(s, c){
   if(!host || !s) return;
   const sd = s.sigma, sp = s.spot, rw = richWord(s.ratio);
   const P = [];
-  P.push(`${esc(UND)} is at <b>${num(sp, 0)}</b>. The options market is pricing a typical move of about
+  P.push(`${esc(UND)} is at <b>${num(sp, 0)}</b>. The selected volatility benchmark implies a model move of about
     <b>±${num(sd, 0)} points</b> (${(sd / sp * 100).toFixed(1)}%) by the ${fmtDate(s.expiry)} expiry,
     ${s.dte === 0 ? 'which is today' : s.dte + ' day' + (s.dte === 1 ? '' : 's') + ' away'}. Two days in three should end inside
     <b>${num(sp - sd, 0)}–${num(sp + sd, 0)}</b> — if the usual model holds, which in big moves it often does not.`);
@@ -349,7 +349,7 @@ function riskDraw(){
   $('#rkout').innerHTML = `
     <div class="sub">${lots} lot${lots > 1 ? 's' : ''} · ${esc(st.label.toLowerCase())} · ${esc(UND)} at ${num(sp + move)} ${when}</div>
     <div class="big ${v >= 0 ? 'pos' : 'neg'}">${v >= 0 ? '+' : ''}${rsK(v)}</div>
-    ${cap ? `<div class="sub">${v >= 0 ? '+' : ''}${(v / cap * 100).toFixed(2)}% of your ₹${num(cap)} capital (set on the sizing card)</div>` : ''}
+    ${cap ? `<div class="sub">${v >= 0 ? '+' : ''}${(v / cap * 100).toFixed(2)}% of the illustrative ₹${num(cap)} capital (editable example)</div>` : ''}
     <p>If ${esc(UND)} is at <b>${num(sp + move)}</b> ${when}, this position would be
     ${v >= 0 ? `up about <b class="pos">${rsK(v)}</b>` : `down about <b class="neg">${rsK(v)}</b>`} after estimated charges.
     ${stopped
@@ -404,7 +404,29 @@ function riskChart(host, o){
     ${o.matched ? '' : '<span class="neg">the model could not match the market price; shown on the site’s σ</span>'}`;
   host.appendChild(lg);
 }
-async function trade(){ riskSetup(S); }
+async function trade(){
+  riskSetup(S);
+  let card = $('#spread-policy');
+  if(!card){ card = el('div', 'card wide'); card.id = 'spread-policy'; $('#sigrec').before(card); }
+  if(UND !== 'NIFTY'){ card.textContent = 'The new spread paper experiment is NIFTY-only. Other indices retain the control baseline.'; return; }
+  try{
+    const data = await DATA.daytrade(), policy = data.paper_policy;
+    if(!policy){ card.textContent = 'New paper-policy data is not available yet. The straddle below is the old control baseline.'; return; }
+    const r = policy.today;
+    const legs = r?.legs?.map(([k,ot,q]) => `${q>0?'BUY':'SELL'} ${num(k)} ${ot}`).join(' + ');
+    card.innerHTML = `<h2>New daily paper rules · opening spread v1</h2>
+      <p>Starts <b>${esc(policy.activation)}</b> · NIFTY · one lot · one entry per valid session · paper only, unvalidated.</p>
+      <p>Observe 09:20–09:44. At <b>09:45</b>, buy a call debit spread for a nonnegative opening move or a put debit spread for a downward move. Buy the ATM option and sell an option two strike steps further in that direction, same expiry. No neutral-selling branch or weekly entry gate.</p>
+      <p><b>Exit:</b> net loss of 35% of R, net profit of 50% of R, or <b>15:00</b>, whichever is observed first. No re-entry. R is the gross maximum expiry loss of the complete structure; fees and intraday execution can add to it. Missing quotes are flagged.</p>
+      ${r ? `<p><b>${esc(r.status)} · ${esc(r.shape || 'awaiting signal')}</b><br>${esc(legs || '')}<br>
+        Net P&amp;L: <b>${r.net_rs == null?'not marked yet':rsK(r.net_rs)}</b>
+        ${r.exit ? ` · ${esc(r.exit_reason)} at ${esc(r.exit)}` : ''}<br>
+        Planned stop: ${r.stop_net_rs == null?'–':rsK(r.stop_net_rs)} · target: ${r.target_net_rs == null?'–':rsK(r.target_net_rs)}
+        ${r.quality_flags?.length ? `<br>Data flags: ${esc(r.quality_flags.join(', '))}` : ''}</p>`
+        : '<p>No prospective trade yet. Historical simulations are not counted as forward trades.</p>'}
+      <p>Clean forward sessions: <b>${policy.forward_sessions}</b> · net: <b>${rsK(policy.forward_net_rs)}</b>. The old 09:20 straddle remains a separately labelled control.</p>`;
+  }catch(e){ card.textContent = 'New paper-policy data unavailable: ' + e.message; }
+}
 
 /* ============================================================ TRACK RECORD */
 async function proof(){
@@ -431,7 +453,15 @@ async function proof(){
       win rate could be anywhere from <b>${pct(wci[0], 0)}</b> to <b>${pct(wci[1], 0)}</b>` : ''}.
       Running total: <b class="${tot >= 0 ? 'pos' : 'neg'}">${tot >= 0 ? '+' : ''}${rsK(tot)}</b> per lot.
       ${skew ? `A typical day made <b>${rsK(sm.median_net)}</b> but the average is <b>${rsK(sm.mean_net)}</b> — most days pay a little and a few big ones take it back. That shape is what selling options looks like.` : ''}
-      ${n < floor ? `<span class="hl">Too few sessions to call this a result yet.</span>` : ''}</p></div>
+      <span class="hl">${floor} sessions is a collection milestone, not validation.</span>
+      Clean verified scheduled-entry sample: <b>${sm.clean_sample?.settled ?? 0}</b>;
+      unverified or excluded: <b>${sm.unverified_or_excluded ?? n}</b>.
+      ${d.journal_version ? 'Version 2 ledger: rebuilt with order costs and elapsed clock time. The original ledger is preserved separately.' : 'Legacy ledger: historical rows may use older cost assumptions.'}
+      Clean-sample net: <b>${sm.clean_sample?.total_net == null ? '–' : rsK(sm.clean_sample.total_net)}</b>.
+      Average winner / loser: <b>${sm.average_win == null ? '–' : rsK(sm.average_win)} / ${sm.average_loss == null ? '–' : rsK(-sm.average_loss)}</b>.
+      Profit factor: <b>${sm.profit_factor == null ? '–' : num(sm.profit_factor, 2)}</b>.</p></div>
+    ${sm.p_stop_vix_mean != null && sci && sm.p_stop_vix_mean < sci[0]
+      ? '<p class="banner"><b>Stop model warning:</b> observed stops exceed the model estimate. Its sampling-error band excludes model uncertainty. Do not use this probability or binary Kelly for capital sizing.</p>' : ''}
     <div class="kpis">
       <div class="kpi"><div class="k">Sessions recorded</div><div class="v">${n}<span class="dimtxt" style="font-size:14px"> / ${floor}</span></div>
         <div class="bar good" style="margin-top:10px"><i style="width:${Math.min(100, n / floor * 100)}%"></i></div></div>
@@ -469,6 +499,32 @@ async function proof(){
   if(curve.length > 1) lineChart($('#trcurve'), [{name: 'running total ₹', values: curve, color: '#10b981', w: 3}],
     {xLabels: rows.map(r => String(r.date).slice(5)), fmtY: v => (Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(0)), W: 1100, H: 260});
   else $('#trcurve').innerHTML = '<div class="empty">needs two settled sessions</div>';
+  let comparison = $('#intraday-comparison');
+  if(!comparison){ comparison = el('div', 'card wide'); comparison.id = 'intraday-comparison'; host.appendChild(comparison); }
+  try{
+    const response = await fetch('/intraday-validation.json');
+    if(!response.ok) throw new Error('report unavailable');
+    const report = await response.json();
+    const names = {baseline:'09:20–15:15 ATM straddle', later_entry:'09:45–15:15 ATM straddle',
+      shorter_window:'09:45–14:30 ATM straddle', two_strike_strangle:'09:20–15:15 two-strike strangle'};
+    comparison.innerHTML = `<h2>Daily intraday schedule audit · 25 October 2026</h2>
+      <p class="note">All candidates enter every valid session and close the same day. These are historical comparisons, not a prospective validation. Three incomplete sessions were excluded from every candidate. No candidate has been promoted.</p>
+      <div class="scroll"><table><thead><tr><th>Schedule</th><th>Earlier period net</th><th>Later period net</th><th>Later sessions</th></tr></thead><tbody>${Object.entries(report.candidates || {}).map(([name,r]) =>
+        `<tr><td>${esc(names[name] || name)}</td><td>${rsK(r.train.net)}</td><td>${rsK(r.holdout.net)}</td><td>${r.holdout.sessions}</td></tr>`).join('')}</tbody></table></div>
+      <p class="note">Later period begins ${esc(report.holdout_start)}. All four lost after estimated costs in that period. One-minute quotes cannot reproduce intraminute fills, depth or latency. Daily trading remains paper research.</p>`;
+  }catch(e){ comparison.textContent = 'Intraday comparison report unavailable; no replacement strategy is approved.'; }
+  let spreads = $('#spread-research');
+  if(!spreads){ spreads = el('div', 'card wide'); spreads.id = 'spread-research'; host.appendChild(spreads); }
+  try{
+    const response = await fetch('/daily-spread-research.json');
+    if(!response.ok) throw new Error('unavailable');
+    const report = await response.json();
+    spreads.innerHTML = `<h2>New spread rules · historical comparison</h2>
+      <p>Previously inspected historical data, not independent validation. Equal lots are not equal risk. The new prospective record starts at zero on 26 October.</p>
+      <div class="scroll"><table><thead><tr><th>Candidate</th><th>Earlier net</th><th>Later net</th><th>Later stressed net</th><th>Worst day</th></tr></thead><tbody>${Object.entries(report.candidates || {}).map(([name,r]) =>
+        `<tr><td>${esc(name)}</td><td>${rsK(r.earlier.net)}</td><td>${rsK(r.later.net)}</td><td>${r.later_stress?rsK(r.later_stress.net):'–'}</td><td>${rsK(r.all.worst)}</td></tr>`).join('')}</tbody></table></div>
+      <p>Stress adds one premium point per leg on entry and exit. It is not a worst-case execution model. Trend is selected for forward paper research after inspecting these results; it lost over the full historical period. No candidate is validated for real capital.</p>`;
+  }catch(e){ spreads.textContent = 'Spread comparison unavailable; no profitability claim is supported.'; }
 }
 
 window.V2 = {today, trade, proof};

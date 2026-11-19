@@ -1,0 +1,103 @@
+{
+  "status": "research_only",
+  "live_approved": false,
+  "underlying": "NIFTY",
+  "lot_assumption": 65,
+  "cost_basis": "current tariffs, actual order premium turnover",
+  "holdout_start": "2026-10-06",
+  "excluded": [
+    {
+      "date": "2026-09-01",
+      "reason": "incomplete paired quote coverage"
+    },
+    {
+      "date": "2026-09-23",
+      "reason": "incomplete paired quote coverage"
+    },
+    {
+      "date": "2026-09-25",
+      "reason": "incomplete paired quote coverage"
+    }
+  ],
+  "candidates": {
+    "baseline": {
+      "train": {
+        "sessions": 21,
+        "net": -13224.8,
+        "mean": -629.75,
+        "max_drawdown": -18590.89,
+        "profit_factor": 0.4778668961290665,
+        "worst": -5209.9643068854975
+      },
+      "holdout": {
+        "sessions": 13,
+        "net": -24064.37,
+        "mean": -1851.11,
+        "max_drawdown": -29572.3,
+        "profit_factor": 0.2609208040774341,
+        "worst": -7541.642217648999
+      }
+    },
+    "later_entry": {
+      "train": {
+        "sessions": 21,
+        "net": -21703.02,
+        "mean": -1033.48,
+        "max_drawdown": -21703.02,
+        "profit_factor": 0.3200924209331179,
+        "worst": -5568.002897769501
+      },
+      "holdout": {
+        "sessions": 13,
+        "net": -23983.39,
+        "mean": -1844.88,
+        "max_drawdown": -28322.85,
+        "profit_factor": 0.23928686299963137,
+        "worst": -6883.182158392002
+      }
+    },
+    "shorter_window": {
+      "train": {
+        "sessions": 21,
+        "net": -18679.16,
+        "mean": -889.48,
+        "max_drawdown": -23332.86,
+        "profit_factor": 0.3437950068165976,
+        "worst": -5568.002897769501
+      },
+      "holdout": {
+        "sessions": 13,
+        "net": -18667.25,
+        "mean": -1435.94,
+        "max_drawdown": -24167.48,
+        "profit_factor": 0.3206241544876653,
+        "worst": -6883.182158392002
+      }
+    },
+    "two_strike_strangle": {
+      "train": {
+        "sessions": 21,
+        "net": -10062.34,
+        "mean": -479.16,
+        "max_drawdown": -14577.53,
+        "profit_factor": 0.5031432787243577,
+        "worst": -3515.688902394999
+      },
+      "holdout": {
+        "sessions": 13,
+        "net": -18669.06,
+        "mean": -1436.08,
+        "max_drawdown": -22962.13,
+        "profit_factor": 0.32891842577269315,
+        "worst": -5505.338971554998
+      }
+    }
+  },
+  "limitations": [
+    "No depth, queue, latency or intraminute stop simulation",
+    "Fixed lot assumption must match the instrument master",
+    "No automatic selection or live promotion",
+    "Repeated inspection consumes holdout independence",
+    "Historical outcomes were visible during the preceding audit; this is not a prospective test"
+  ]
+}

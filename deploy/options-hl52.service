@@ -1,0 +1,27 @@
+[Unit]
+Description=Download NSE equity bhavcopy for the 52-week high/low lists
+After=network-online.target
+Wants=network-online.target
+
+# Keeps data/hl52/daily.parquet: one row per F&O stock per session for the
+# last year (high, low, close). Market Pulse reads it for the Stock Futures
+# Market view's 52-week lists. See hl52.py.
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu
+ExecStart=/home/ubuntu/.venv/bin/python hl52.py --update
+Nice=15
+MemoryHigh=250M
+MemoryMax=350M
+OOMScoreAdjust=700
+TimeoutStartSec=1800
+ProtectSystem=strict
+ReadWritePaths=/home/ubuntu/data/hl52
+PrivateTmp=true
+NoNewPrivileges=true
+Environment=PYTHONDONTWRITEBYTECODE=1 MALLOC_ARENA_MAX=2
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hl52

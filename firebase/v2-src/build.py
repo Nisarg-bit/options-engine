@@ -1,8 +1,8 @@
-"""Build the storyline page from the classic one.
+"""Refresh authored scripts without discarding fixes in the published page.
 
-Reads firebase/backup/index-classic.html, writes firebase/public/index.html.
-Every cut is by exact text and asserted, so a classic page that has moved
-underneath fails loudly instead of producing a half-built page.
+Default: preserve the current page and update v2/v3 scripts plus integrity fixes.
+--classic-rebuild explicitly reconstructs the legacy page from the old backup.
+That backup predates accessibility, margin and data-freshness fixes.
 """
 import os, re, sys
 HOME = os.path.expanduser("~")
@@ -10,6 +10,31 @@ V2 = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(V2)
 SRC = os.path.join(os.path.dirname(ROOT), "backup", "index-classic.html")
 DST = os.path.join(ROOT, "public", "index.html")
+if os.path.exists(DST) and '--classic-rebuild' not in sys.argv:
+    import json
+    sys.path.insert(0, os.path.join(os.path.dirname(ROOT), 'strategy'))
+    sys.path.insert(0, os.path.join(os.path.dirname(ROOT), 'quant'))
+    import catalogue
+    from integrity import apply as apply_integrity
+    with open(DST, encoding='utf-8') as f:
+        current = f.read()
+    for filename, marker in [('v2.js', 'v2: storyline'), ('v3.js', 'v3: strategy builder')]:
+        matches = list(re.finditer(r'<script>\s*/\* =+ ' + re.escape(marker), current))
+        if len(matches) != 1:
+            raise ValueError(f'expected one script block for {marker}')
+        position = matches[0].start()
+        start = position + len('<script>')
+        end = current.index('</script>', position)
+        with open(os.path.join(V2, filename), encoding='utf-8') as f:
+            source = f.read()
+        if filename == 'v3.js':
+            source = source.replace('/*CATALOGUE*/{"groups":[],"strategies":[]}/*END*/',
+                '/*CATALOGUE*/' + json.dumps(catalogue.definitions(), separators=(',', ':')) + '/*END*/')
+        current = current[:start] + '\n' + source.rstrip() + '\n' + current[end:]
+    with open(DST, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(apply_integrity(current))
+    print('updated', DST)
+    sys.exit(0)
 V2 = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(V2)
 
@@ -292,5 +317,7 @@ for old, new in [
     s = once(s, old, new)
 
 s = s.replace("<title>NIFTY options desk</title>", "<title>NIFTY options desk</title>", 1)
-open(DST, "w", encoding="utf-8").write(s)
+from integrity import apply as apply_integrity
+s = apply_integrity(s)
+open(DST, "w", encoding="utf-8", newline='\n').write(s)
 print("wrote", DST, len(s))

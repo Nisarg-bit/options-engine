@@ -24,7 +24,6 @@ watching all session, with plenty of headroom for people you share it with.
 Both derive from the same per-minute parquet read, so neither can change
 faster than the collector flushes -- about every five minutes -- and
 changed() suppresses the writes in between. Compact drops the per-row legs
-import project_paths
 from the series (identical on every row of a fixed anchor: bytes, not
 information) and the full per-strike tables from the buildup, keeping the
 ranked rows, the whole-chain agreement figures and the tilt decomposition.
@@ -46,6 +45,8 @@ import os
 import sys
 import time
 import traceback
+
+import project_paths
 from datetime import datetime, timedelta, timezone
 
 import api
@@ -105,6 +106,14 @@ CADENCE = {"ticker": 5, "health": 30, "chain": 15, "structures": 15,
            "analytics": 30, "scan": 120,
            "intraday": 120, "series": 120, "buildup": 120,
            "daytrade": 120,
+           # Market Pulse (stocks, sectors, flow, mood) -- see pulse_api.py.
+           "pulse": 60,
+           # Options page: today's view + fitting strategies -- see options_view_api.py.
+           "options_view": 60,
+           # The Rs 20 lakh paper book: one agent step per minute -- see paper_book.py.
+           "paper_book": 60,
+           # Stock-futures paper system (futures/): a read of its SQLite state.
+           "futures": 60,
            # `term` walks six expiries, so it is the one node whose
            # recompute is genuinely expensive: six build_chain calls
            # against two for `chain`. build_chain is cached on the
@@ -173,6 +182,7 @@ SERIES_EXPIRIES = 1
 # Outside market hours nothing changes, so back everything off hard rather
 # than burning CPU rebuilding payloads that will be discarded as unchanged.
 CLOSED_MULTIPLIER = 15
+SLOW_NODE_S = 5.0          # log any node that takes longer than this (see cycle)
 
 
 # --------------------------------------------------------------------- shape
@@ -199,6 +209,34 @@ def safe(fn, *a, **kw):
 
 
 _last_slow = {}      # what the last structures build said, for the ticker
+
+
+_bounded = {}     # node -> the worker thread still computing it, if any
+
+
+def bounded(node, fn, secs=45):
+    """Run one of the newer, heavier nodes (pulse, options_view, paper_book) with
+    a hard time limit, so a stuck call can never freeze every other node.
+
+    The work runs in a daemon thread. If it is not done in `secs` the node is
+    skipped this cycle (None: nothing written) and the thread is left to finish
+    on its own; no second thread starts for that node while it is alive."""
+    import threading
+    t = _bounded.get(node)
+    if t is not None and t.is_alive():
+        return None
+    box = {}
+
+    def run():
+        box["out"] = safe(fn)
+    t = threading.Thread(target=run, name=f"node-{node}", daemon=True)
+    _bounded[node] = t
+    t.start()
+    t.join(secs)
+    if t.is_alive():
+        print(f"{node}: still computing after {secs}s -- skipped this cycle")
+        return None
+    return box.get("out")
 
 
 def build(which):
@@ -267,6 +305,25 @@ def build(which):
             out["as_of"] = datetime.now(timezone(timedelta(hours=5, minutes=30))
                                         ).isoformat(timespec="seconds")
         return out
+
+    if which == "pulse":
+        import pulse_api
+        return bounded("pulse", pulse_api.api_pulse)
+
+    if which == "options_view":
+        import options_view_api
+        return bounded("options_view", options_view_api.api_options_view)
+
+    if which == "futures":
+        try:
+            import sf_api
+        except ImportError:                 # futures/ not deployed on this box
+            return None
+        return bounded("futures", sf_api.publish)
+
+    if which == "paper_book":
+        import paper_book_api
+        return bounded("paper_book", paper_book_api.publish)
 
     if which == "daytrade":
         # Per underlying but NOT per expiry -- the paper trade is always the
@@ -518,18 +575,61 @@ def archive_pass(dry=False):
     return ", ".join(done)
 
 
+# Stock-future 15-minute candles for the Stock Futures market view's side panel.
+# NOT under /live: the page streams all of /live to every viewer, and ~220
+# charts would multiply that. /candles/fut/<SYMBOL> is read on demand, one
+# stock at a time, when someone clicks it (database.rules.json makes it public).
+CANDLES = "/candles/fut"
+CANDLES_EVERY = 60
+_candle_seen = {}       # symbol -> hash of what was last written
+
+
+def publish_fut_candles(dry=False):
+    """Write the candles of every stock future whose candles moved, in ONE
+    multi-path update. Returns a log fragment or ''."""
+    import pulse_api
+    day, allc = pulse_api.fut_candles_all()
+    if not allc:
+        return ""
+    moved = {}
+    for sym, c in allc.items():
+        key = sym.replace(".", "_").replace("/", "_").replace("#", "_").replace("$", "_").replace("[", "_").replace("]", "_")
+        body = {"session": str(day), "minutes": pulse_api.CANDLE_MINUTES, **c}
+        h = hashlib.sha1(json.dumps(body, sort_keys=True, default=str).encode()).hexdigest()
+        if _candle_seen.get(key) != h:
+            moved[key] = scrub(body)
+            _candle_seen[key] = h
+    if not moved:
+        return ""
+    if not dry:
+        db().reference(CANDLES).update(moved)
+    return f"candles {len(moved)} futures {len(json.dumps(moved, default=str)) / 1024:.1f}KB"
+
+
 def cycle(state, dry=False, force=False):
     """Recompute whichever nodes are due; write only the ones that moved."""
     now = time.time()
     mult = 1 if market_open() else CLOSED_MULTIPLIER
     done, skipped, sent = [], 0, 0
+    # Timing (18 Nov 2026): the first pass after a restart takes 10-16 minutes
+    # and nothing said where. The first pass logs every node as it starts and
+    # finishes; later passes log only nodes slower than SLOW_NODE_S.
+    first = not state.get("_timed")
+    state["_timed"] = True
+    t_pass = time.time()
 
     for node, every in CADENCE.items():
         m = 1 if node in NO_BACKOFF else mult
         if not (force or now - state.get(node, 0) >= every * m):
             continue
         state[node] = now
+        if first:
+            print(f"first pass: {node} ...", flush=True)
+        t0 = time.time()
         payload = build(node)
+        took = time.time() - t0
+        if first or took > SLOW_NODE_S:
+            print(f"{'first pass' if first else 'slow node'}: {node} took {took:.1f}s", flush=True)
         if payload is None:
             continue
         blob = json.dumps(scrub(payload), default=str, sort_keys=True)
@@ -550,12 +650,30 @@ def cycle(state, dry=False, force=False):
     # here backs off fifteen-fold.
     if force or now - state.get("_archive", 0) >= 120:
         state["_archive"] = now
+        t0 = time.time()
         try:
             line = archive_pass(dry=dry)
             if line:
                 done.append(line)
         except Exception:
             traceback.print_exc()
+        took = time.time() - t0
+        if first or took > SLOW_NODE_S:
+            print(f"{'first pass' if first else 'slow node'}: archive took {took:.1f}s", flush=True)
+    if force or now - state.get("_candles", 0) >= CANDLES_EVERY * mult:
+        state["_candles"] = now
+        t0 = time.time()
+        try:
+            line = publish_fut_candles(dry=dry)
+            if line:
+                done.append(line)
+        except Exception:
+            traceback.print_exc()
+        took = time.time() - t0
+        if first or took > SLOW_NODE_S:
+            print(f"{'first pass' if first else 'slow node'}: candles took {took:.1f}s", flush=True)
+    if first:
+        print(f"first pass: total {time.time() - t_pass:.1f}s", flush=True)
 
     if done and not dry:
         db().reference(f"{ROOT}/updated_at").set(
@@ -567,6 +685,63 @@ def cycle(state, dry=False, force=False):
             + f"  total {sent/1024:.1f}KB")
 
 
+# ------------------------------------------------------------------ memory
+#
+# The publisher grew from ~0.7 GB after a restart to ~1.1 GB (and 1 GB of swap)
+# by the close of 12 Nov. Not a leak in our own dicts: every pass concatenates
+# whole-session frames (600k+ rows) and frees them again, and glibc keeps the
+# freed pages, split across one malloc arena per thread that ever allocated.
+# Three cheap counters:
+#   1. at most 2 malloc arenas, set once at start (the bounded() worker
+#      threads would otherwise each get their own);
+#   2. after each pass, drop api.cached() entries that expired over 10 minutes
+#      ago -- yesterday's frames otherwise sit there until a restart;
+#   3. then gc + malloc_trim(0), which hands freed pages back to the OS.
+
+def _libc():
+    try:
+        import ctypes
+        return ctypes.CDLL("libc.so.6")
+    except OSError:                  # not glibc (Windows, macOS): nothing to tune
+        return None
+
+
+def limit_arenas(n=2):
+    libc = _libc()
+    if libc is not None:
+        libc.mallopt(-8, n)          # M_ARENA_MAX
+
+
+def prune_cache(cache, older_than=600, now=None):
+    """Remove entries of api.cached()'s {key: (stored_at, value)} older than this."""
+    now = time.time() if now is None else now
+    stale = [k for k, v in list(cache.items())
+             if isinstance(v, tuple) and len(v) == 2
+             and isinstance(v[0], (int, float)) and now - v[0] > older_than]
+    for k in stale:
+        cache.pop(k, None)
+    return len(stale)
+
+
+_last_trim = {"at": 0.0}
+
+
+def release_memory(every=60):
+    """Once a minute at most: prune stale cache entries and return freed memory."""
+    if time.time() - _last_trim["at"] < every:
+        return
+    _last_trim["at"] = time.time()
+    try:
+        prune_cache(api._cache)
+        import gc
+        gc.collect()
+        libc = _libc()
+        if libc is not None:
+            libc.malloc_trim(0)
+    except Exception:  # noqa: BLE001 -- housekeeping must never stop publishing
+        pass
+
+
 def main():
     dry = "--dry" in sys.argv
     once = "--once" in sys.argv or dry
@@ -576,6 +751,7 @@ def main():
         print(cycle(state, dry=dry, force=True) or "nothing written")
         return 0
 
+    limit_arenas()
     print(f"publisher up · db {DB_URL or '(unset)'} · "
           f"market {'open' if market_open() else 'closed'}", flush=True)
     while True:
@@ -588,6 +764,7 @@ def main():
             # error -- must not take the publisher down for the rest of the
             # session. Log it and try again on the next tick.
             traceback.print_exc()
+        release_memory()
         time.sleep(2)
 
 

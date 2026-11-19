@@ -1,0 +1,25 @@
+[Unit]
+Description=Warm the daytrade per-session cache (publisher cold start)
+After=network-online.target
+
+# Computes four numbers per COMPLETED session once and saves them to
+# data/cache/daytrade_stats.json, so a publisher restart reads them instead of
+# reloading every session's option book (662 s of an 874 s first pass, 18 Nov 2026).
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu
+ExecStart=/home/ubuntu/.venv/bin/python daytrade_api.py --warm
+Nice=15
+MemoryHigh=600M
+MemoryMax=750M
+OOMScoreAdjust=700
+ProtectSystem=strict
+ReadWritePaths=/home/ubuntu/data/cache
+PrivateTmp=true
+NoNewPrivileges=true
+Environment=PYTHONDONTWRITEBYTECODE=1 MALLOC_ARENA_MAX=2
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cache-warm

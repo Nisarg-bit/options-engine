@@ -505,9 +505,9 @@ function renderLegsX(){
                : v.src === 'atm' ? 'no IV at this strike: the ATM IV is used'
                : 'no IV: the chain volatility (VIX units) is used';
       return `<tr data-id="${l.id}">
-        <td><button class="sbside ${l.side > 0 ? 'b' : 's'}" data-a="side" title="click to switch buy / sell">${l.side > 0 ? 'B' : 'S'}</button></td>
-        <td><select data-a="exp">${EXPS.filter(e => CHAINS[e]).map(e => `<option value="${e}"${e === l.exp ? ' selected' : ''}>${fmtExp(e)}</option>`).join('')}</select></td>
-        <td><select data-a="strike">${ks.map(k => `<option value="${k}"${k === l.strike ? ' selected' : ''}>${num(k)}</option>`).join('')}</select></td>
+        <td><select class="sbside ${l.side > 0 ? 'b' : 's'}" data-a="side" aria-label="Leg ${l.id} buy or sell"><option value="1"${l.side > 0 ? ' selected' : ''}>Buy</option><option value="-1"${l.side < 0 ? ' selected' : ''}>Sell</option></select></td>
+        <td><select data-a="exp" aria-label="Leg ${l.id} expiry">${EXPS.filter(e => CHAINS[e]).map(e => `<option value="${e}"${e === l.exp ? ' selected' : ''}>${fmtExp(e)}</option>`).join('')}</select></td>
+        <td><select data-a="strike" aria-label="Leg ${l.id} strike">${ks.map(k => `<option value="${k}"${k === l.strike ? ' selected' : ''}>${num(k)}</option>`).join('')}</select></td>
         <td><button class="sbkind" data-a="kind" title="click to switch call / put">${l.kind}</button></td>
         <td><span class="stepper"><button data-a="lm">–</button><span>${l.lots}</span><button data-a="lp">+</button></span></td>
         <td><input class="sbpx${l.custom ? ' custom' : ''}" data-a="px" type="number" step="0.05" min="0" value="${(+l.premium).toFixed(2)}" title="Entry price. Type one to price a position you already hold; untouched legs follow the chain's mid."></td>
@@ -521,7 +521,7 @@ function renderLegsX(){
       const reprice = () => { const p = mid(l.exp, l.strike, l.kind); if(p != null){ l.premium = p; l.custom = false; return true; } return false; };
       tr.querySelectorAll('[data-a]').forEach(c => {
         const a = c.dataset.a;
-        if(a === 'side') c.onclick = () => { l.side = -l.side; changed(); };
+        if(a === 'side') c.onchange = e => { l.side = +e.target.value === -1 ? -1 : 1; changed(); };
         if(a === 'kind') c.onclick = () => { const was = l.kind; l.kind = l.kind === 'CE' ? 'PE' : 'CE'; if(!reprice()) l.kind = was; changed(); };
         if(a === 'lm') c.onclick = () => { l.lots = Math.max(1, l.lots - 1); changed(); };
         if(a === 'lp') c.onclick = () => { l.lots += 1; changed(); };
@@ -770,7 +770,7 @@ SB.pmCard = function(){
         <td>${h.paper_net_rs == null ? '–' : `<span class="${h.paper_net_rs >= 0 ? 'pos' : 'neg'}">${signRs(h.paper_net_rs)}</span>`}</td>
         <td class="l dimtxt">${esc(h.note || '')}</td></tr>`).join('')}</tbody></table></div>
     ${(() => { const sh = p.shadow; if(!sh || !sh.books) return '';
-      const live = sh.books.live || {}; const dt = sh.daytrade || {};
+      const live = sh.books.live || {}; const dt = daytradeSince(sh.since, sh.daytrade || {});
       const row = (key, n, b) => `<tr><td class="l">${n}</td><td>${b.settled || 0} (${b.expiries || 0})</td><td>${b.open || 0}</td>
         <td class="${(b.pnl || 0) >= 0 ? 'pos' : 'neg'}">${signRs(b.pnl || 0)}</td><td>${b.worst == null ? '–' : signRs(b.worst)}</td>
         <td>${signRs(-(b.max_dd || 0))}</td><td>${key === 'live' ? '—' : signRs((b.pnl || 0) - (live.pnl || 0))}</td>

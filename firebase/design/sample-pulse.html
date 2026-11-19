@@ -1,0 +1,88 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pulse · style sample</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+.top{background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:22px;padding:12px 28px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;color:var(--ink)}
+.logo i{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--ink),var(--accent))}
+.nav{display:flex;gap:4px}.nav a{padding:7px 13px;border-radius:9px;color:var(--muted);font-weight:600;text-decoration:none;font-size:13.5px}
+.nav a.on{background:var(--accent-soft);color:var(--accent)}
+.status{margin-left:auto;display:flex;gap:18px;align-items:center;font-size:12px;color:var(--muted)}
+.status b{font:600 14px var(--font-num);color:var(--ink);margin-left:6px}
+main{max-width:1240px;margin:0 auto;padding:22px 28px 40px}
+h1{font-size:22px;color:var(--ink);margin:6px 0 14px}
+.g{display:grid;gap:16px}.g3{grid-template-columns:1.25fr 1fr 1fr}
+.bar{height:8px;border-radius:99px;background:var(--neutral-soft);position:relative;overflow:hidden}
+.bar span{position:absolute;inset:0 auto 0 0;border-radius:99px}
+.row{display:flex;align-items:center;gap:10px;font-size:12.5px;margin:6px 0}
+.row .l{width:110px;color:var(--muted)} .row .bar{flex:1} .row .v{width:44px;text-align:right;font-family:var(--font-num)}
+.range{position:relative;height:30px;margin-top:14px}
+.range .track{position:absolute;left:0;right:0;top:13px;height:6px;border-radius:99px;background:linear-gradient(90deg,var(--down-soft),var(--neutral-soft),var(--up-soft))}
+.range .now{position:absolute;top:4px;width:3px;height:24px;background:var(--ink);border-radius:2px}
+.range .tag{position:absolute;top:-14px;transform:translateX(-50%);font:600 11px var(--font-num);color:var(--ink)}
+.ends{display:flex;justify-content:space-between;font:12px var(--font-num);color:var(--muted)}
+.heat{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px}
+.heat div{border-radius:8px;padding:10px 10px;font-size:12px;font-weight:600;color:var(--ink)}
+.heat small{display:block;font:500 11.5px var(--font-num)}
+.note{margin-top:18px;font-size:11.5px;color:var(--muted)}
+</style></head><body>
+<div class="top"><div class="logo"><i></i>Options Engine</div>
+ <nav class="nav"><a class="on">Pulse</a><a>Options</a><a>Trade</a><a>Results</a><a>Tools ▾</a></nav>
+ <div class="status">NIFTY<b>25,044.65</b> VIX<b>17.42</b><span class="pill flat">● market closed</span></div></div>
+<main>
+ <div style="display:flex;align-items:center;justify-content:space-between">
+  <h1>Market Pulse</h1>
+  <div class="tabs"><button class="on">Overview</button><button>Money flow</button><button>OI &amp; order flow</button></div>
+ </div>
+ <div class="g g3">
+  <div class="card">
+   <div class="card-h">Market mood <span class="i">i</span><span class="sp"></span><span class="pill warn">Sample</span></div>
+   <div style="display:flex;gap:22px;align-items:center">
+    <svg width="190" height="124" viewBox="0 0 190 124" aria-label="mood gauge 58 of 100">
+     <path d="M15 100 A80 80 0 0 1 175 100" fill="none" stroke="var(--neutral-soft)" stroke-width="14" stroke-linecap="round"/>
+     <path d="M15 100 A80 80 0 0 1 55 30.7" fill="none" stroke="var(--down)" stroke-width="14" stroke-linecap="round" opacity=".55"/>
+     <path d="M135 30.7 A80 80 0 0 1 175 100" fill="none" stroke="var(--up)" stroke-width="14" stroke-linecap="round" opacity=".55"/>
+     <line x1="95" y1="100" x2="115" y2="27" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+     <circle cx="95" cy="100" r="6" fill="var(--ink)"/>
+     <text x="2" y="121" font-size="10" fill="var(--muted)">Risk-off</text><text x="150" y="121" font-size="10" fill="var(--muted)">Risk-on</text>
+    </svg>
+    <div><div class="big">58<span class="sub" style="font-size:15px"> / 100</span></div>
+     <div style="font-weight:700;color:var(--ink);font-size:18px;margin-top:2px">Mildly positive</div></div>
+   </div>
+   <div style="margin-top:12px">
+    <div class="row"><span class="l">Breadth 30%</span><span class="bar"><span style="width:62%;background:var(--up)"></span></span><span class="v up">+0.24</span></div>
+    <div class="row"><span class="l">Money flow 25%</span><span class="bar"><span style="width:55%;background:var(--up)"></span></span><span class="v up">+0.10</span></div>
+    <div class="row"><span class="l">NIFTY trend 20%</span><span class="bar"><span style="width:44%;background:var(--down)"></span></span><span class="v down">−0.12</span></div>
+    <div class="row"><span class="l">Volatility 15%</span><span class="bar"><span style="width:40%;background:var(--down)"></span></span><span class="v down">−0.20</span></div>
+    <div class="row"><span class="l">Global cues 10%</span><span class="bar"><span style="width:58%;background:var(--up)"></span></span><span class="v up">+0.16</span></div>
+   </div>
+  </div>
+  <div class="card">
+   <div class="card-h">NIFTY 50 <span class="i">i</span><span class="sp"></span><span class="pill flat">Sideways</span></div>
+   <div class="big">25,044.65</div><div class="sub"><span class="down">−112.40 (−0.45%)</span> · last close 9 Nov</div>
+   <div class="range"><div class="track"></div><div class="now" style="left:47%"></div><div class="tag" style="left:47%">25,045</div></div>
+   <div class="ends"><span>24,610</span><span>25,480</span></div>
+   <div class="sub" style="margin-top:8px">Expected range to <b style="color:var(--ink)">18 Nov</b> expiry (±1σ, about 2 in 3 days)</div>
+  </div>
+  <div class="card">
+   <div class="card-h">India VIX <span class="i">i</span><span class="sp"></span><span class="pill warn">Elevated</span></div>
+   <div class="big">17.42</div><div class="sub"><span class="up">+0.86</span> · 1-year range 9.8 – 24.1</div>
+   <div class="bar" style="margin-top:16px"><span style="width:74%;background:var(--warn)"></span></div>
+   <div class="sub" style="margin-top:8px"><b style="color:var(--ink)">74th percentile</b> of the past year · implies NIFTY ±1.10% a day</div>
+  </div>
+ </div>
+ <div class="card" style="margin-top:16px">
+  <div class="card-h">Sector map <span class="i">i</span><span class="sp"></span><span class="sub">size = turnover · colour = % change</span><span class="pill warn">Sample</span></div>
+  <div class="heat">
+   <div style="background:var(--up-soft)">Pharma<small class="up">+1.8%</small></div>
+   <div style="background:var(--up-soft)">IT<small class="up">+0.9%</small></div>
+   <div style="background:var(--neutral-soft)">Auto<small>+0.1%</small></div>
+   <div style="background:var(--neutral-soft)">FMCG<small>−0.2%</small></div>
+   <div style="background:var(--down-soft)">Bank<small class="down">−0.8%</small></div>
+   <div style="background:var(--down-soft)">PSU Bank<small class="down">−2.1%</small></div>
+  </div>
+  <div class="sub" style="margin-top:10px"><span class="up">▲ Leaders</span> Pharma +1.8%, IT +0.9% &nbsp;·&nbsp; <span class="down">▼ Laggards</span> PSU Bank −2.1%, Bank −0.8%</div>
+ </div>
+ <div class="note">Style sample only. Only the NIFTY and VIX levels are real (9 Nov close); every other number on this page is a placeholder. Research and paper trading only, not investment advice.</div>
+</main></body></html>

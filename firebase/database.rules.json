@@ -9,6 +9,10 @@
     "archive": {
       ".read": true,
       ".write": false
+    },
+    "candles": {
+      ".read": true,
+      ".write": false
     }
   }
 }

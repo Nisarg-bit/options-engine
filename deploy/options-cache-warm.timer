@@ -1,0 +1,9 @@
+[Unit]
+Description=Warm the daytrade cache after each session (15:45 IST)
+
+[Timer]
+OnCalendar=Mon-Fri *-*-* 10:15:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
