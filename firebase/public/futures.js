@@ -29,7 +29,7 @@ sec.innerHTML=`<div class="sf-head"><div><h1>Stock Futures <span id="sf-label"><
   <button role="tab" data-m="intraday" aria-selected="true">Intraday</button><button role="tab" data-m="swing" aria-selected="false">Swing</button></div>
  <div class="sf-tabs" role="tablist" aria-label="View">
   <button role="tab" data-v="scan" aria-selected="true">Scan</button><button role="tab" data-v="pos" aria-selected="false">Positions</button>
-  <button role="tab" data-v="jr" aria-selected="false">Journal</button></div></div></div>
+  <button role="tab" data-v="jr" aria-selected="false">Journal</button><button role="tab" data-v="mkt" aria-selected="false">Market</button></div></div></div>
  <div id="sf-banner"></div><div id="sf-body"></div><div class="sf-foot" id="sf-foot"></div>`;
 main.append(sec);
 const btn=document.createElement('button'); btn.dataset.t='sfut'; btn.textContent='Stock Futures'; btn.setAttribute('aria-label','Stock Futures');
@@ -42,12 +42,13 @@ function show(){
 }
 btn.addEventListener('click',show);
 let MODE='intraday', VIEW='scan', SIG='', S=null, SRCKIND='', JF={mode:'',dir:'',cls:''};
+let MK={sort:{},n:{},sector:null,stock:null}, MSIG='', PK='', PCACHE={at:0,v:null};
 qa('[data-m]',sec).forEach(b=>b.onclick=()=>{MODE=b.dataset.m;qa('[data-m]',sec).forEach(x=>x.setAttribute('aria-selected',x===b));paint(true);});
 qa('[data-v]',sec).forEach(b=>b.onclick=()=>{VIEW=b.dataset.v;qa('[data-v]',sec).forEach(x=>x.setAttribute('aria-selected',x===b));paint(true);});
 
-// Deep links: #sfut, #sfut/pos, #sfut/jr, optionally /swing (e.g. #sfut/pos/swing).
+// Deep links: #sfut, #sfut/pos, #sfut/jr, #sfut/mkt, optionally /swing (e.g. #sfut/pos/swing).
 // Market Pulse claims the landing page on load; a deep link takes it back once everything has mounted.
-const DL=location.hash.match(/^#sfut(?:\/(scan|pos|jr))?(?:\/(intraday|swing))?$/);
+const DL=location.hash.match(/^#sfut(?:\/(scan|pos|jr|mkt))?(?:\/(intraday|swing))?$/);
 if(DL){
   VIEW=DL[1]||'scan'; MODE=DL[2]||'intraday';
   qa('[data-v]',sec).forEach(x=>x.setAttribute('aria-selected',x.dataset.v===VIEW));
@@ -68,7 +69,7 @@ async function load(){
 async function paint(force){
   if(!sec.classList.contains('on')) return;
   const s=await load(); const sig=JSON.stringify(s)+MODE+VIEW+JSON.stringify(JF);
-  if(!force&&sig===SIG) return; SIG=sig; S=s;
+  if(!force&&sig===SIG&&VIEW!=='mkt') return; SIG=sig; S=s;
   const body=q('#sf-body');
   if(!s){ q('#sf-sub').textContent='No stock-futures data yet'; body.innerHTML=empty('The stock-futures worker has not published anything yet. See README: Stock futures paper system.'); return; }
   const kind=SRCKIND==='demo'?'FIXTURE DEMO · synthetic data':s.label||'PAPER';
@@ -80,6 +81,8 @@ async function paint(force){
   if(s.paused_global) b.push('<b>Global pause is ON</b> — no new entries; monitoring and exits continue.');
   q('#sf-banner').innerHTML=b.length?`<div class="sf-banner">${b.join('<br>')}</div>`:'';
   q('#sf-foot').innerHTML=(s.notes||[]).map(esc).join('<br>');
+  if(VIEW==='mkt'){ const p=await loadPulse(); const ms=JSON.stringify([p?.stock_oi,p?.session,MK]);
+    if(!force&&ms===MSIG) return; MSIG=ms; body.innerHTML=marketView(p); bindMarket(); return; }
   body.innerHTML=VIEW==='scan'?scanView(s):VIEW==='pos'?posView(s):journalView(s);
   bind();
 }
@@ -218,6 +221,144 @@ function journalView(s){
    <div class="sf-scroll"><table class="sf-t"><thead><tr><th>Closed</th><th>Mode</th><th>Dir</th><th>Contract</th><th>Sides</th><th>Units</th><th>Entry</th><th>Exit</th><th>Gross</th><th>Costs</th><th>Net</th><th>Reason</th><th>Class</th></tr></thead><tbody>
    ${rows.slice().reverse().map(r=>`<tr><td>${dt(r.closed_at||r.opened_at)}</td><td>${esc(r.mode)}</td><td>${dir(r.direction)}</td><td>${esc(r.tradingsymbol)}</td><td>${esc(r.entry_side||'—')}→${esc(r.exit_side||'—')}</td><td>${r.closed_units??r.units??''}</td><td>${n(r.entry_avg)}</td><td>${n(r.exit_avg)}</td><td class="${cls(r.gross_pnl)}">${srs(r.gross_pnl)}</td><td>${rs(r.costs)}</td><td class="${cls(r.net_pnl)}"><b>${srs(r.net_pnl)}</b></td><td class="sf-why">${esc(r.exit_reason||'')}${r.exception?' · '+esc(r.exception):''}</td><td>${badge(r.class,r.class==='settled'?'ok':r.class==='unresolved'?'bad':'n')}</td></tr>`).join('')||`<tr><td colspan="13">${empty('No trades match.')}</td></tr>`}
    </tbody></table></div></div>`;
+}
+
+/* ------------------------------------------------------------ market */
+// Sector and mover bar charts for the stock futures, from Market Pulse's stock_oi rows
+// (/live/pulse on Firebase, /api/pulse on the API page). Nothing here trades.
+async function loadPulse(){
+  try{
+    if(typeof SRC!=='undefined'&&SRC.mode==='firebase'){ const v=SRC.live?.pulse; if(v?.stock_oi?.available){PK='live';return v;} }
+    else if(typeof get==='function'){
+      // /api/pulse does real work on the server; ask at most once a minute.
+      if(Date.now()-PCACHE.at<60000&&PCACHE.v) return PCACHE.v;
+      const v=await get('/api/pulse'); PCACHE.at=Date.now(); PCACHE.v=v?.stock_oi?.available?v:null;
+      if(PCACHE.v){PK='api';return v;}
+    }
+  }catch(e){}
+  try{ const r=await fetch('/futures-market-demo.json',{cache:'no-cache'}); if(r.ok){PK='demo';return await r.json();} }catch(e){}
+  return null;
+}
+const MPAIRS=[
+ [{id:'g',t:'Top gainers',note:'% change vs yesterday’s close',k:'price_chg_pct',f:r=>r.price_chg_pct>0,d:-1},
+  {id:'l',t:'Top losers',note:'% change vs yesterday’s close',k:'price_chg_pct',f:r=>r.price_chg_pct<0,d:1}],
+ [{id:'ig',t:'Intraday gainers',note:'% change since the open (09:15 minute close)',k:'intraday_pct',f:r=>r.intraday_pct>0,d:-1},
+  {id:'il',t:'Intraday losers',note:'% change since the open (09:15 minute close)',k:'intraday_pct',f:r=>r.intraday_pct<0,d:1}],
+ [{id:'gu',t:'Top gap up',note:'Open (09:15 minute close) vs yesterday’s close',k:'gap_pct',f:r=>r.gap_pct>0,d:-1},
+  {id:'gd',t:'Top gap down',note:'Open (09:15 minute close) vs yesterday’s close',k:'gap_pct',f:r=>r.gap_pct<0,d:1}],
+ [{id:'lb',t:'Long buildup',note:'Price up, OI up. Bar = OI change since the open; price change beside the name',k:'oi_chg_pct',f:r=>r.read==='long buildup',d:-1,lab:1},
+  {id:'sb',t:'Short buildup',note:'Price down, OI up. Bar = OI change since the open; price change beside the name',k:'oi_chg_pct',f:r=>r.read==='short buildup',d:-1,lab:1}],
+ [{id:'sc',t:'Short covering',note:'Price up, OI down. Bar = OI change since the open; price change beside the name',k:'oi_chg_pct',f:r=>r.read==='short covering',d:1,lab:1},
+  {id:'lu',t:'Long unwinding',note:'Price down, OI down. Bar = OI change since the open; price change beside the name',k:'oi_chg_pct',f:r=>r.read==='long unwinding',d:1,lab:1}],
+ [{id:'h52',t:'52-week high',note:'Within 5% of the stock’s 52-week high (0% = at the high)',k:'from_high_pct',f:r=>fin(r.from_high_pct)&&r.from_high_pct>=-5,d:-1,c:'nu',need:'52-week figures appear once the daily NSE history has been downloaded.'},
+  {id:'l52',t:'52-week low',note:'Within 5% of the stock’s 52-week low (0% = at the low)',k:'from_low_pct',f:r=>fin(r.from_low_pct)&&r.from_low_pct<=5,d:1,c:'nu',need:'52-week figures appear once the daily NSE history has been downloaded.'}]];
+const MJUMP=[['mk-sec','Sectors'],['mk-g','Gainers / losers'],['mk-ig','Intraday'],['mk-gu','Gap'],['mk-lb','Buildup'],['mk-sc','Covering / unwinding'],['mk-h52','52-week']];
+const sortOf=(id,d)=>MK.sort[id]??d;
+const sorter=(k,d)=>(a,b)=>d<0?(b[k]-a[k]):(a[k]-b[k]);
+const sortBtn=(id,d)=>`<button class="sf-btn sf-sort" data-msort="${id}" data-d="${d}" aria-label="Sort">${sortOf(id,d)<0?'High → low':'Low → high'}</button>`;
+function hbars(rows,k,o={}){
+  if(!rows.length) return empty(o.none||'None right now.');
+  const m=Math.max(...rows.map(r=>Math.abs(r[k]||0)),0.01);
+  return `<div class="sf-hb">${rows.map(r=>{const v=r[k]||0,w=Math.abs(v)/m*50,u=v>=0;
+    const att=o.click?` data-msec="${esc(r.symbol)}" role="button" tabindex="0" title="${esc(`${r.symbol}: ${r.n} futures. Open the sector`)}"`
+      :` data-mstk="${esc(r.symbol)}" data-of="${esc(r.sector||'Others')}" role="button" tabindex="0" title="${esc(`${r.symbol}: open its chart`)}"`;
+    return `<div class="sf-hr sf-click${!o.click&&MK.stock===r.symbol?' sf-on':''}"${att}>
+      <span class="sf-hl">${o.click?'▸ ':''}${esc(r.symbol)}${o.lab?` <i class="${cls(r.price_chg_pct)}">${pc(r.price_chg_pct)}</i>`:''}</span>
+      <span class="sf-ht"><span class="sf-hm"></span><span class="sf-hbar ${o.c||(u?'sf-hup':'sf-hdn')}" style="${u?'left':'right'}:50%;width:${w.toFixed(1)}%"></span></span>
+      <span class="sf-hv ${o.c?'':cls(v)}">${pc(v)}</span></div>`;}).join('')}</div>`;
+}
+function moverCard(c,rows){
+  const has=rows.some(r=>fin(r[c.k]));
+  const all=has?rows.filter(r=>fin(r[c.k])&&c.f(r)):[];
+  const d=sortOf(c.id,c.d), lim=MK.n[c.id]||10;
+  const shown=all.slice().sort(sorter(c.k,c.d)).slice(0,lim).sort(sorter(c.k,d));
+  return `<div class="sf-card" id="mk-${c.id}"><h3>${esc(c.t)} <span class="sf-b">${all.length}</span><span style="flex:1"></span>${has?sortBtn(c.id,c.d):''}</h3>
+    <div class="sf-sub">${esc(c.note)}</div>
+    ${has?hbars(shown,c.k,c):empty(c.need||'Appears after the next server update.')}
+    ${all.length>10?`<button class="sf-btn sf-more" data-mmore="${c.id}">${lim>10?'Show less':`Show more (${Math.min(25,all.length)})`}</button>`:''}</div>`;
+}
+function sectorRows(rows){
+  const by={}; rows.forEach(r=>(by[r.sector||'Others']??=[]).push(r));
+  return Object.entries(by).map(([s,xs])=>({symbol:s,n:xs.length,price_chg_pct:Math.round(xs.reduce((a,r)=>a+r.price_chg_pct,0)/xs.length*100)/100,xs}));
+}
+function marketView(p){
+  if(!p) return empty('Market data appears once Market Pulse has stock-futures data for the session.');
+  const rows=(p.stock_oi?.rows||[]).filter(r=>fin(r.price_chg_pct));
+  const secs=sectorRows(rows);
+  const demo=PK==='demo'?`<div class="sf-banner sf-warnb"><b>FIXTURE DEMO</b> · synthetic numbers, shown because no live stock-futures data is available here.</div>`:'';
+  const one=MK.sector&&secs.find(x=>x.symbol===MK.sector);
+  if(one) return demo+sectorPage(one,p);
+  MK.sector=null;
+  const sd=sortOf('sec',-1); secs.sort(sorter('price_chg_pct',sd));
+  return demo+`<div class="sf-jump">${MJUMP.map(([id,l])=>`<button class="sf-b" data-mjump="${id}">${l}</button>`).join('')}</div>
+   <div class="sf-card" id="mk-sec"><h3>Sectors · stock futures <span class="sf-b">${secs.length}</span><span style="flex:1"></span>${sortBtn('sec',-1)}</h3>
+    <div class="sf-sub">Average futures % change vs yesterday’s close, equal weight per stock. Click a sector to open its futures; click any stock for its chart. Session ${esc(p.session||'—')}.</div>
+    ${hbars(secs,'price_chg_pct',{click:1})}</div>
+   <div class="sf-grid sf-g3m">${MPAIRS.flat().map(c=>moverCard(c,rows)).join('')}</div>
+   <p class="sf-note">Nearest-month stock futures. “Open” is the close of the 09:15 minute. OI change is measured from today’s first bar. 52-week range is the stock’s cash-market high and low from NSE’s daily files, not adjusted for splits or bonuses. Research and paper trading only.</p>`;
+}
+function sectorPage(s,p){
+  const d=sortOf('one',-1), lim=MK.n.one||10;
+  const all=s.xs.slice().sort(sorter('price_chg_pct',d));
+  const pick=s.xs.find(r=>r.symbol===MK.stock);
+  return `<div class="sf-card" id="mk-one"><h3><button class="sf-btn sf-sort" data-mback>← Back to market</button>${esc(s.symbol)} <span class="sf-b">${s.n} futures</span> <span class="sf-b ${s.price_chg_pct>=0?'sf-ok':'sf-bad'}">avg ${pc(s.price_chg_pct)}</span><span style="flex:1"></span>${sortBtn('one',-1)}</h3>
+    <div class="sf-sub">Futures % change vs yesterday’s close. Click a stock for its 15-minute candles. Session ${esc(p.session||'—')}.</div>
+    <div class="sf-split"><div>${hbars(all.slice(0,lim),'price_chg_pct')}
+      ${all.length>10?`<button class="sf-btn sf-more" data-mmore="one">${lim>10?'View less':`View more (${all.length})`}</button>`:''}</div>
+      <aside class="sf-panel" id="mk-panel">${pick?stockPanel(pick,p):`<div class="sf-sub" style="margin:0">Click a stock to see its chart and numbers here.</div>`}</aside></div></div>`;
+}
+const CC={};                         // symbol -> {at, v} candle cache
+function candlesFor(r,p){
+  const hit=CC[r.symbol]; if(hit&&(Date.now()-hit.at<60000||hit.v==='loading')) return hit.v;
+  CC[r.symbol]={at:Date.now(),v:'loading'};
+  (async()=>{let v=null;
+    try{
+      if(PK==='demo') v=demoCandles(r);
+      else if(typeof SRC!=='undefined'&&SRC.mode==='firebase'){const x=await fetch(`${SRC.db}/candles/fut/${encodeURIComponent(r.symbol)}.json`,{cache:'no-store'}); v=x.ok?await x.json():null;}
+      else if(typeof get==='function') v=await get('/api/pulse/candles?symbol='+encodeURIComponent(r.symbol));
+    }catch(e){v=null;}
+    CC[r.symbol]={at:Date.now(),v:v&&v.c?.length?v:null}; if(MK.stock===r.symbol) paint(true);})();
+  return 'loading';
+}
+function demoCandles(r){
+  let x=r.open||100,seed=[...r.symbol].reduce((a,c)=>a+c.charCodeAt(0),0);const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+  const o=[],h=[],l=[],c=[],vw=[],t=[];let pv=0,vv=0;const step=((r.last||x)-x)/25;
+  for(let i=0;i<25;i++){const cl=x+step+(rnd()-.5)*x*.004,hi=Math.max(x,cl)+rnd()*x*.002,lo=Math.min(x,cl)-rnd()*x*.002,v=50+rnd()*100;
+    pv+=(hi+lo+cl)/3*v;vv+=v;o.push(x);h.push(hi);l.push(lo);c.push(cl);vw.push(pv/vv);const m=555+i*15;t.push(`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`);x=cl;}
+  return {t,o,h,l,c,vwap:vw,minutes:15};
+}
+function candleSvg(v){
+  const N=v.c.length,W=300,H=170,top=6,bot=20,vw=(v.vwap||[]).filter(fin);
+  const hi=Math.max(...v.h,...vw),lo=Math.min(...v.l,...vw),span=(hi-lo)||1;
+  const y=x=>top+(hi-x)/span*(H-top-bot),cw=(W-44)/Math.max(N,25);
+  const ticks=v.t.map((t,i)=>[t,i]).filter(([t])=>/^(09:15|11:15|13:15|15:15)$/.test(t));
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="15-minute candles with VWAP">
+    ${v.c.map((c,i)=>{const o=v.o[i],u=c>=o,col=u?'var(--sf-up)':'var(--sf-down)',X=i*cw+cw/2;
+      return `<line x1="${X}" x2="${X}" y1="${y(v.h[i]).toFixed(1)}" y2="${y(v.l[i]).toFixed(1)}" stroke="${col}"/><rect x="${(X-cw*.32).toFixed(1)}" y="${y(Math.max(o,c)).toFixed(1)}" width="${(cw*.64).toFixed(1)}" height="${Math.max(1,Math.abs(y(o)-y(c))).toFixed(1)}" fill="${col}"><title>${v.t[i]}  O ${n(o)} H ${n(v.h[i])} L ${n(v.l[i])} C ${n(c)}</title></rect>`;}).join('')}
+    <polyline fill="none" stroke="var(--sf-info)" stroke-width="1.5" stroke-dasharray="4 3" points="${(v.vwap||[]).map((w,i)=>fin(w)?`${(i*cw+cw/2).toFixed(1)},${y(w).toFixed(1)}`:'').filter(Boolean).join(' ')}"/>
+    ${ticks.map(([t,i])=>`<text x="${(i*cw+cw/2).toFixed(1)}" y="${H-5}" font-size="10" text-anchor="middle" fill="var(--sf-muted)">${t}</text>`).join('')}
+    <text x="${W-2}" y="12" font-size="10" text-anchor="end" fill="var(--sf-muted)">${n(hi)}</text><text x="${W-2}" y="${H-bot-2}" font-size="10" text-anchor="end" fill="var(--sf-muted)">${n(lo)}</text></svg>`;
+}
+function stockPanel(r,p){
+  const v=candlesFor(r,p);
+  const chart=v==='loading'?`<div class="sf-sub">Loading candles…</div>`:v?candleSvg(v):`<div class="sf-sub">No candles published for ${esc(r.symbol)} yet.</div>`;
+  const read=r.read||'—', rk=read==='long buildup'||read==='short covering'?'sf-ok':read==='neutral'?'':'sf-bad';
+  const kv=[['Last',n(r.last)],['Open',n(r.open)],['Gap',`<span class="${cls(r.gap_pct)}">${pc(r.gap_pct)}</span>`],['Day',`<span class="${cls(r.price_chg_pct)}">${pc(r.price_chg_pct)}</span>`],
+    ['Intraday',`<span class="${cls(r.intraday_pct)}">${pc(r.intraday_pct)}</span>`],['OI',fin(r.oi)?(r.oi/1e5).toLocaleString('en-IN',{maximumFractionDigits:1})+' L':'—'],['OI change',`<span class="${cls(r.oi_chg_pct)}">${pc(r.oi_chg_pct)}</span>`],['VWAP',v&&v!=='loading'?n([...(v.vwap||[])].reverse().find(fin)):'—']];
+  return `<div class="sf-ph"><b>${esc(r.symbol)}</b> <span class="sf-b ${rk}">${esc(read)}</span><span style="flex:1"></span><button class="sf-btn sf-x" data-mclose aria-label="Close">✕</button></div>
+    ${chart}<div class="sf-legend"><span class="sf-vw"></span> VWAP · 15-minute candles, nearest-month future</div>
+    <div class="sf-kv4">${kv.map(([k,x])=>`<div><span>${k}</span><b>${x}</b></div>`).join('')}</div>`;
+}
+function bindMarket(){
+  const act=(b,go)=>{b.onclick=go; b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}};};
+  qa('[data-msort]',sec).forEach(b=>b.onclick=()=>{const id=b.dataset.msort;MK.sort[id]=-sortOf(id,+b.dataset.d);paint(true);});
+  qa('[data-mmore]',sec).forEach(b=>b.onclick=()=>{const id=b.dataset.mmore;MK.n[id]=(MK.n[id]||10)>10?10:(id==='one'?999:25);paint(true);});
+  qa('[data-msec]',sec).forEach(b=>act(b,()=>{MK.sector=b.dataset.msec;MK.stock=null;MK.n.one=10;paint(true);sec.scrollIntoView({block:'start'});}));
+  qa('[data-mstk]',sec).forEach(b=>act(b,()=>{const was=MK.sector;MK.sector=b.dataset.of;MK.stock=b.dataset.mstk;paint(true);
+    if(was!==MK.sector) sec.scrollIntoView({block:'start'}); else if(innerWidth<900) q('#mk-panel')?.scrollIntoView({behavior:'smooth',block:'nearest'});}));
+  qa('[data-mback]',sec).forEach(b=>b.onclick=()=>{MK.sector=null;MK.stock=null;paint(true);});
+  qa('[data-mclose]',sec).forEach(b=>b.onclick=()=>{MK.stock=null;paint(true);});
+  qa('[data-mjump]',sec).forEach(b=>b.onclick=()=>q('#'+b.dataset.mjump)?.scrollIntoView({behavior:'smooth',block:'start'}));
 }
 
 /* ------------------------------------------------------------ actions */

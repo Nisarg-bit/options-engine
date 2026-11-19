@@ -137,10 +137,24 @@ def classify_oi(d_price, d_oi, eps=0.0005):
     return "short covering" if d_price >= 0 else "long unwinding"
 
 
-def stock_oi(fut, prev_close):
-    """Per stock future: price change vs yesterday, OI change since the first bar."""
+def _pct(a, b):
+    """(a / b - 1) in percent, 2 dp, or None."""
+    try:
+        a, b = float(a), float(b)
+    except (TypeError, ValueError):
+        return None
+    if not (b > 0) or a != a:
+        return None
+    return round(100.0 * (a / b - 1.0), 2)
+
+
+def stock_oi(fut, prev_close, sectors=None):
+    """Per stock future: price change vs yesterday, OI change since the first bar,
+    and (for the Stock Futures 'Market' view) the day's open, gap and move since
+    the open, plus the stock's sector."""
     if fut is None or fut.empty:
         return {"available": False}
+    sectors = sectors or {}
     rows = []
     for sym, g in fut.sort_values("ts").groupby("underlying"):
         oi = g["oi"].dropna()
@@ -150,9 +164,18 @@ def stock_oi(fut, prev_close):
         last = float(g["close"].iloc[-1])
         dp = (last / pc - 1.0) if pc else None
         doi = (float(oi.iloc[-1]) / float(oi.iloc[0]) - 1.0) if oi.iloc[0] else None
+        # The day's "open" is the CLOSE of the first traded minute (09:15). The
+        # collector chains each bar's open to the previous close, so the first
+        # bar's open is yesterday's close and every gap would read 0% (19 Nov 2026).
+        traded = g[g["volume"].fillna(0) > 0] if "volume" in g else g
+        first = (traded if len(traded) else g)["close"].dropna()
+        op = float(first.iloc[0]) if len(first) else None
         rows.append({"symbol": sym, "price_chg_pct": None if dp is None else round(100 * dp, 2),
                      "oi": int(oi.iloc[-1]), "oi_chg_pct": None if doi is None else round(100 * doi, 2),
-                     "read": classify_oi(dp, doi)})
+                     "read": classify_oi(dp, doi),
+                     "sector": sectors.get(sym, "Others"),
+                     "last": round(last, 2), "open": None if op is None else round(op, 2),
+                     "gap_pct": _pct(op, pc), "intraday_pct": _pct(last, op)})
     counts = {k: sum(1 for r in rows if r["read"] == k)
               for k in ("long buildup", "short buildup", "short covering", "long unwinding", "neutral")}
     rows.sort(key=lambda r: abs(r["oi_chg_pct"] or 0), reverse=True)
@@ -171,6 +194,46 @@ def resample(bars, minutes=5):
     out = pd.DataFrame({"open": r["open"].first(), "high": r["high"].max(),
                         "low": r["low"].min(), "close": r["close"].last(),
                         "volume": r["volume"].sum()}).dropna(subset=["open"])
+    return out
+
+
+def fut_candles(fut, minutes=15):
+    """{underlying: {"t": [HH:MM IST], "o","h","l","c": [...], "vwap": [...]}} for the
+    Stock Futures market view's small chart.
+
+    The collector chains each 1-minute bar's open to the previous close, so the
+    session's first bar 'opens' at yesterday's close and its high or low can be
+    that synthetic price. The first candle therefore opens at the first traded
+    minute's close (the same "open" stock_oi uses), and a high/low equal to the
+    synthetic open is pulled back to that close. VWAP is cumulative pv / volume."""
+    if fut is None or fut.empty:
+        return {}
+    out = {}
+    for sym, g in fut.sort_values("ts").groupby("underlying"):
+        g = g[~g["is_interpolated"]] if "is_interpolated" in g else g
+        traded = g[g["volume"].fillna(0) > 0] if "volume" in g else g
+        if traded.empty:
+            continue
+        g = g[g["ts"] >= traded["ts"].iloc[0]].copy()
+        i0 = g.index[0]
+        o0, c0 = g.at[i0, "open"], g.at[i0, "close"]
+        if g.at[i0, "high"] == o0:
+            g.at[i0, "high"] = max(c0, g.at[i0, "low"])
+        if g.at[i0, "low"] == o0:
+            g.at[i0, "low"] = min(c0, g.at[i0, "high"])
+        g.at[i0, "open"] = c0
+        pv = g["pv"].fillna(0.0) if "pv" in g else g["close"] * g["volume"].fillna(0)
+        g["cpv"], g["cvol"] = pv.cumsum(), g["volume"].fillna(0).cumsum()
+        r = g.set_index("ts").resample(f"{minutes}min", label="left", closed="left")
+        c = pd.DataFrame({"o": r["open"].first(), "h": r["high"].max(), "l": r["low"].min(),
+                          "c": r["close"].last(), "cpv": r["cpv"].last(), "cvol": r["cvol"].last()}).dropna(subset=["o"])
+        if c.empty:
+            continue
+        vw = (c["cpv"] / c["cvol"].where(c["cvol"] > 0)).round(2)
+        idx = c.index.tz_convert("Asia/Kolkata") if c.index.tz is not None else c.index
+        out[str(sym)] = {"t": [t.strftime("%H:%M") for t in idx],
+                         **{k: [round(float(v), 2) for v in c[k]] for k in ("o", "h", "l", "c")},
+                         "vwap": [None if v != v else float(v) for v in vw]}
     return out
 
 

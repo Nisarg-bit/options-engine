@@ -13,7 +13,7 @@ import time
 from datetime import date
 
 import pandas as pd
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 import market_pulse as MP
 import project_paths
@@ -255,6 +255,62 @@ def order_block_cards(eq, tbl, prev):
     return cards
 
 
+def add_52week(oi, tbl, day, min_sessions=120):
+    """Add hi52 / lo52 / from_high_pct / from_low_pct to each stock-future row.
+
+    The 52-week range is the stock's (cash market), from hl52's daily history of
+    completed sessions, widened by today's live high and low from the EQ bars.
+    A stock with under `min_sessions` days of history gets no 52-week figures
+    rather than a 'high' that only covers a few months."""
+    if not oi.get("available") or day is None:
+        return
+    try:
+        import hl52
+        lv = hl52.levels(day)
+    except Exception:  # noqa: BLE001 -- never costs the rest of the page
+        lv = {}
+    oi["hl52_sessions"] = max((v[2] for v in lv.values()), default=0)
+    for r in oi["rows"]:
+        h = lv.get(r["symbol"])
+        if not h or h[2] < min_sessions:
+            continue
+        hi, lo = h[0], h[1]
+        last = None
+        if tbl is not None and not tbl.empty and r["symbol"] in tbl.index:
+            t = tbl.loc[r["symbol"]]
+            last = float(t["last"])
+            if t["high"] == t["high"]:
+                hi = max(hi, float(t["high"]))
+            if t["low"] == t["low"]:
+                lo = min(lo, float(t["low"]))
+        if last is None:
+            continue
+        r.update(hi52=round(hi, 2), lo52=round(lo, 2),
+                 from_high_pct=MP._pct(last, hi), from_low_pct=MP._pct(last, lo))
+
+
+CANDLE_MINUTES = 15
+
+
+def fut_candles_all(day=None):
+    """15-minute candles + VWAP for every stock future on `day` (default: newest)."""
+    days = stock_sessions()
+    day = date.fromisoformat(str(day)) if day else (days[-1] if days else None)
+    if day is None:
+        return None, {}
+    return day, MP.fut_candles(read_tier(day, "STKFUT"), CANDLE_MINUTES)
+
+
+@router.get("/api/pulse/candles")
+def api_pulse_candles(symbol: str, day: str = None):
+    """One stock future's 15-minute candles, for the Stock Futures market view."""
+    d, allc = fut_candles_all(day)
+    c = allc.get(symbol)
+    if c is None:
+        raise HTTPException(404, f"no candles for {symbol}")
+    return {"symbol": symbol, "session": str(d), "minutes": CANDLE_MINUTES, **c}
+
+
 @router.get("/api/pulse")
 def api_pulse(day: str = None):
     days = stock_sessions()
@@ -285,7 +341,8 @@ def api_pulse(day: str = None):
     out["breadth"] = MP.breadth(tbl)
     out["flow"] = MP.money_flow(tbl)
     out["sectors"] = MP.sector_map(tbl)
-    out["stock_oi"] = MP.stock_oi(fut, prev)
+    out["stock_oi"] = MP.stock_oi(fut, prev, smap)
+    add_52week(out["stock_oi"], tbl, day)
     out["order_blocks"] = order_block_cards(eq, tbl, prev)
     try:                                    # actual institutional flows (NSE), evenings only
         import fii_dii as FD

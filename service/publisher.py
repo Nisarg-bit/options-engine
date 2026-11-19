@@ -575,6 +575,37 @@ def archive_pass(dry=False):
     return ", ".join(done)
 
 
+# Stock-future 15-minute candles for the Stock Futures market view's side panel.
+# NOT under /live: the page streams all of /live to every viewer, and ~220
+# charts would multiply that. /candles/fut/<SYMBOL> is read on demand, one
+# stock at a time, when someone clicks it (database.rules.json makes it public).
+CANDLES = "/candles/fut"
+CANDLES_EVERY = 60
+_candle_seen = {}       # symbol -> hash of what was last written
+
+
+def publish_fut_candles(dry=False):
+    """Write the candles of every stock future whose candles moved, in ONE
+    multi-path update. Returns a log fragment or ''."""
+    import pulse_api
+    day, allc = pulse_api.fut_candles_all()
+    if not allc:
+        return ""
+    moved = {}
+    for sym, c in allc.items():
+        key = sym.replace(".", "_").replace("/", "_").replace("#", "_").replace("$", "_").replace("[", "_").replace("]", "_")
+        body = {"session": str(day), "minutes": pulse_api.CANDLE_MINUTES, **c}
+        h = hashlib.sha1(json.dumps(body, sort_keys=True, default=str).encode()).hexdigest()
+        if _candle_seen.get(key) != h:
+            moved[key] = scrub(body)
+            _candle_seen[key] = h
+    if not moved:
+        return ""
+    if not dry:
+        db().reference(CANDLES).update(moved)
+    return f"candles {len(moved)} futures {len(json.dumps(moved, default=str)) / 1024:.1f}KB"
+
+
 def cycle(state, dry=False, force=False):
     """Recompute whichever nodes are due; write only the ones that moved."""
     now = time.time()
@@ -629,6 +660,18 @@ def cycle(state, dry=False, force=False):
         took = time.time() - t0
         if first or took > SLOW_NODE_S:
             print(f"{'first pass' if first else 'slow node'}: archive took {took:.1f}s", flush=True)
+    if force or now - state.get("_candles", 0) >= CANDLES_EVERY * mult:
+        state["_candles"] = now
+        t0 = time.time()
+        try:
+            line = publish_fut_candles(dry=dry)
+            if line:
+                done.append(line)
+        except Exception:
+            traceback.print_exc()
+        took = time.time() - t0
+        if first or took > SLOW_NODE_S:
+            print(f"{'first pass' if first else 'slow node'}: candles took {took:.1f}s", flush=True)
     if first:
         print(f"first pass: total {time.time() - t_pass:.1f}s", flush=True)
 

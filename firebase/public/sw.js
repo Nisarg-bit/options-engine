@@ -8,9 +8,9 @@
  *     the cache is only a fallback so the app still opens offline.
  * Bump VERSION to drop old caches after a big change.
  */
-const VERSION = 'desk-v4';
+const VERSION = 'desk-v6';
 const SHELL = [
-  '/', '/index.html', '/desk.css', '/studio.css', '/desk.js', '/guide.js', '/studio.js', '/pulse.css', '/pulse.js', '/options.js', '/futures.css', '/futures.js', '/expand.js', '/pwa.js',
+  '/', '/index.html', '/desk.css', '/studio.css', '/desk.js', '/guide.js', '/studio.js', '/pulse.css', '/pulse.js', '/options.js', '/futures.css', '/futures.js', '/futures-market-demo.json', '/expand.js', '/pwa.js',
   '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png',
 ];
 
