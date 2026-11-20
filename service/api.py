@@ -1736,13 +1736,25 @@ except ImportError:                                          # not deployed on t
 
 # ---------------------------------------------------------------------- web
 
+# SITE is a copy of firebase/public -- the same page nifty-desk.web.app serves.
+# On this host it finds no Firebase config and runs in API mode, which is where
+# the Stock Futures operator buttons appear (behind DASH_USER / DASH_PASS).
+# Until 20 Nov 2026 this route served web/index.html, a September copy that had
+# none of the newer tabs. web/ is still the fallback when site/ is absent.
+SITE = os.path.join(ROOT, "site")
+
+
 @app.get("/")
 def index():
-    path = os.path.join(WEB, "index.html")
-    if not os.path.exists(path):
-        return JSONResponse({"error": "web/index.html missing"}, status_code=404)
-    return FileResponse(path)
+    for path in (os.path.join(SITE, "index.html"), os.path.join(WEB, "index.html")):
+        if os.path.exists(path):
+            return FileResponse(path, headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "site/index.html missing"}, status_code=404)
 
 
 if os.path.isdir(WEB):
     app.mount("/static", StaticFiles(directory=WEB), name="static")
+# Mounted LAST, so every /api/... route above wins; this only answers the page's
+# own files (/desk.css, /futures.js, /sw.js, ...).
+if os.path.isdir(SITE):
+    app.mount("/", StaticFiles(directory=SITE), name="site")
