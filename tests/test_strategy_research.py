@@ -471,3 +471,20 @@ def test_research_waits_for_the_close_on_trading_days():
     assert RS.market_hours_block(_ist(date(2026, 11, 20), "11:00"), POL) is True      # Friday session
     assert RS.market_hours_block(_ist(date(2026, 11, 20), "16:00"), POL) is False
     assert RS.market_hours_block(_ist(date(2026, 11, 21), "11:00"), POL) is False     # Saturday
+
+
+def test_published_snapshot_has_only_firebase_safe_keys():
+    import sf_api
+    bad = {"a.b": {"c$d": [{"e/f": 1, "g#h": 2, "": 3}]}, "ok": {"x[y]": 4}}
+    out = sf_api.firebase_safe(bad)
+
+    def keys(o):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                yield k
+                yield from keys(v)
+        elif isinstance(o, list):
+            for v in o:
+                yield from keys(v)
+    assert all(k and not any(ch in k for ch in ".$#[]/") for k in keys(out))
+    assert out["a·b"]["c_d"][0]["e_f"] == 1

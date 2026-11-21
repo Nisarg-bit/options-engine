@@ -294,7 +294,7 @@ function healthView(s){
      <p class="sf-note">${esc(h.policy?.note||'')}</p></div>
    <div class="sf-card"><h3>Profiles</h3><div class="sf-scroll"><table class="sf-t sf-narrow"><thead><tr><th></th><th>Kind</th><th>Exit plan</th><th>Regime</th><th>Opening range first bar</th></tr></thead><tbody>${prof}</tbody></table></div>
      <h3 style="margin-top:12px">Search space ${badge('automatic changes only here','n')}</h3>
-     <ul class="sf-req">${Object.entries(h.search_space?.params||{}).map(([k,r])=>`<li>${esc(k.replace('profiles.',''))} <span class="sf-tm">${r.choices?esc(r.choices.join(' / ')):`${r.min} … ${r.max}`}</span></li>`).join('')}</ul>
+     <ul class="sf-req">${Object.entries(h.search_space?.params||{}).map(([k,r])=>`<li>${esc(k.replace(/^profiles[.·]/,'').replace(/·/g,'.'))} <span class="sf-tm">${r.choices?esc(r.choices.join(' / ')):`${r.min} … ${r.max}`}</span></li>`).join('')}</ul>
      <p class="sf-note">${esc(h.search_space?.description||'')}</p></div></div>
   <div class="sf-grid sf-g2">
    <div class="sf-card"><h3>Decision history</h3><div class="sf-scroll"><table class="sf-t sf-narrow"><thead><tr><th>Session</th><th>Status</th><th>Version</th><th>Decision</th></tr></thead><tbody>

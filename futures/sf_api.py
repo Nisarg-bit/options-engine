@@ -767,9 +767,27 @@ def read_snapshot(path=None, stale_after_s=180):
     return out
 
 
+def firebase_safe(obj):
+    """Realtime Database keys may not be empty or contain . $ # [ ] / (a single
+    bad key rejects the WHOLE write: found 21 Nov 2026, when the research search
+    space keys like 'profiles.intraday.exit_plan.hard_max_stop_pct' froze
+    /live/futures). Dots become '·', other forbidden characters '_'."""
+    if isinstance(obj, dict):
+        out = {}
+        for k, v in obj.items():
+            k = str(k).replace(".", "·")
+            for ch in "$#[]/":
+                k = k.replace(ch, "_")
+            out[k or "_"] = firebase_safe(v)
+        return out
+    if isinstance(obj, list):
+        return [firebase_safe(v) for v in obj]
+    return obj
+
+
 def publish(path=None):
     """What publisher.py writes to /live/futures (read-only on the site)."""
-    return read_snapshot(path)
+    return firebase_safe(read_snapshot(path))
 
 
 def _shadow_list():
