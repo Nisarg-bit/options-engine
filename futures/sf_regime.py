@@ -56,11 +56,27 @@ def _hhmm_add(t, minutes):
 
 # ====================================================================== intraday
 
-def opening_range(bars, day, open_hhmm, minutes, now, bar_minutes=1, fibs=(0.380, 0.500, 0.618)):
-    """Opening-range levels for one session, or a NOT_READY / UNAVAILABLE status."""
+FIRST_BAR_MODES = ("ohlc", "close_only")
+
+
+def opening_range(bars, day, open_hhmm, minutes, now, bar_minutes=1, fibs=(0.380, 0.500, 0.618),
+                  first_bar="ohlc"):
+    """Opening-range levels for one session, or a NOT_READY / UNAVAILABLE status.
+
+    first_bar  "ohlc" (config v1, as deployed 18 Nov 2026): the session's first
+               bar counts with its full high/low.
+               "close_only" (correctness fix, 20 Nov 2026): the first bar
+               contributes only its close. The collector chains each bar's open
+               to the previous close, so the 09:15 bar opens at YESTERDAY's
+               close and its high or low is often that untraded price (82% of
+               stocks on 20 Nov); the NIFTY 50 index's 09:15 bar also carries
+               pre-open spikes (low 24,664 on 19 Nov, ~2% below every later
+               print). Either widens the range and moves every level."""
+    if first_bar not in FIRST_BAR_MODES:
+        raise ValueError(f"first_bar must be one of {FIRST_BAR_MODES}")
     start = ist(day, open_hhmm)
     end = _hhmm_add(start, minutes)
-    out = {"start": iso(start), "end": iso(end), "expected_bars": minutes // bar_minutes}
+    out = {"start": iso(start), "end": iso(end), "expected_bars": minutes // bar_minutes, "first_bar": first_bar}
     if now < end:
         return dict(out, status="NOT_READY", reason=f"opening range {start:%H:%M}-{end:%H:%M} still forming")
     inside = [b for b in bars if start <= parse_ts(b["ts"]) < end and parse_ts(b["available_at"]) <= now]
@@ -68,8 +84,15 @@ def opening_range(bars, day, open_hhmm, minutes, now, bar_minutes=1, fibs=(0.380
     if len(inside) < out["expected_bars"]:
         return dict(out, status="UNAVAILABLE",
                     reason=f"opening range incomplete: {len(inside)}/{out['expected_bars']} completed bars")
-    hi = max(D(b["high"]) for b in inside)
-    lo = min(D(b["low"]) for b in inside)
+    inside = sorted(inside, key=lambda b: parse_ts(b["ts"]))
+    first_ts = parse_ts(inside[0]["ts"])
+
+    def hl(b):
+        if first_bar == "close_only" and parse_ts(b["ts"]) == first_ts == start:
+            return D(b["close"]), D(b["close"])
+        return D(b["high"]), D(b["low"])
+    hi = max(hl(b)[0] for b in inside)
+    lo = min(hl(b)[1] for b in inside)
     rng = hi - lo
     if rng <= 0:
         return dict(out, status="UNAVAILABLE", reason="opening range has zero width", or_high=f(hi), or_low=f(lo))
@@ -137,7 +160,8 @@ def classify_intraday(nifty_bars, vwap_bars, now, rc, cal, max_age_s, frozen=Non
         return done("UNAVAILABLE", "CLOSED", "market not in session")
     lv = frozen or opening_range(nifty_bars, day, open_hhmm, minutes, now,
                                  fibs=tuple(rc.get("fib", {}).get(k, d) for k, d in
-                                            (("low", 0.380), ("mid", 0.500), ("high", 0.618))))
+                                            (("low", 0.380), ("mid", 0.500), ("high", 0.618))),
+                                 first_bar=rc["opening_range"].get("first_bar", "ohlc"))
     ev["levels"] = {k: (f(v) if k.startswith(("or_", "fib_")) else v) for k, v in lv.items()}
     ev["levels"]["frozen"] = bool(frozen)
     if lv["status"] == "NOT_READY":

@@ -1,0 +1,82 @@
+{
+  "fixture": true,
+  "note": "FIXTURE research results for offline tests and demos. No web search was made; the URLs are placeholders under example.org and nothing here is a real source or a real performance claim.",
+  "sources": [
+    {"url": "https://example.org/fixture/vwap-pullback", "title": "FIXTURE: VWAP pullback rules", "published": "2026-01-15"},
+    {"url": "https://example.org/fixture/rsi-pullback-swing", "title": "FIXTURE: RSI pullback in an EMA trend", "published": "2025-09-02"},
+    {"url": "https://example.org/fixture/no-market-filter", "title": "FIXTURE: trade every breakout regardless of index", "published": "2024-05-20"}
+  ],
+  "ideas": [
+    {
+      "title": "FIXTURE VWAP pullback continuation (intraday)",
+      "source_url": "https://example.org/fixture/vwap-pullback", "publisher": "example.org (fixture)", "author": "Fixture Author",
+      "published": "2026-01-15",
+      "summary": "In a stock already above its session VWAP and its EMA(20), enter long when price crosses back above VWAP after a pullback with relative volume above 1.2; mirror for shorts. 1.5 ATR stop, 2R target.",
+      "mode": "intraday", "directions": ["LONG", "SHORT"], "timeframe": "5m",
+      "long_conditions": [
+        {"left_indicator": "price", "left_params": [{"name": "field", "number": 0, "text": "close"}], "op": "cross_above",
+         "right_indicator": "vwap", "right_params": [], "right_value": 0, "right_is_value": false},
+        {"left_indicator": "price", "left_params": [{"name": "field", "number": 0, "text": "close"}], "op": ">",
+         "right_indicator": "ema", "right_params": [{"name": "period", "number": 20, "text": ""}], "right_value": 0, "right_is_value": false},
+        {"left_indicator": "rel_volume", "left_params": [{"name": "period", "number": 20, "text": ""}], "op": ">",
+         "right_indicator": "", "right_params": [], "right_value": 1.2, "right_is_value": true}
+      ],
+      "short_conditions": [
+        {"left_indicator": "price", "left_params": [{"name": "field", "number": 0, "text": "close"}], "op": "cross_below",
+         "right_indicator": "vwap", "right_params": [], "right_value": 0, "right_is_value": false},
+        {"left_indicator": "price", "left_params": [{"name": "field", "number": 0, "text": "close"}], "op": "<",
+         "right_indicator": "ema", "right_params": [{"name": "period", "number": 20, "text": ""}], "right_value": 0, "right_is_value": false},
+        {"left_indicator": "rel_volume", "left_params": [{"name": "period", "number": 20, "text": ""}], "op": ">",
+         "right_indicator": "", "right_params": [], "right_value": 1.2, "right_is_value": true}
+      ],
+      "rank_indicator": "rel_strength", "stop_basis": "atr", "stop_value": 1.5, "target_basis": "r_multiple", "target_value": 2,
+      "trailing_pct": 0, "max_holding_sessions": 0,
+      "assumptions": ["the source's 'pullback' is read as a cross back above VWAP on a completed 5-minute bar"],
+      "missing_definitions": ["the source does not say how deep the pullback must be"],
+      "needs_market_gate_change": "", "needs_sector_gate_change": "",
+      "unverified_claims": ["FIXTURE: 'works most days' (not a measured result)"]
+    },
+    {
+      "title": "FIXTURE RSI pullback in an EMA uptrend (swing)",
+      "source_url": "https://example.org/fixture/rsi-pullback-swing", "publisher": "example.org (fixture)", "author": "",
+      "published": "2025-09-02",
+      "summary": "Daily bars: long when close is above EMA(50) and RSI(14) is below 40; short when close is below EMA(50) and RSI(14) is above 60. 3% stop, 6% target, at most 5 sessions.",
+      "mode": "swing", "directions": ["LONG", "SHORT"], "timeframe": "1d",
+      "long_conditions": [
+        {"left_indicator": "price", "left_params": [{"name": "field", "number": 0, "text": "close"}], "op": ">",
+         "right_indicator": "ema", "right_params": [{"name": "period", "number": 10, "text": ""}], "right_value": 0, "right_is_value": false},
+        {"left_indicator": "rsi", "left_params": [{"name": "period", "number": 5, "text": ""}], "op": "<",
+         "right_indicator": "", "right_params": [], "right_value": 40, "right_is_value": true}
+      ],
+      "short_conditions": [
+        {"left_indicator": "price", "left_params": [{"name": "field", "number": 0, "text": "close"}], "op": "<",
+         "right_indicator": "ema", "right_params": [{"name": "period", "number": 10, "text": ""}], "right_value": 0, "right_is_value": false},
+        {"left_indicator": "rsi", "left_params": [{"name": "period", "number": 5, "text": ""}], "op": ">",
+         "right_indicator": "", "right_params": [], "right_value": 60, "right_is_value": true}
+      ],
+      "rank_indicator": "rel_strength", "stop_basis": "pct", "stop_value": 3, "target_basis": "pct", "target_value": 6,
+      "trailing_pct": 0, "max_holding_sessions": 5,
+      "assumptions": ["EMA(50)/RSI(14) shortened to EMA(10)/RSI(5) because only 15 daily sessions are kept for the warm-up"],
+      "missing_definitions": [],
+      "needs_market_gate_change": "", "needs_sector_gate_change": "",
+      "unverified_claims": []
+    },
+    {
+      "title": "FIXTURE breakout without any index filter",
+      "source_url": "https://example.org/fixture/no-market-filter", "publisher": "example.org (fixture)", "author": "",
+      "published": "2024-05-20",
+      "summary": "Trade every opening-range breakout regardless of the index direction.",
+      "mode": "intraday", "directions": ["LONG"], "timeframe": "1m",
+      "long_conditions": [
+        {"left_indicator": "price", "left_params": [{"name": "field", "number": 0, "text": "close"}], "op": ">",
+         "right_indicator": "or_high", "right_params": [], "right_value": 0, "right_is_value": false}
+      ],
+      "short_conditions": [],
+      "rank_indicator": "turnover", "stop_basis": "opening_range_edge", "stop_value": 0, "target_basis": "r_multiple", "target_value": 2,
+      "trailing_pct": 0, "max_holding_sessions": 0, "assumptions": [], "missing_definitions": [],
+      "needs_market_gate_change": "remove the market-direction gate: trade longs on any market day",
+      "needs_sector_gate_change": "",
+      "unverified_claims": []
+    }
+  ]
+}

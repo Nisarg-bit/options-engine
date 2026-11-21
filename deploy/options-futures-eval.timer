@@ -1,0 +1,9 @@
+[Unit]
+Description=Stock-futures daily evaluation after each session (16:10 IST, Mon-Fri; the job checks the XBOM calendar)
+
+[Timer]
+OnCalendar=Mon-Fri *-*-* 10:40:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -29,7 +29,7 @@ sec.innerHTML=`<div class="sf-head"><div><h1>Stock Futures <span id="sf-label"><
   <button role="tab" data-m="intraday" aria-selected="true">Intraday</button><button role="tab" data-m="swing" aria-selected="false">Swing</button></div>
  <div class="sf-tabs" role="tablist" aria-label="View">
   <button role="tab" data-v="scan" aria-selected="true">Scan</button><button role="tab" data-v="pos" aria-selected="false">Positions</button>
-  <button role="tab" data-v="jr" aria-selected="false">Journal</button><button role="tab" data-v="mkt" aria-selected="false">Market</button></div></div></div>
+  <button role="tab" data-v="jr" aria-selected="false">Journal</button><button role="tab" data-v="mkt" aria-selected="false">Market</button><button role="tab" data-v="hl" aria-selected="false">Health</button><button role="tab" data-v="lib" aria-selected="false">Strategies</button><button role="tab" data-v="res" aria-selected="false">Research</button></div></div></div>
  <div id="sf-banner"></div><div id="sf-body"></div><div class="sf-foot" id="sf-foot"></div>`;
 main.append(sec);
 const btn=document.createElement('button'); btn.dataset.t='sfut'; btn.textContent='Stock Futures'; btn.setAttribute('aria-label','Stock Futures');
@@ -42,13 +42,13 @@ function show(){
 }
 btn.addEventListener('click',show);
 let MODE='intraday', VIEW='scan', SIG='', S=null, SRCKIND='', JF={mode:'',dir:'',cls:''};
-let MK={sort:{},n:{},sector:null,stock:null}, MSIG='', PK='', PCACHE={at:0,v:null};
+let MK={sort:{},n:{},sector:null,stock:null}, RSIG='', MSIG='', PK='', PCACHE={at:0,v:null};
 qa('[data-m]',sec).forEach(b=>b.onclick=()=>{MODE=b.dataset.m;qa('[data-m]',sec).forEach(x=>x.setAttribute('aria-selected',x===b));paint(true);});
 qa('[data-v]',sec).forEach(b=>b.onclick=()=>{VIEW=b.dataset.v;qa('[data-v]',sec).forEach(x=>x.setAttribute('aria-selected',x===b));paint(true);});
 
 // Deep links: #sfut, #sfut/pos, #sfut/jr, #sfut/mkt, optionally /swing (e.g. #sfut/pos/swing).
 // Market Pulse claims the landing page on load; a deep link takes it back once everything has mounted.
-const DL=location.hash.match(/^#sfut(?:\/(scan|pos|jr|mkt))?(?:\/(intraday|swing))?$/);
+const DL=location.hash.match(/^#sfut(?:\/(scan|pos|jr|mkt|hl|lib|res))?(?:\/(intraday|swing))?$/);
 if(DL){
   VIEW=DL[1]||'scan'; MODE=DL[2]||'intraday';
   qa('[data-v]',sec).forEach(x=>x.setAttribute('aria-selected',x.dataset.v===VIEW));
@@ -71,6 +71,13 @@ async function paint(force){
   const s=await load(); const sig=JSON.stringify(s)+MODE+VIEW+JSON.stringify(JF);
   if(!force&&sig===SIG&&VIEW!=='mkt') return; SIG=sig; S=s;
   const body=q('#sf-body');
+  if(VIEW==='lib'||VIEW==='res'){
+    if(!window.SFX){ body.innerHTML=empty('Loading…'); return; }
+    window.SFX._go=v=>{VIEW=v;qa('[data-v]',sec).forEach(x=>x.setAttribute('aria-selected',x.dataset.v===v));};
+    const rsig=window.SFX.sig(VIEW)+JSON.stringify(s?.research?.jobs||'');
+    if(!force&&rsig===RSIG) return; RSIG=rsig;
+    await window.SFX.render(VIEW,s,body,()=>paint(true)); return;
+  }
   if(!s){ q('#sf-sub').textContent='No stock-futures data yet'; body.innerHTML=empty('The stock-futures worker has not published anything yet. See README: Stock futures paper system.'); return; }
   const kind=SRCKIND==='demo'?'FIXTURE DEMO · synthetic data':s.label||'PAPER';
   q('#sf-label').innerHTML=badge(kind,SRCKIND==='demo'||/FIXTURE|REPLAY/.test(kind)?'warn':'info');
@@ -83,7 +90,7 @@ async function paint(force){
   q('#sf-foot').innerHTML=(s.notes||[]).map(esc).join('<br>');
   if(VIEW==='mkt'){ const p=await loadPulse(); const ms=JSON.stringify([p?.stock_oi,p?.session,MK]);
     if(!force&&ms===MSIG) return; MSIG=ms; body.innerHTML=marketView(p); bindMarket(); return; }
-  body.innerHTML=VIEW==='scan'?scanView(s):VIEW==='pos'?posView(s):journalView(s);
+  body.innerHTML=VIEW==='scan'?scanView(s):VIEW==='pos'?posView(s):VIEW==='hl'?healthView(s):journalView(s);
   bind();
 }
 setInterval(()=>paint(false),5000);
@@ -221,6 +228,81 @@ function journalView(s){
    <div class="sf-scroll"><table class="sf-t"><thead><tr><th>Closed</th><th>Mode</th><th>Dir</th><th>Contract</th><th>Sides</th><th>Units</th><th>Entry</th><th>Exit</th><th>Gross</th><th>Costs</th><th>Net</th><th>Reason</th><th>Class</th></tr></thead><tbody>
    ${rows.slice().reverse().map(r=>`<tr><td>${dt(r.closed_at||r.opened_at)}</td><td>${esc(r.mode)}</td><td>${dir(r.direction)}</td><td>${esc(r.tradingsymbol)}</td><td>${esc(r.entry_side||'—')}→${esc(r.exit_side||'—')}</td><td>${r.closed_units??r.units??''}</td><td>${n(r.entry_avg)}</td><td>${n(r.exit_avg)}</td><td class="${cls(r.gross_pnl)}">${srs(r.gross_pnl)}</td><td>${rs(r.costs)}</td><td class="${cls(r.net_pnl)}"><b>${srs(r.net_pnl)}</b></td><td class="sf-why">${esc(r.exit_reason||'')}${r.exception?' · '+esc(r.exception):''}</td><td>${badge(r.class,r.class==='settled'?'ok':r.class==='unresolved'?'bad':'n')}</td></tr>`).join('')||`<tr><td colspan="13">${empty('No trades match.')}</td></tr>`}
    </tbody></table></div></div>`;
+}
+
+/* ------------------------------------------------------------ strategy health */
+// From the worker snapshot's strategy_health block (sf_api.strategy_health), written
+// by the daily evaluation (sf_daily.py). Rule-based system: no learned model.
+const hst=s=>badge(s||'—',s==='OK'||s==='DONE'?'ok':s==='FAIL'||s==='DRIFT'||s==='DETERIORATED'?'bad':s==='WARN'||s==='DEFERRED'||s==='INSUFFICIENT'?'warn':'n');
+function mrow(k,m){
+  if(!m) return '';
+  const u=m.undefined||{}, cell=(key,f)=>m[key]==null?`<td title="${esc(u[key]||'')}">—</td>`:`<td>${f(m[key])}</td>`;
+  return `<tr><th>${esc(k)}</th><td>${m.settled}</td>${cell('net_pnl',v=>`<span class="${cls(v)}">${srs(v)}</span>`)}${cell('expectancy',v=>srs(v))}
+    ${cell('win_rate',v=>Math.round(v*100)+'%')}${cell('avg_win',v=>srs(v))}${cell('avg_loss',v=>srs(v))}${cell('profit_factor',v=>v.toFixed(2))}
+    <td>${rs(m.max_drawdown)}</td><td>${rs(m.costs)}</td>${cell('ci80',v=>`${srs(v[0])} … ${srs(v[1])}`)}<td>${m.excluded}/${m.unresolved}</td></tr>`;
+}
+function healthView(s){
+  const h=s.strategy_health;
+  if(!h||h.available===false) return empty(h?.reason||'Strategy health appears after the first daily evaluation (16:10 IST on trading days).');
+  const L=h.latest||{}, steps=L, m=(L.metrics||{}).cumulative||{}, sess=(L.metrics||{}).session||{};
+  const promo=L.promotion||{}, exp=L.experiments||{}, drift=L.drift||{}, data=L.data||{}, rec=L.reconcile||{};
+  const findings=[...(rec.champion||[]),...(data.findings||[]),...(L.compliance||[])];
+  const fails=findings.filter(f=>f.status==='FAIL');
+  const cov=data.coverage||{};
+  const prof=Object.entries(h.profiles||{}).map(([k,p])=>`<tr><th>${esc(k)}</th><td>${esc(p.kind)}</td><td>${esc(p.plan_version||'—')}</td><td>${esc(p.regime||'—')}</td><td>${esc(p.first_bar||'ohlc (v1)')}</td></tr>`).join('');
+  const chal=(h.challengers||[]).filter(c=>c.status==='shadow');
+  const assessed=Object.fromEntries((promo.challengers||[]).map(c=>[c.id,c]));
+  const minS=h.policy?.promotion?.min_shadow_sessions, minT=h.policy?.promotion?.min_shadow_settled_trades;
+  return `<div class="sf-grid sf-g3">
+   <div class="sf-card"><h3>Active strategy ${badge('v'+h.active_version,'info')} ${badge('rule-based','n')}</h3>
+     ${kv([['Config hash',esc(h.config_hash||'—')],['Label',esc(h.label||'—')],['Last known good',h.last_known_good?'v'+h.last_known_good:'—'],
+          ['Automatic promotion',h.auto_promotion?badge('ON','ok'):badge('PAUSED','warn')],
+          ['New entries',Object.entries(h.entries_paused||{}).map(([k,v])=>`${esc(k)} ${v?badge('paused','warn'):badge('on','ok')}`).join(' ')]])}</div>
+   <div class="sf-card"><h3>Daily evaluation</h3>
+     ${kv([['Latest session',esc(L.session||'—')],['Status',hst(L.status)],['Decision',`<b>${esc(L.decision||'—')}</b>`],
+          ['Finished',dt(L.finished_at)],['Next run',dt(h.next_run)+' IST'],['Governance',esc(L.governance||'—')]])}</div>
+   <div class="sf-card"><h3>Data and reconciliation ${fails.length?badge(fails.length+' failing','bad'):badge('clean','ok')}</h3>
+     ${kv(Object.entries(cov).map(([t,c])=>[t,`${c.symbols} symbols · ${c.median_minutes} min · zero-vol ${Math.round((c.zero_volume_share||0)*1000)/10}% · first-bar defect ${Math.round((c.first_bar_open_at_extreme_share||0)*100)}%`])
+        .concat([['Unresolved exits',(rec.unresolved||[]).length?(rec.unresolved||[]).map(esc).join(', '):'none'],['Quarantined',(data.quarantine||[]).length?(data.quarantine).map(esc).join(', '):'none']]))}</div></div>
+  <div class="sf-card"><h3>Results by mode and direction ${badge('settled trades only','n')}</h3>
+   <div class="sf-scroll"><table class="sf-t"><thead><tr><th></th><th>Trades</th><th>Net</th><th>Expectancy</th><th>Win rate</th><th>Avg win</th><th>Avg loss</th><th>Profit factor</th><th>Max DD</th><th>Costs</th><th>80% interval / trade</th><th>Excl./unres.</th></tr></thead>
+   <tbody>${['intraday:LONG','intraday:SHORT','swing:LONG','swing:SHORT','intraday','swing','portfolio'].map(k=>mrow(k,m[k])).join('')}</tbody></table></div>
+   <p class="sf-note">Cumulative since paper trading began, net of estimated costs. “—” means the metric is undefined for this sample (hover for why). Intervals are seeded bootstrap estimates and need 5+ trades. Session ${esc(L.session||'')}: ${sess.portfolio?`${sess.portfolio.settled} trades, ${srs(sess.portfolio.net_pnl)}`:'—'}.</p></div>
+  <div class="sf-grid sf-g2">
+   <div class="sf-card"><h3>Drift and deterioration</h3>
+     ${kv([['Data drift ('+esc(drift.data?.method||'')+')',hst(drift.data?.status)+' '+esc(drift.data?.detail||(drift.data?.flagged||[]).join(', '))],
+          ...Object.entries(drift.performance||{}).map(([k,v])=>[`${k} (${esc(v.method)})`,hst(v.status)+' '+esc(v.detail||(v.ci80?`80% interval ${srs(v.ci80[0])} … ${srs(v.ci80[1])}`:''))])])}
+     <h3 style="margin-top:12px">Experiment cycle</h3>
+     ${kv([['Eligible',exp.eligible?badge('yes','ok'):badge('no','n')],['Why',esc((exp.reasons||[]).join('; ')||'—')],['Ran',exp.ran?esc(exp.cycle):'no'],
+          ['Candidates',(exp.candidates||[]).map(c=>`${esc(c.path)} = ${esc(c.value)} ${c.qualified?badge('to shadow','ok'):badge('rejected','n')}`).join('<br>')||'—']])}</div>
+   <div class="sf-card"><h3>Challengers in shadow ${badge(chal.length,'n')}</h3>
+     ${chal.length?chal.map(c=>{const a=assessed[c.id]||{};const ss=a.shadow_sessions||0;
+       return `<div class="sf-ch"><b>${esc(c.id)}</b> ${c.kind==='last_known_good'?badge('last known good','info'):''} ${badge(a.decision||'gathering','warn')}
+        <div class="sf-sub">${esc(c.reason||'')} · since ${esc(c.added_on)}</div>
+        <div class="sf-bar"><span style="width:${Math.min(100,ss/(minS||1)*100)}%"></span></div>
+        <div class="sf-sub">${ss}/${minS} shadow sessions · ${(a.metrics||{}).settled??0}/${minT} trades</div>
+        <ul class="sf-req">${(a.requirements||[]).map(r=>`<li>${r.met?'✓':'✗'} ${esc(r.name)} <span class="sf-tm">${esc(JSON.stringify(r.value))}</span></li>`).join('')}</ul></div>`;}).join('')
+       :empty('No challenger is in shadow. Candidates are generated only when an experiment cycle is eligible.')}
+     ${promo.action?`<p class="sf-note"><b>Action:</b> ${esc(promo.action.type)} ${esc(promo.action.reason||'')}</p>`:''}
+     ${promo.rollback?`<p class="sf-note"><b>Rollback watch:</b> ${esc(promo.rollback.decision)} ${esc((promo.rollback.triggers||[]).join('; '))}</p>`:''}</div></div>
+  <div class="sf-grid sf-g2">
+   <div class="sf-card"><h3>Promotion requirements ${h.policy?.promotion?.provisional?badge('provisional','warn'):''}</h3>
+     ${kv([['Forward shadow sessions','≥ '+minS],['Settled shadow trades','≥ '+minT],['Paired daily P&L vs champion',`${Math.round((h.policy?.promotion?.ci_level||0)*100)}% lower bound > 0 (stricter when more candidates are compared)`],
+          ['Cost stress',`+${h.policy?.promotion?.stress_extra_ticks_per_side} tick per side, still net positive`],['Drawdown',`≤ ${h.policy?.promotion?.max_drawdown_vs_champion}× champion and ≤ ${rs(h.policy?.promotion?.max_drawdown_abs_rs)}`],
+          ['Stability',`${h.policy?.promotion?.min_positive_subperiods} of ${h.policy?.promotion?.subperiods} sub-periods ahead`],['Rejected if',esc((h.policy?.promotion?.reject_if||[]).join(', '))],
+          ['Evidence needed',esc(h.policy?.promotion?.needs||'')]])}
+     <p class="sf-note">${esc(h.policy?.note||'')}</p></div>
+   <div class="sf-card"><h3>Profiles</h3><div class="sf-scroll"><table class="sf-t sf-narrow"><thead><tr><th></th><th>Kind</th><th>Exit plan</th><th>Regime</th><th>Opening range first bar</th></tr></thead><tbody>${prof}</tbody></table></div>
+     <h3 style="margin-top:12px">Search space ${badge('automatic changes only here','n')}</h3>
+     <ul class="sf-req">${Object.entries(h.search_space?.params||{}).map(([k,r])=>`<li>${esc(k.replace('profiles.',''))} <span class="sf-tm">${r.choices?esc(r.choices.join(' / ')):`${r.min} … ${r.max}`}</span></li>`).join('')}</ul>
+     <p class="sf-note">${esc(h.search_space?.description||'')}</p></div></div>
+  <div class="sf-grid sf-g2">
+   <div class="sf-card"><h3>Decision history</h3><div class="sf-scroll"><table class="sf-t sf-narrow"><thead><tr><th>Session</th><th>Status</th><th>Version</th><th>Decision</th></tr></thead><tbody>
+     ${(h.history||[]).slice().reverse().map(x=>`<tr><td>${esc(x.session)}</td><td>${hst(x.status)}</td><td>${x.active_version?'v'+x.active_version:'—'}</td><td class="sf-why">${esc(x.decision||x.reason||'')}</td></tr>`).join('')||`<tr><td colspan="4">${empty('No evaluations yet.')}</td></tr>`}</tbody></table></div></div>
+   <div class="sf-card"><h3>Version history</h3><div class="sf-scroll"><table class="sf-t sf-narrow"><thead><tr><th>Version</th><th>Created</th><th>By</th><th>Label</th></tr></thead><tbody>
+     ${(h.versions||[]).slice().reverse().map(v=>`<tr><td>v${v.version} ${v.active?badge('active','ok'):''} ${v.last_known_good?badge('last known good','info'):''}<div class="sf-tm">${esc(v.hash)}</div></td><td>${dt(v.created)}</td><td>${esc(v.actor)}</td><td class="sf-why">${esc(v.label||'')}</td></tr>`).join('')}</tbody></table></div>
+     <p class="sf-note">Experiment records: data/futures/experiments/registry.jsonl · decisions: data/futures/eval/&lt;session&gt;.json and audit.jsonl on the server.</p></div></div>
+  ${fails.length?`<div class="sf-card"><h3>Failing checks</h3><ul class="sf-req">${fails.map(f=>`<li>✗ <b>${esc(f.check)}</b> ${esc(f.detail)}</li>`).join('')}</ul></div>`:''}`;
 }
 
 /* ------------------------------------------------------------ market */

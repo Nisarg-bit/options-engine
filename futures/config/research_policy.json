@@ -1,0 +1,102 @@
+{
+  "schema": "sf-research-policy/1",
+  "version": "research-1",
+  "locks": {
+    "market": true,
+    "sector": true
+  },
+  "lock_notes": {
+    "market": "Market-direction alignment: the regime method AND every parameter (opening range, Fib ratios, VWAP source, swing return threshold and structure rule).",
+    "sector": "Qualifying-sector selection: absolute and relative tests, coverage, top N."
+  },
+  "open_areas": [
+    "entry",
+    "ranking",
+    "top_n",
+    "timeframe",
+    "exits",
+    "timing",
+    "universe"
+  ],
+  "hard_constraints": {
+    "lots_per_entry": 1,
+    "shared_limits_from": "the portfolio base config (futures_config.json): max open positions, notional, margin, daily loss, one position per underlying",
+    "note": "Never part of a strategy definition; compile_config always takes them from the portfolio and research cannot change them."
+  },
+  "permissions": {
+    "research_and_shadow": "any valid strategy, including ones that need lock changes (shown as proposals)",
+    "activation": "explicit user approval of the exact version + evidence snapshot; lock changes need their own explicit approval",
+    "automatic_pause": "entries may be paused automatically for operational or hard-risk failures; monitoring and exits continue"
+  },
+  "cadence": {
+    "every_sessions": 3,
+    "calendar": "XBOM",
+    "note": "Counts completed exchange sessions, not calendar days. A poorly covered session still counts and still gets a data-quality report; its evaluations are labelled incomplete."
+  },
+  "budgets": {
+    "search_queries_per_cycle": 6,
+    "results_per_query": 5,
+    "ideas_per_cycle": 6,
+    "tuned_candidates_per_cycle": 3,
+    "new_candidates_per_cycle": 3,
+    "replay_minutes_per_cycle": 90,
+    "llm_calls_per_cycle": 8,
+    "llm_max_output_tokens": 4000,
+    "max_concurrent_jobs": 1,
+    "web_search_max_uses_per_cycle": 8,
+    "max_shadow_strategies": 6,
+    "run_during_market_hours": false
+  },
+  "providers": {
+    "search": {
+      "env": "SF_SEARCH_PROVIDER",
+      "default": "none",
+      "choices": [
+        "anthropic_web",
+        "fixture",
+        "none"
+      ],
+      "keys": {
+        "anthropic_web": "ANTHROPIC_API_KEY"
+      },
+      "note": "anthropic_web = Claude's server-side web_search tool (web_search_20260209); fixture = offline test data, always labelled FIXTURE; more providers plug into sf_research.SEARCH_PROVIDERS"
+    },
+    "llm": {
+      "env": "SF_LLM_PROVIDER",
+      "default": "none",
+      "choices": [
+        "anthropic",
+        "none"
+      ],
+      "keys": {
+        "anthropic": "ANTHROPIC_API_KEY"
+      },
+      "model_env": "SF_LLM_MODEL",
+      "model_default": "claude-opus-5-5",
+      "effort": "high",
+      "note": "extracts testable rules from retrieved text with structured output; retrieved text is untrusted data"
+    }
+  },
+  "evidence": {
+    "calculation_minimums": {
+      "note": "Below these a metric is not computed at all (it is undefined, shown as such).",
+      "ci_trades": 5,
+      "drift_prior_sessions": 5
+    },
+    "labels": {
+      "note": "Labels only. They never gate scheduling or research; activation needs your approval whatever the label.",
+      "INSUFFICIENT": "fewer than 5 settled trades in historical replay AND fewer than 3 forward sessions",
+      "EARLY": "some evidence but below EVALUATED",
+      "EVALUATED": "at least 15 replay sessions with 20+ settled trades, or 15+ forward shadow sessions with 20+ settled trades",
+      "evaluated_min_sessions": 15,
+      "evaluated_min_trades": 20,
+      "insufficient_max_trades": 5,
+      "insufficient_max_forward_sessions": 3
+    },
+    "recent_sessions_shown": 3
+  },
+  "notifications": {
+    "telegram": true,
+    "link": "https://ip-172-31-27-148.tail407a7e.ts.net/#sfut/res"
+  }
+}

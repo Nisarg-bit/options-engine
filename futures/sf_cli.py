@@ -149,16 +149,64 @@ def cmd_worker(a):
     print(f"stock-futures worker {e.worker_id}: db {db}, modes {modes}, config v{e.config_version}")
     print("entries:", gate or "ENABLED (paper)")
     e.start(poll_s=a.poll)
+    shadows = ShadowSet(data, modes, a.poll)
     try:
         while True:
             try:
                 sf_api.write_snapshot(store, e)
             except Exception as ex:  # noqa: BLE001 -- the snapshot is for viewers; trading continues
                 print(f"[sf] snapshot failed: {type(ex).__name__}: {ex}")
+            try:
+                shadows.sync()
+            except Exception as ex:  # noqa: BLE001 -- shadows never affect the champion
+                print(f"[sf] shadow sync failed: {type(ex).__name__}: {ex}")
             time.sleep(15)
     except KeyboardInterrupt:
         print("stopping; state is durable, restart resumes open positions and pending exits")
+        shadows.stop_all()
         e.stop()
+
+
+class ShadowSet:
+    """Strategy versions in lifecycle SHADOW (library.db) trading forward in SHADOW
+    paper mode beside the active portfolio: standalone potential, separately
+    attributed. Each runs its own Engine on data/futures/shadow/<version_id>.db
+    with the version frozen at the moment it entered shadow, the same market data,
+    no Telegram and no publishing. Re-read every sync, so the research agent or
+    the dashboard can start/stop one without a worker restart."""
+
+    def __init__(self, data, modes, poll, lib=None, base_cfg=None):
+        self.data, self.modes, self.poll = data, modes, poll
+        self.lib, self.base_cfg = lib, base_cfg
+        self.live = {}
+
+    def sync(self):
+        import sf_library as L
+        import sf_strategy as SS
+        lib = self.lib or L.Library()
+        base = self.base_cfg or load_config()
+        want = {s["head_version"]: s for s in lib.strategies(False) if s["lifecycle"] == "SHADOW"}
+        for vid in [k for k in self.live if k not in want]:
+            self.live.pop(vid).stop()
+            print(f"[sf] shadow {vid} stopped")
+        for vid, st in want.items():
+            if vid in self.live:
+                continue
+            body = lib.body(vid)
+            if not body or not SS.validate(body)["ok"]:
+                continue
+            cfg = SS.compile_config(body, base, {"strategy_id": st["id"], "version_id": vid})
+            db = os.path.join(ROOT, "data", "futures", "shadow", f"{vid}.db")
+            os.makedirs(os.path.dirname(db), exist_ok=True)
+            eng = Engine(Store(db), self.data, SystemClock(), cfg, env="shadow", modes=(body["mode"],),
+                         actor=f"shadow:{vid}")
+            eng.start(poll_s=self.poll)
+            self.live[vid] = eng
+            print(f"[sf] shadow {vid} started ({st['name']})")
+
+    def stop_all(self):
+        for eng in self.live.values():
+            eng.stop()
 
 
 def cmd_status(a):

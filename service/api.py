@@ -181,7 +181,13 @@ def _rate_ok(ip):
 async def gate(request: Request, call_next):
     ip = (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
           or (request.client.host if request.client else "?"))
-    if not _rate_ok(ip):
+    # The token bucket exists for unauthenticated scanners. A request that passes
+    # the configured login (the dashboard, which now polls the strategy library
+    # and research views too) is not counted (21 Nov 2026).
+    authed = (PASS and _basic_ok(request.headers.get("authorization"))) or \
+             (TOKEN and secrets.compare_digest(request.query_params.get("k")
+                                               or request.headers.get("x-dash-token", ""), TOKEN))
+    if not authed and not _rate_ok(ip):
         return Response(status_code=429, content="slow down",
                         headers={"Retry-After": "30"})
 

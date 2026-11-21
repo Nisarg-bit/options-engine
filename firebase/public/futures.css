@@ -102,3 +102,26 @@
 #sfut .sf-kv4 span{display:block;font-size:11px;color:var(--sf-muted)}
 #sfut .sf-kv4 b{font-family:var(--sf-num);font-size:12px;font-weight:600;color:var(--sf-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 @media (max-width:520px){#sfut .sf-kv4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Strategy Health view */
+#sfut .sf-ch{border:1px solid var(--sf-line);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:var(--sf-surface2)}
+#sfut .sf-bar{height:6px;border-radius:3px;background:var(--sf-line);overflow:hidden;margin:6px 0 2px}
+#sfut .sf-bar span{display:block;height:100%;background:var(--sf-accent)}
+#sfut .sf-req{list-style:none;padding:0;margin:6px 0 0;font-size:12.5px;line-height:1.7}
+#sfut .sf-req .sf-tm{font-size:11.5px}
+/* Strategies / Builder / Research */
+#sfut .sf-pre{white-space:pre-wrap;font-family:var(--sf-num);font-size:12px;background:var(--sf-surface2);border:1px solid var(--sf-line);border-radius:10px;padding:10px 12px;margin:6px 0;color:var(--sf-text)}
+#sfut .sf-sg{border:1px solid var(--sf-line);border-radius:12px;padding:10px 14px;margin-bottom:10px;background:var(--sf-surface2)}
+#sfut .sf-sg summary{cursor:pointer;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#sfut .sf-sg h4,#sfut .sf-detail h4,#sfut .sf-card h4{font-size:12.5px;color:var(--sf-ink);margin:12px 0 4px}
+#sfut .sf-act{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+#sfut .sf-act .sf-note{flex-basis:100%}
+#sfut .sf-detail{padding:4px 0 8px}
+#sfut .sf-bld{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+#sfut .sf-bld h4,#sfut .sf-bld .sf-sub,#sfut .sf-bld .sf-note,#sfut .sf-bld .sf-grp{flex-basis:100%}
+#sfut .sf-p{font-size:12px;color:var(--sf-muted);display:inline-flex;gap:4px;align-items:center}
+#sfut .sf-grp{border-left:2px solid var(--sf-line);padding:4px 0 4px 10px;margin:4px 0}
+#sfut .sf-grph{display:flex;gap:6px;align-items:center;margin-bottom:4px}
+#sfut .sf-cond{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:4px 0;font-size:12px}
+#sfut .sf-opd{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center;background:var(--sf-surface2);border:1px solid var(--sf-line);border-radius:8px;padding:3px 6px}
+#sfut .sf-json{width:100%;min-height:360px;font-family:var(--sf-num);font-size:12px;border:1px solid var(--sf-line);border-radius:10px;padding:10px;background:var(--sf-surface);color:var(--sf-text)}
+#sfut button[disabled]{opacity:.5;cursor:not-allowed}

@@ -1,0 +1,93 @@
+{
+  "schema": "sf-governance/1",
+  "version": "gov-1",
+  "note": "Thresholds marked provisional:true are starting values chosen before any evaluation (20 Nov 2026), when only 2 sessions had complete intraday inputs. They require the evidence named in 'needs' before they can be derived from history instead.",
+  "data_quality": {
+    "min_minutes_per_symbol": 360,
+    "quarantine_on": ["invalid_bars", "missing_minutes", "no_futures_quote"],
+    "feeds_complete": {"tiers": ["EQ", "STKFUT", "IDXFUT"], "min_parts": 370, "last_bar_after": "15:28"}
+  },
+  "drift": {
+    "method": "robust_z/1",
+    "description": "z = (x - median) / (1.4826 * MAD) over the trailing sessions; flag |z| > z_max",
+    "trailing_sessions": 20,
+    "min_prior_sessions": 5,
+    "z_max": 3.0,
+    "features": ["eq_zero_volume_share", "eq_first_bar_defect_share", "candidates_per_scan",
+                 "permitted_scan_share", "stop_cap_rejection_share", "trades"],
+    "provisional": true,
+    "needs": "20+ sessions to estimate the spread of each feature"
+  },
+  "deterioration": {
+    "method": "expectancy_ci/1",
+    "description": "per mode, over the last `window_trades` settled trades: DETERIORATED when the upper bound of the 80% bootstrap interval of mean net P&L is below 0",
+    "window_trades": 30,
+    "min_trades": 20,
+    "provisional": true,
+    "needs": "60+ settled trades per mode"
+  },
+  "experiments": {
+    "eligibility": {
+      "min_new_sessions_since_last_cycle": 5,
+      "min_settled_trades_in_mode": 20,
+      "or_if_flagged": ["drift", "deterioration"]
+    },
+    "split": {"train": 0.6, "validation": 0.2, "test": 0.2, "min_sessions": 15,
+              "swing_embargo_sessions": "max_holding_sessions + 1"},
+    "budget": {"candidates_per_cycle": 3, "candidates_per_30_days": 24},
+    "selection_bias": "Each test window is used by one cycle only (burned); the required confidence rises with the number of candidates compared in the cycle: lower bound at level 1 - 0.20 / k.",
+    "qualify_for_shadow": {
+      "min_test_trades": 10,
+      "beat_champion_expectancy_on": ["validation", "test"],
+      "stressed_net_positive": true,
+      "max_drawdown_vs_champion": 1.25
+    },
+    "provisional": true,
+    "needs": "15+ sessions with complete inputs before any candidate can be evaluated"
+  },
+  "promotion": {
+    "min_shadow_sessions": 15,
+    "min_shadow_settled_trades": 20,
+    "paired_daily_diff_lower_bound_gt": 0,
+    "ci_level": 0.80,
+    "stress_extra_ticks_per_side": 1,
+    "stressed_net_positive": true,
+    "max_drawdown_vs_champion": 1.25,
+    "max_drawdown_abs_rs": 50000,
+    "min_positive_subperiods": 2,
+    "subperiods": 3,
+    "direction_floor": "no direction with 5+ shadow trades may have expectancy below the champion's in that direction by more than the champion's average loss",
+    "reject_if": ["ledger_fail", "spec_fail", "data_quarantine_majority"],
+    "provisional": true,
+    "needs": "a forward shadow history of 15+ sessions and 20+ settled trades"
+  },
+  "rollback": {
+    "watch_sessions": 10,
+    "triggers": {
+      "drawdown_vs_shadow_max": 1.5,
+      "drawdown_abs_rs": 50000,
+      "lkg_beats_champion_lower_bound_gt": 0,
+      "min_sessions_for_comparison": 5,
+      "ledger_or_spec_fail": true
+    },
+    "provisional": true
+  },
+  "search_space": {
+    "description": "The only paths the automatic process may change, with bounds. One lot, portfolio limits, costs, fill model, calendar and direction maps are NOT here and cannot be changed automatically.",
+    "params": {
+      "profiles.intraday.exit_plan.hard_max_stop_pct": {"min": 1.5, "max": 3.0, "step": 0.25},
+      "profiles.intraday.exit_plan.target.value": {"min": 1.5, "max": 3.0, "step": 0.5},
+      "profiles.intraday.stock.min_turnover_rs": {"min": 20000000, "max": 200000000, "step": 10000000},
+      "profiles.intraday.stock.lookback.minutes": {"choices": [15, 30, 45, 60]},
+      "profiles.intraday.sector.top_n": {"choices": [2, 3, 4, 5]},
+      "profiles.intraday.regime.opening_range.first_bar": {"choices": ["ohlc", "close_only"]},
+      "profiles.intraday.stock.opening_range.first_bar": {"choices": ["ohlc", "close_only"]},
+      "profiles.swing.regime.threshold": {"min": 0.0025, "max": 0.01, "step": 0.0025},
+      "profiles.swing.exit_plan.stop.value": {"min": 2.0, "max": 5.0, "step": 0.5},
+      "profiles.swing.exit_plan.target.value": {"min": 4.0, "max": 10.0, "step": 1.0},
+      "profiles.swing.exit_plan.max_holding_sessions": {"choices": [3, 4, 5, 6, 7]}
+    },
+    "hard_constraints": ["shared", "live", "calendar", "profiles.*.max_open_positions",
+                         "profiles.*.max_gross_notional_rs", "profiles.*.direction_map", "lots=1"]
+  }
+}

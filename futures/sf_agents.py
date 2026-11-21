@@ -177,7 +177,8 @@ class MarketRegime(Agent):
                                  rc["opening_range"].get("start", self.e.cal.open),
                                  rc["opening_range"].get("minutes", 15), now,
                                  fibs=tuple(rc.get("fib", {}).get(k, d) for k, d in
-                                            (("low", 0.380), ("mid", 0.500), ("high", 0.618))))
+                                            (("low", 0.380), ("mid", 0.500), ("high", 0.618))),
+                                 first_bar=rc["opening_range"].get("first_bar", "ohlc"))
             c.execute("INSERT OR REPLACE INTO control(key,value,updated,actor) VALUES(?,?,?,?)",
                       (key, json.dumps(lv), iso(now), self.name))
         out.update(benchmark=bench, source=self.e.data.name)
@@ -374,6 +375,8 @@ class StockScreening(Agent):
         sk = prof["stock"]
         if sk.get("method") == "opening_range_breakout_vwap":
             return self.breakout(c, ev, now, prof, sk)
+        if sk.get("method") == "conditions":
+            return self.conditions(c, ev, now, prof, sk)
         basis = sk["lookback"]["basis"]
         interval = "1m" if basis == "current_session" else "1d"
         bench_ret = ev["payload"]["benchmark_return_pct"]
@@ -455,6 +458,88 @@ class StockScreening(Agent):
                               "available_at": r["inputs"]["bar_available_at"], "window": "aligned with NIFTY 50"})
         self.publish(c, ev, now, prof, cands[:sk["top_n"]], rejected,
                      "excess return vs NIFTY (desc for longs, asc for shorts), then turnover desc, then symbol")
+
+    def conditions(self, c, ev, now, prof, sk):
+        """Strategy-schema rules (sf_strategy.py): the same evaluator the builder,
+        research and replay use. Equity bars drive the rules; the futures contract
+        is resolved later by the entry agent."""
+        import sf_strategy as SS
+        import sf_indicators as I
+        strat = sk["strategy"]
+        smap = self.e.data.sector_map(now)
+        uni = self.e.data.universe(now)
+        daily = strat.get("timeframe") == "1d"
+        interval = "1d" if daily else "1m"
+        bench = self.e.data.bars(prof["benchmark"], now, interval)
+        needs_oi = any(I.REGISTRY[o["ind"]]["needs"] == ["oi"]
+                       for d in strat["directions"] for o in SS.operands(strat["entry"][d]))
+        ex = strat["exits"]
+        cands, rejected = [], []
+        for d, block in ev["payload"]["by_direction"].items():
+            if d not in strat["directions"]:
+                continue
+            rank_of = {a["sector"]: a["rank"] for a in block["qualifying"]}
+            syms = sorted(s for s in uni if (smap.get(s) or {}).get("sector") in rank_of
+                          and not smap[s].get("ambiguous"))
+
+            def one(sym, d=d):
+                bars = self.e.data.bars(sym, now, interval)
+                if needs_oi and not daily:
+                    oi = {b["ts"]: b.get("oi") for b in self.e.data.fut_bars(sym, now)}
+                    bars = [dict(b, oi=oi.get(b["ts"])) for b in bars]
+                if not bars:
+                    return sym, None, None
+                age = (now - parse_ts(bars[-1]["available_at"])).total_seconds()
+                if age > prof["max_data_age_s"] and not daily:
+                    return sym, {"status": "UNAVAILABLE", "reason": f"stale: last bar {int(age)}s old"}, None
+                r = SS.evaluate(strat, d, bars, bench, self.e.cal.open)
+                extra = {}
+                ser, i = r.get("series"), r.get("index")
+                if ser is not None and i is not None:
+                    st = ex["stop"]
+                    if st["basis"] == "opening_range_edge":
+                        orp = {"minutes": st.get("minutes", 15), "first_bar": st.get("first_bar", "close_only")}
+                        extra["or_high"] = ser.at({"ind": "or_high", "params": orp}, i)
+                        extra["or_low"] = ser.at({"ind": "or_low", "params": orp}, i)
+                    if "atr" in (st["basis"], (ex.get("target") or {}).get("basis")):
+                        a = ser.at({"ind": "atr", "params": {"period": int(st.get("atr_period", 14))}}, i)
+                        extra["atr_pct"] = (a / r["close"] * 100) if a and r.get("close") else None
+                    extra["turnover_rs"] = sum(float(b.get("turnover") or 0) for b in r["bars"][-30:])
+                return sym, r, extra
+            passed = []
+            for sym, r, extra in POOL.map(one, syms):
+                sec = smap[sym]["sector"]
+                if r is None:
+                    rejected.append({"symbol": sym, "direction": d, "sector": sec, "status": "UNAVAILABLE",
+                                     "reason": "no bars"})
+                    continue
+                if r["status"] != "PASS":
+                    rejected.append({"symbol": sym, "direction": d, "sector": sec, "status": r["status"],
+                                     "reason": r.get("reason") or "; ".join(f"{t['text']}: {t['result']}"
+                                                                            for t in r.get("trace", [])
+                                                                            if t["result"] != "PASS")[:300]})
+                    continue
+                if r.get("rank_value") is None and (strat.get("ranking") or {}).get(d):
+                    rejected.append({"symbol": sym, "direction": d, "sector": sec, "status": "UNAVAILABLE",
+                                     "reason": "ranking value unavailable"})
+                    continue
+                m = {"close": r["close"], **{k: v for k, v in extra.items() if v is not None},
+                     "rank_value": r.get("rank_value")}
+                passed.append({"symbol": sym, "sector": sec, "sector_rank": rank_of[sec], "direction": d,
+                               "metrics": m, "checks": r["trace"], "bar_ts": r["bar_ts"]})
+            rk = (strat.get("ranking") or {}).get(d) or {}
+            sign = -1 if rk.get("order", "desc") == "desc" else 1
+            passed.sort(key=lambda x: (sign * (x["metrics"].get("rank_value") or 0), -x["metrics"].get("turnover_rs", 0),
+                                       x["symbol"]))
+            for x in passed:
+                bar_ts = x.pop("bar_ts")
+                x.update(score=x["metrics"].get("rank_value"), last_price=x["metrics"]["close"], bar_ts=bar_ts,
+                         available_at=iso(now), window=f"strategy timeframe {strat.get('timeframe')}",
+                         rank_reason=f"{SS.describe_operand(rk) if rk else 'unranked'} "
+                                     f"{x['metrics'].get('rank_value')}")
+                cands.append(x)
+        self.publish(c, ev, now, prof, cands[:sk["top_n"]], rejected,
+                     "strategy ranking (order as defined), then turnover desc, then symbol")
 
     def publish(self, c, ev, now, prof, cands, rejected, tie_break):
         for i, x in enumerate(cands):
@@ -658,14 +743,27 @@ class FuturesEntry(Agent):
             return self.reject(c, ev, now, cand, f"contract: {why}")
         side = open_side(cand["direction"])
         risk = None
-        if (prof["exit_plan"].get("stop") or {}).get("basis") == "opening_range_edge":
+        stop_spec = prof["exit_plan"].get("stop") or {}
+        cap = prof["exit_plan"].get("hard_max_stop_pct")
+        if stop_spec.get("basis") == "opening_range_edge":
             risk = or_risk_pct(cand["direction"], cand)
-            cap = prof["exit_plan"].get("hard_max_stop_pct")
             if risk is None:
                 return self.reject(c, ev, now, cand, "exit plan: no opening-range edge to place the stop")
             if cap and risk * 100 > cap:
                 return self.reject(c, ev, now, cand, f"exit plan: opening-range stop is {risk * 100:.2f}% away, "
                                    f"beyond the hard limit of {cap}%")
+        elif stop_spec.get("basis") == "atr":
+            ap = (cand.get("metrics") or {}).get("atr_pct")
+            if not ap:
+                return self.reject(c, ev, now, cand, "exit plan: ATR unavailable to place the stop")
+            risk = stop_spec["value"] * ap / 100
+            if cap and risk * 100 > cap:
+                return self.reject(c, ev, now, cand, f"exit plan: ATR stop is {risk * 100:.2f}% away, "
+                                   f"beyond the hard limit of {cap}%")
+        elif stop_spec.get("basis") == "pct":
+            risk = stop_spec["value"] / 100
+            if cap and stop_spec["value"] > cap:
+                return self.reject(c, ev, now, cand, f"exit plan: {stop_spec['value']}% stop beyond the hard limit of {cap}%")
         ref = q["ask"] if side == BUY else q["bid"]
         notional = ref * k["lot_size"]
         lim = self.limits(c, mode, cfg, notional, now)
@@ -685,7 +783,9 @@ class FuturesEntry(Agent):
              "tick_size": k["tick_size"], "lots": 1, "requested_qty": k["lot_size"],
              "config_version": ev["config_version"], "created_at": iso(now), "candidate": cand,
              "verification": ev["payload"]["verification"], "contract": k, "entry_quote": q,
-             "notional_reserved": notional, "flags": [], "label": self.e.label, "stop_risk_pct": risk}
+             "notional_reserved": notional, "flags": [], "label": self.e.label, "stop_risk_pct": risk,
+             "atr_pct": (cand.get("metrics") or {}).get("atr_pct"),
+             "strategy_ref": cfg.get("strategy_ref")}
         if k.get("pre_expiry_deadline"):
             t["pre_expiry_deadline"] = k["pre_expiry_deadline"]
         ap = prof.get("approval", {})
@@ -855,14 +955,16 @@ def or_risk_pct(direction, cand):
     return r if r > 0 else None
 
 
-def plan_levels(direction, entry, plan, risk=None):
+def plan_levels(direction, entry, plan, risk=None, atr_pct=None):
     s = -1 if direction == LONG else 1
 
     def lvl(spec, sign):
         if not spec:
             return None
-        if spec["basis"] == "opening_range_edge":
+        if spec["basis"] in ("opening_range_edge",) or (spec["basis"] == "atr" and sign == s):
             return None if risk is None else round(entry * (1 + sign * risk), 4)
+        if spec["basis"] == "atr":
+            return None if not atr_pct else round(entry * (1 + sign * spec["value"] * atr_pct / 100), 4)
         if spec["basis"] == "r_multiple":
             return None if risk is None else round(entry * (1 + sign * spec["value"] * risk), 4)
         if spec["basis"] == "pct":
@@ -878,7 +980,9 @@ def plan_levels(direction, entry, plan, risk=None):
 def activate_plan(prof, t, entry, now, cal):
     p = json.loads(json.dumps(prof["exit_plan"]))
     risk = t.get("stop_risk_pct")
-    p["stop_price"], p["target_price"] = plan_levels(t["direction"], entry, p, risk)
+    p["stop_price"], p["target_price"] = plan_levels(t["direction"], entry, p, risk, t.get("atr_pct"))
+    if p.get("trailing"):
+        p["trail_best"] = entry
     if risk is not None:
         m = t["candidate"]["metrics"]
         p["stop_evidence"] = {"basis": "stock opening-range edge, applied to the futures fill as a %",
@@ -908,6 +1012,29 @@ class PositionMonitor(Agent):
                 with self.st.tx() as c:
                     self.st.emit(c, "MonitorError", self.name, now, {"error": f"{type(e).__name__}: {e}"},
                                  trade_id=tr["trade_id"], mode=tr["mode"])
+
+    def trail(self, t, plan, px, d, now):
+        """Ratchet the stop behind the best executable price seen; never loosen it."""
+        tr = plan["trailing"]
+        best = plan.get("trail_best") or t.get("entry_avg") or px
+        best = max(best, px) if d == LONG else min(best, px)
+        new = round(best * (1 - tr["value"] / 100), 4) if d == LONG else round(best * (1 + tr["value"] / 100), 4)
+        tighter = new > plan["stop_price"] if d == LONG else new < plan["stop_price"]
+        if best == plan.get("trail_best") and not tighter:
+            return
+        with self.st.tx() as c:
+            ft = self.st.trade(t["trade_id"])["body"]
+            fp = ft["exit_plan"]
+            fp["trail_best"] = best
+            if tighter:
+                old_stop = fp["stop_price"]
+                fp["stop_price"] = new
+                ft.setdefault("plan_history", []).append({"version": len(ft.get("plan_history", [])) + 1,
+                                                          "at": iso(now), "by": "trailing", "plan": dict(fp)})
+                self.st.emit(c, "TrailingStopMoved", self.name, now, {"from": old_stop, "to": new, "best": best},
+                             trade_id=t["trade_id"], mode=t["mode"], direction=d, config_version=t["config_version"])
+            self.st.put_trade(c, ft, now)
+            plan.update(fp)
 
     def check(self, t, now):
         cfg = self.e.cfg(t["config_version"])
@@ -946,6 +1073,8 @@ class PositionMonitor(Agent):
                     adverse = (t["entry_avg"] - px if d == LONG else px - t["entry_avg"]) / t["entry_avg"] * 100
                     if adverse >= hard:
                         trig["hard_risk"] = {"adverse_pct": round(adverse, 3), "limit_pct": hard, "quote": q}
+            if quote_ok and plan.get("trailing") and plan.get("stop_price") is not None:
+                self.trail(t, plan, px, d, now)
             flag = None if quote_ok else why
             if flag != t.get("data_flag"):
                 with self.st.tx() as c:

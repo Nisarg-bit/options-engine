@@ -132,6 +132,10 @@ class PointInTime:
         self._check([s], as_of, f"desk {symbol}")
         return s
 
+    def fut_bars(self, symbol, as_of):
+        fn = getattr(self.inner, "fut_bars", None)
+        return self._check(fn(symbol, as_of), as_of, f"futures bars {symbol}") if fn else []
+
     def __getattr__(self, k):
         return getattr(self.inner, k)
 
@@ -165,8 +169,14 @@ class RepoData:
     """
     name = "repo"
 
-    def __init__(self, root):
+    def __init__(self, root, lag_s=0):
+        """lag_s: extra seconds before a minute bar or quote counts as available.
+        0 for the live worker (its own refresh delay is physical). Replays for
+        evaluation use SNAP_TTL_S, the live worst case: the live worker re-checks
+        partitions at most every SNAP_TTL_S, so without this a replay could act on
+        a minute up to 20 s earlier than live ever could (found 20 Nov 2026)."""
         self.root = root
+        self.lag = timedelta(seconds=lag_s)
         self.stocks = os.path.join(root, "data", "stocks_1m")
         self.bars_dir = os.path.join(root, "data", "bars_1m")
         self.instr = os.path.join(root, "data", "instruments")
@@ -286,12 +296,11 @@ class RepoData:
         return None                     # sector indices are not collected; constituents are aggregated
 
     # -- bars
-    @staticmethod
-    def _rows_1m(df, as_of):
+    def _rows_1m(self, df, as_of):
         out = []
         for r in df.itertuples():
             t = r.ts.to_pydatetime()
-            avail = t + timedelta(minutes=1)
+            avail = t + timedelta(minutes=1) + self.lag
             if avail > as_of:
                 break                                     # sorted by ts
             out.append({"ts": iso(t), "available_at": iso(avail), "open": float(r.open),
@@ -364,6 +373,19 @@ class RepoData:
                         "ts": avail, "available_at": iso(parse_ts(avail)) if avail else iso(as_of)})
         return out
 
+    def fut_bars(self, symbol, as_of):
+        """Today's 1-minute bars of the stock's nearest future, with OI (for OI indicators)."""
+        g = self._rows(self.stocks, str(as_of.date()), "STKFUT", symbol)
+        if g is None or g.empty:
+            return []
+        if "expiry" in g:
+            g = g[g["expiry"] == g["expiry"].min()]
+        rows = self._rows_1m(g, as_of)
+        oi = list(g["oi"]) if "oi" in g else []
+        for r, x in zip(rows, oi):
+            r["oi"] = None if x is None or x != x else float(x)
+        return rows
+
     def quote(self, instrument_id, as_of):
         g = self._rows(self.stocks, str(as_of.date()), "STKFUT", int(instrument_id), "instrument_token")
         if g is None or g.empty:
@@ -371,7 +393,7 @@ class RepoData:
         best = None
         for r in g.itertuples():
             t = r.ts.to_pydatetime()
-            if t + timedelta(minutes=1) > as_of:
+            if t + timedelta(minutes=1) + self.lag > as_of:
                 break
             best = r
         if best is None:
@@ -379,7 +401,7 @@ class RepoData:
         t = best.ts.to_pydatetime()
         nan = lambda v: None if v is None or v != v else v  # noqa: E731
         return {"instrument_id": instrument_id, "ts": iso(t + timedelta(minutes=1)),
-                "available_at": iso(t + timedelta(minutes=1)), "bid": nan(best.bid), "ask": nan(best.ask),
+                "available_at": iso(t + timedelta(minutes=1) + self.lag), "bid": nan(best.bid), "ask": nan(best.ask),
                 "bid_qty": nan(best.bid_qty), "ask_qty": nan(best.ask_qty), "last": float(best.close),
                 "oi": nan(best.oi), "source": "stocks_1m/STKFUT last-of-minute depth"}
 
@@ -390,7 +412,7 @@ class RepoData:
         e = self._rows(self.stocks, day, "EQ", symbol)
         if e is None:
             return None
-        cut = as_of - timedelta(minutes=1)
+        cut = as_of - timedelta(minutes=1) - self.lag
         e = e[e["ts"] <= cut]
         if e.empty:
             return None
@@ -412,7 +434,7 @@ class RepoData:
             if px_chg is not None and oi_chg is not None:
                 read = MP.classify_oi(px_chg / 100, oi_chg / 100)
         t = e["ts"].iloc[-1].to_pydatetime() + timedelta(minutes=1)
-        return {"symbol": symbol, "ts": iso(t), "available_at": iso(t), "source": "stocks_1m via market_pulse",
+        return {"symbol": symbol, "ts": iso(t), "available_at": iso(t + self.lag), "source": "stocks_1m via market_pulse",
                 "metrics": {"turnover_rs": float(row["turnover"]), "money_flow_net_rs": float(row["net"]),
                             "oi_change_pct": oi_chg, "fut_price_change_pct": px_chg, "oi_read": read},
                 "kinds": {"turnover_rs": "observed", "money_flow_net_rs": "estimate",

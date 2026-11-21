@@ -15,6 +15,7 @@ agent takes its inputs in event order, so for the same scan time the
 higher-priority mode reaches the entry agent (and the reservation table)
 first. The reservation table's primary key settles any remaining race.
 """
+import json
 import os
 import socket
 import threading
@@ -39,7 +40,7 @@ class Engine:
         self.fill_mode = fill_mode           # quotes | bars
         self.worker_id = worker_id or f"{socket.gethostname()}:{os.getpid()}:{id(self) % 10000}"
         self.label = {"fixture": "FIXTURE DEMO - paper", "replay": "REPLAY - paper",
-                      "paper": "PAPER - current session"}.get(env, env)
+                      "paper": "PAPER - current session", "shadow": "SHADOW PAPER - challenger"}.get(env, env)
         if cfg is not None:
             errs = validate_config(cfg)
             if errs:
@@ -100,10 +101,22 @@ class Engine:
         return net
 
     # ------------------------------------------------------------ scans
-    def request_scan(self, mode, now=None):
+    def active_strategies(self):
+        """[{strategy_id, version_id, config_version, mode, priority, name}] in
+        priority order, or [] when the store runs a single config (legacy)."""
+        raw = self.store.control("active_strategies")
+        if not raw:
+            return []
+        try:
+            xs = json.loads(raw)
+        except ValueError:
+            return []
+        return sorted(xs, key=lambda x: (x.get("priority", 99), x.get("strategy_id", "")))
+
+    def request_scan(self, mode, now=None, config_version=None, tag=None):
         now = now or self.clock.now()
-        v = self.active_version()
-        scan_id = f"{mode}-{now.strftime('%Y%m%d-%H%M%S')}"
+        v = config_version or self.active_version()
+        scan_id = f"{mode}-{now.strftime('%Y%m%d-%H%M%S')}" + (f"-{tag}" if tag else "")
         with self.store.tx() as c:
             cur = c.execute("INSERT OR IGNORE INTO scans(scan_id,mode,config_version,status,started,updated,body) "
                             "VALUES(?,?,?,?,?,?,?)", (scan_id, mode, v, "RUNNING", iso(now), iso(now), "{}"))
@@ -111,13 +124,28 @@ class Engine:
                 self.store.emit(c, "ScanRequested", "scheduler", now, {"as_of": iso(now)}, mode=mode,
                                 scan_id=scan_id, config_version=v, event_id=f"{scan_id}:requested")
                 c.execute("INSERT OR REPLACE INTO control(key,value,updated,actor) VALUES(?,?,?,?)",
-                          (f"last_scan:{mode}", iso(now), iso(now), "scheduler"))
+                          (f"last_scan:{mode}" + (f":{tag}" if tag else ""), iso(now), iso(now), "scheduler"))
         return scan_id
 
     def schedule(self, now):
         cfg = self.cfg_now()
         out = []
         if not self.cal.in_session(now):
+            return out
+        act = self.active_strategies()
+        if act:
+            # Several approved strategy versions share ONE portfolio: reservations,
+            # limits and one-position-per-underlying live in this store. Scans are
+            # requested in visible priority order, so on a tie the higher-priority
+            # strategy reserves first; the other's candidate is rejected (recorded).
+            for a in act:
+                if a["mode"] not in self.modes or a.get("disabled"):
+                    continue
+                tag = a["strategy_id"][:12]
+                last = self.store.control(f"last_scan:{a['mode']}:{tag}")
+                cad = self.cfg(a["config_version"])["profiles"][a["mode"]]["scan_cadence_s"]
+                if last is None or (now - parse_ts(last)).total_seconds() >= cad:
+                    out.append(self.request_scan(a["mode"], now, config_version=a["config_version"], tag=tag))
             return out
         for mode in cfg["shared"]["mode_priority"]:
             if mode not in self.modes:

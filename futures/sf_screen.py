@@ -55,7 +55,7 @@ def screen_one(sym, bars, bench_bars, direction, now, sk, cal, max_age_s, frozen
     def stop(status, reason):
         out.update(status=status, reason=reason)
         return out
-    lv = frozen or R.opening_range(bars, day, open_hhmm, minutes, now)
+    lv = frozen or R.opening_range(bars, day, open_hhmm, minutes, now, first_bar=orc.get("first_bar", "ohlc"))
     out["opening_range"] = {k: lv.get(k) for k in ("status", "start", "end", "bars", "or_high", "or_low")}
     if lv["status"] != "READY":
         return stop("UNAVAILABLE", f"opening range: {lv['reason']}")

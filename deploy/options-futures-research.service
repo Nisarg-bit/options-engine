@@ -1,0 +1,37 @@
+[Unit]
+Description=Stock-futures Strategy Research Agent (research jobs, replays, suggestions; paper only)
+After=network-online.target options-futures.service
+Wants=network-online.target
+
+# Long-running: claims durable jobs from data/futures/library.db (research cycles
+# queued every 3 completed sessions by sf_daily.py, "Research now" from the
+# dashboard, builder replays), one at a time, with heartbeats; a job whose
+# worker died is re-claimed after 30 minutes. Never activates a strategy:
+# activation needs the user's approval in the dashboard.
+# Separate process and cgroup from trading, so research load or failures cannot
+# affect monitoring or exits.
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu
+EnvironmentFile=-/home/ubuntu/.env
+ExecStart=/home/ubuntu/.venv/bin/python sf_research.py worker
+Restart=always
+RestartSec=60
+Nice=15
+CPUWeight=20
+MemoryHigh=550M
+MemoryMax=700M
+OOMScoreAdjust=800
+ProtectSystem=strict
+ReadWritePaths=/home/ubuntu/data/futures
+PrivateTmp=true
+NoNewPrivileges=true
+Environment=PYTHONDONTWRITEBYTECODE=1 MALLOC_ARENA_MAX=2
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=futures-research
+
+[Install]
+WantedBy=multi-user.target

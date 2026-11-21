@@ -17,7 +17,7 @@ import os
 import secrets
 from datetime import date, datetime, timedelta
 
-from sf_core import LONG, SHORT, MODES, iso, parse_ts, validate_config, IST, gross_pnl
+from sf_core import LONG, SHORT, MODES, iso, ist, parse_ts, validate_config, IST, gross_pnl, config_hash
 
 try:                        # repo layout and the server's flat folder both have project_paths at the top
     import project_paths
@@ -410,9 +410,270 @@ def make_router(get_store=None, get_engine=None):
 
     @router.post("/api/futures/ops/config")
     async def config(request: Request):
-        return await guarded(request, lambda b, a: put_config(store(), b, a, now()))
+        # Closed (21 Nov 2026): this stored a config AND made it active, bypassing
+        # approval. Strategy changes go through suggestions -> approval -> activation.
+        return JSONResponse({"ok": False, "error": "direct config activation is disabled: create or edit a strategy "
+                             "in the library and activate it through an approval"}, status_code=410)
+
+    # ------------------------------------------------------------ strategy library / research
+    import sf_library as L
+    import sf_strategy as SS
+
+    def lib():
+        if "lib" not in _cache:
+            _cache["lib"] = L.Library()
+        return _cache["lib"]
+
+    def base_cfg():
+        from sf_core import load_config
+        return load_config()
+
+    @router.get("/api/futures/research/overview")
+    def research_overview():
+        return research_state(lib(), store())
+
+    @router.get("/api/futures/indicators")
+    def indicators():
+        import sf_indicators as I
+        return {"indicators": I.catalog(), "data": I.DATA, "operators": list(SS.OPS),
+                "timeframes": list(SS.TIMEFRAMES), "stop_bases": list(SS.STOP_BASES),
+                "target_bases": list(SS.TARGET_BASES)}
+
+    @router.get("/api/futures/strategies/{sid}")
+    def strategy_detail(sid: str):
+        return strategy_view(lib(), store(), sid)
+
+    @router.get("/api/futures/versions/{vid}")
+    def version_body(vid: str):
+        b = lib().body(vid)
+        return {"version_id": vid, "body": b, "description": SS.describe(b) if b else None}
+
+    @router.get("/api/futures/diff")
+    def version_diff(a: str, b: str):
+        return {"a": a, "b": b, "diff": SS.diff(lib().body(a), lib().body(b))}
+
+    @router.post("/api/futures/strategy/validate")
+    async def validate_body(request: Request):
+        import sf_research as RS
+        b = await request.json()
+        pol = L.load_policy()
+        act = _active_body(lib(), store(), b.get("mode"))
+        v = SS.validate(b, available=RS.available(b.get("mode")), policy=pol, active=act)
+        return {"validation": v, "description": SS.describe(b) if b.get("entry") else None,
+                "structure_hash": SS.structure_hash(b)}
+
+    @router.post("/api/futures/strategy/preview")
+    async def preview(request: Request):
+        return await guarded(request, lambda b, a: (True, preview_markers(b.get("body"), b.get("symbol"), b.get("day"))))
+
+    @router.post("/api/futures/strategies")
+    async def create_strategy(request: Request):
+        def fn(b, a):
+            sid, vid = lib().create(b["body"], a, {"kind": "user", "via": b.get("via", "builder")})
+            return True, {"strategy_id": sid, "version_id": vid}
+        return await guarded(request, fn)
+
+    @router.post("/api/futures/strategies/{sid}/edit")
+    async def edit_strategy(sid: str, request: Request):
+        def fn(b, a):
+            nsid, vid = lib().edit(sid, b["body"], a, b.get("note") or "edited in the builder")
+            return True, {"strategy_id": nsid, "version_id": vid, "copied": nsid != sid}
+        return await guarded(request, fn)
+
+    @router.post("/api/futures/strategies/{sid}/duplicate")
+    async def duplicate_strategy(sid: str, request: Request):
+        def fn(b, a):
+            nsid, vid = lib().duplicate(sid, a, b.get("name"), b.get("version_id"))
+            return True, {"strategy_id": nsid, "version_id": vid}
+        return await guarded(request, fn)
+
+    @router.post("/api/futures/strategies/{sid}/rename")
+    async def rename_strategy(sid: str, request: Request):
+        def fn(b, a):
+            nsid, vid = lib().rename(sid, b["name"], a)
+            return True, {"strategy_id": nsid, "version_id": vid}
+        return await guarded(request, fn)
+
+    @router.post("/api/futures/strategies/{sid}/lifecycle")
+    async def lifecycle(sid: str, request: Request):
+        def fn(b, a):
+            to = b.get("to")
+            st = lib().strategy(sid)
+            if st and st["lifecycle"] == "ACTIVE" and to in ("DISABLED", "ARCHIVED"):
+                import sf_approval as AP
+                return True, AP.deactivate(lib(), store(), sid, now(), a, to)
+            try:
+                lib().set_lifecycle(sid, to, a, b.get("reason") or "")
+            except (ValueError, PermissionError) as e:
+                return False, str(e)
+            return True, {"lifecycle": to}
+        return await guarded(request, fn)
+
+    @router.post("/api/futures/strategies/{sid}/restore")
+    async def restore(sid: str, request: Request):
+        def fn(b, a):
+            nsid, vid = lib().restore_as_new(sid, b["version_id"], a)
+            return True, {"strategy_id": nsid, "version_id": vid}
+        return await guarded(request, fn)
+
+    @router.post("/api/futures/strategies/{sid}/replay")
+    async def replay_strategy(sid: str, request: Request):
+        def fn(b, a):
+            vid = b.get("version_id") or lib().strategy(sid)["head_version"]
+            job, created = lib().enqueue("replay", f"replay:{vid}:{','.join(b.get('sessions') or [])}",
+                                         {"strategy_id": sid, "version_id": vid, "sessions": b.get("sessions"),
+                                          "actor": a})
+            return True, {"job": job["id"], "created": created, "status": job["status"]}
+        return await guarded(request, fn)
+
+    @router.post("/api/futures/strategies/{sid}/shadow")
+    async def shadow_strategy(sid: str, request: Request):
+        def fn(b, a):
+            try:
+                lib().set_lifecycle(sid, "SHADOW", a, "shadow test requested")
+            except ValueError as e:
+                return False, str(e)
+            st = lib().strategy(sid)
+            lib().upsert_suggestion(sid, st["head_version"], "user", st["name"],
+                                    {"label": "INSUFFICIENT", "forward": {"sessions": 0, "settled": 0,
+                                                                          "since": iso(now()), "frozen_at": iso(now())},
+                                     "description": SS.describe(lib().body(st["head_version"])),
+                                     "summary_key": {"shadow_started": iso(now())}}, [], "user")
+            return True, {"lifecycle": "SHADOW"}
+        return await guarded(request, fn)
+
+    @router.post("/api/futures/strategies/{sid}/request-activation")
+    async def request_activation(sid: str, request: Request):
+        def fn(b, a):
+            st = lib().strategy(sid)
+            body = lib().body(st["head_version"])
+            pol = L.load_policy()
+            act = _active_body(lib(), store(), body["mode"])
+            lc = SS.lock_diff(body, act, pol) if act else []
+            sg, _ = lib().upsert_suggestion(sid, st["head_version"], "user", st["name"],
+                                            {"label": st["evidence"], "description": SS.describe(body),
+                                             "diff": SS.diff(act, body) if act else [], "lock_changes": lc,
+                                             "summary_key": {"requested_by": a, "version": st["head_version"]}},
+                                            lc, "user")
+            return True, {"suggestion": sg}
+        return await guarded(request, fn)
+
+    @router.post("/api/futures/suggestions/{sgid}/decide")
+    async def decide(sgid: str, request: Request):
+        def fn(b, a):
+            import sf_approval as AP
+            import sf_research as RS
+            act = (b.get("action") or "").upper()
+            s = lib().suggestion(sgid)
+            if s is None:
+                return False, "no such suggestion"
+            if act in ("CONTINUE", "DISMISS"):
+                lib().decide(sgid, "CONTINUE" if act == "CONTINUE" else "DISMISSED", a, b.get("note"),
+                             b.get("reconsider") or "on_new_evidence")
+                return True, {"status": "CONTINUE" if act == "CONTINUE" else "DISMISSED"}
+            if act == "EDIT_COPY":
+                nsid, vid = lib().duplicate(s["strategy_id"], a, None, s["version_id"])
+                return True, {"strategy_id": nsid, "version_id": vid}
+            if act not in ("REPLACE", "ALONGSIDE"):
+                return False, "action must be REPLACE, ALONGSIDE, CONTINUE, DISMISS or EDIT_COPY"
+            try:
+                body = lib().body(s["version_id"])
+                aid = AP.record_approval(lib(), sgid, act, b.get("mode") or body["mode"], a,
+                                         b.get("evidence_hash"), b.get("lock_changes_approved") or [],
+                                         b.get("priority"), b.get("note"))
+                res = AP.activate(lib(), store(), aid, base_cfg(), now(), a, RS.available(body["mode"]))
+                return True, dict(res, approval=aid)
+            except AP.ActivationRefused as e:
+                return False, str(e)
+        return await guarded(request, fn)
+
+    @router.post("/api/futures/research/now")
+    async def research_now_route(request: Request):
+        def fn(b, a):
+            import sf_research as RS
+            job, created = RS.research_now(lib(), a)
+            return True, {"job": job["id"], "created": created, "status": job["status"]}
+        return await guarded(request, fn)
 
     return router
+
+
+def _active_body(lib, store, mode):
+    """The profile's current primary strategy as a strategy body (legacy v1 -> its template)."""
+    import sf_approval as AP
+    import sf_strategy as SS
+    if not mode or store is None:
+        return None
+    act = AP.current_active(store) or AP.seed_legacy(store)
+    p = AP.primary(act, mode)
+    if not p:
+        return None
+    if p.get("version_id"):
+        return lib.body(p["version_id"])
+    cfg = store.config(p["config_version"])[1]
+    return next((t for t in SS.templates_from_config(cfg)[0] if t["mode"] == mode), None) if cfg else None
+
+
+def research_state(lib, store, limit=40):
+    """Everything the Research / Library / Approvals views read (no strategy bodies)."""
+    import sf_approval as AP
+    import sf_library as L
+    import sf_research as RS
+    pol = L.load_policy()
+    active = (AP.current_active(store) or AP.seed_legacy(store)) if store is not None and store.config()[1] else []
+    sug = lib.suggestions()[:limit]
+    for x in sug:
+        ev = x["evidence"] or {}
+        x["evidence"] = {k: ev.get(k) for k in ("label", "kind", "description", "diff", "lock_changes", "notes",
+                                                "provenance", "recent", "replay", "forward", "baseline", "limitations",
+                                                "data", "proposal_only", "lock_requests", "errors", "learned_components")}
+    return {"available": True, "providers": RS.provider_status(pol), "policy": {k: pol[k] for k in (
+                "locks", "lock_notes", "open_areas", "hard_constraints", "permissions", "cadence", "budgets", "evidence")},
+            "cadence": lib.get("cadence"), "last_cycle": lib.get("last_cycle"), "jobs": lib.jobs(15),
+            "active": active, "strategies": lib.strategies(), "suggestions": sug,
+            "approvals": lib.q("SELECT * FROM approvals ORDER BY at DESC LIMIT 30"),
+            "activations": lib.q("SELECT id, approval_id, version_id, action, mode, at, actor, config_version "
+                                 "FROM activations ORDER BY at DESC LIMIT 30"),
+            "sources": lib.sources()[:30], "events": lib.events(60)}
+
+
+def strategy_view(lib, store, sid):
+    import sf_library as L
+    import sf_research as RS
+    import sf_strategy as SS
+    st = lib.strategy(sid)
+    if not st:
+        return {"error": "no such strategy"}
+    body = lib.body(st["head_version"])
+    act = _active_body(lib, store, body.get("mode"))
+    return {"strategy": st, "body": body, "versions": lib.versions(sid), "description": SS.describe(body),
+            "validation": SS.validate(body, available=RS.available(body.get("mode")), policy=L.load_policy(), active=act),
+            "diff_vs_active": SS.diff(act, body) if act else [], "events": lib.events(50, strategy_id=sid),
+            "suggestion": lib.q1("SELECT id, status, evidence_hash FROM suggestions WHERE version_id=?", st["head_version"])}
+
+
+def preview_markers(body, symbol, day, data=None):
+    """Builder chart: the strategy evaluated bar by bar on one symbol and session
+    (completed bars only), with overlays and every bar where an entry rule passed."""
+    import sf_strategy as SS
+    from datetime import date as _d
+    from sf_core import ist
+    v = SS.validate(body or {})
+    if not v["ok"]:
+        return {"error": "fix the validation errors first", "validation": v}
+    if data is None:
+        from sf_data import RepoData
+        data = RepoData(_ROOT)
+    d = _d.fromisoformat(day)
+    at = ist(d, "15:31")
+    daily = body.get("timeframe") == "1d"
+    bars = data.bars(symbol, at, "1d" if daily else "1m")
+    bench = data.bars("NIFTY 50", at, "1d" if daily else "1m")
+    if not bars:
+        return {"error": f"no recorded bars for {symbol} on {day}"}
+    out = SS.markers(body, bars, bench)
+    out.update(symbol=symbol, day=day, warmup_bars=v["warmup_bars"])
+    return out
 
 
 SNAPSHOT = os.path.join(os.path.dirname(DB_DEFAULT), "state.json")
@@ -424,6 +685,12 @@ def write_snapshot(store, engine, path=None):
     never have to open the SQLite file, which in WAL mode needs write access."""
     path = path or os.environ.get("SF_SNAPSHOT", SNAPSHOT)
     out = state(store, engine.clock.now(), engine.data, engine)
+    try:
+        out["strategy_health"] = strategy_health(store, engine.clock.now())
+        import sf_library as L
+        out["research"] = research_state(L.Library(), store, limit=25)
+    except Exception as e:  # noqa: BLE001 -- the health view never stops the snapshot
+        out["strategy_health"] = {"available": False, "reason": f"{type(e).__name__}: {e}"}
     for pos in out["positions"]:
         pos["timeline"] = pos["timeline"][-40:]
     for p in out["profiles"].values():
@@ -434,6 +701,56 @@ def write_snapshot(store, engine, path=None):
         json.dump(out, f, default=str)
     os.replace(tmp, path)
     return out
+
+
+def strategy_health(store, now):
+    """What the Strategy Health view shows: versions, the latest daily evaluation,
+    challengers and their requirements, decision history. Read-only."""
+    import glob
+    import sf_daily
+    import sf_governance as G
+    from sf_core import Calendar
+    v, cfg = store.config()
+    lkg = store.control("last_known_good")
+    versions = []
+    for r in store.q("SELECT version, hash, created, actor FROM configs ORDER BY version"):
+        body = store.config(r["version"])[1] or {}
+        versions.append({"version": r["version"], "hash": r["hash"], "created": r["created"], "actor": r["actor"],
+                         "label": body.get("label"), "active": r["version"] == v,
+                         "last_known_good": str(r["version"]) == lkg})
+    latest = sf_daily._read_json(os.path.join(sf_daily.EVAL, "latest.json")) or {}
+    hist = []
+    for p in sorted(glob.glob(os.path.join(sf_daily.EVAL, "20*.json")))[-30:]:
+        x = sf_daily._read_json(p) or {}
+        hist.append({"session": x.get("session"), "status": x.get("status"), "decision": x.get("decision"),
+                     "reason": x.get("reason"), "active_version": (x.get("active") or {}).get("version")})
+    cal = Calendar((cfg or {}).get("calendar"))
+    nxt = now.date() if cal.is_session(now.date()) and now < ist(now.date(), "16:10") else cal.next_session(now.date())
+    pol = G.load_policy()
+    profiles = {}
+    for m in MODES:
+        p = (cfg or {}).get("profiles", {}).get(m, {})
+        profiles[m] = {"kind": "rule-based (fixed rules, versioned parameters; no learned model)",
+                       "plan_version": (p.get("exit_plan") or {}).get("plan_version"),
+                       "regime": (p.get("regime") or {}).get("method"),
+                       "screen": (p.get("stock") or {}).get("method", "return thresholds"),
+                       "first_bar": ((p.get("regime") or {}).get("opening_range") or {}).get("first_bar")}
+    steps = latest.get("steps") or {}
+    return {"available": True, "active_version": v, "config_hash": config_hash(cfg) if cfg else None,
+            "label": (cfg or {}).get("label"), "last_known_good": int(lkg) if lkg else None,
+            "auto_promotion": False, "approval_required": True,
+            "entries_paused": {m: store.paused(m) for m in MODES}, "profiles": profiles,
+            "next_run": iso(ist(nxt, "16:10")), "latest": {
+                "session": latest.get("session"), "status": latest.get("status"), "decision": latest.get("decision"),
+                "finished_at": latest.get("finished_at"), "governance": latest.get("governance"),
+                "reconcile": steps.get("reconcile"), "data": {k: (steps.get("data") or {}).get(k)
+                                                              for k in ("coverage", "findings", "quarantine")},
+                "metrics": steps.get("metrics"), "compliance": steps.get("compliance"),
+                "drift": steps.get("drift"), "experiments": steps.get("experiments"),
+                "promotion": steps.get("promotion")},
+            "history": hist, "versions": versions, "challengers": _shadow_list(),
+            "policy": {k: pol[k] for k in ("version", "note", "promotion", "rollback", "experiments")},
+            "search_space": pol["search_space"]}
 
 
 def read_snapshot(path=None, stale_after_s=180):
@@ -453,3 +770,16 @@ def read_snapshot(path=None, stale_after_s=180):
 def publish(path=None):
     """What publisher.py writes to /live/futures (read-only on the site)."""
     return read_snapshot(path)
+
+
+def _shadow_list():
+    """Library strategies currently in forward shadow (for the Health view)."""
+    try:
+        import sf_library as L
+        lib = L.Library()
+        return [{"id": s["id"], "status": "shadow", "kind": (s["provenance"] or {}).get("kind"), "label": s["name"],
+                 "reason": (s["provenance"] or {}).get("method") or (s["provenance"] or {}).get("via"),
+                 "added_on": (s["updated"] or "")[:10], "version_id": s["head_version"], "evidence": s["evidence"]}
+                for s in lib.strategies(False) if s["lifecycle"] == "SHADOW"]
+    except Exception:  # noqa: BLE001
+        return []
