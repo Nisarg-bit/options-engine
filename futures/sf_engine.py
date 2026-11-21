@@ -148,8 +148,8 @@ class Engine:
                     out.append(self.request_scan(a["mode"], now, config_version=a["config_version"], tag=tag))
             return out
         for mode in cfg["shared"]["mode_priority"]:
-            if mode not in self.modes:
-                continue
+            if mode not in self.modes or cfg["profiles"][mode].get("paused"):
+                continue          # a compiled strategy pauses the profile it does not trade
             last = self.store.control(f"last_scan:{mode}")
             cad = cfg["profiles"][mode]["scan_cadence_s"]
             if last is None or (now - parse_ts(last)).total_seconds() >= cad:

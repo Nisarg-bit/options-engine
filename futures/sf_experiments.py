@@ -118,7 +118,12 @@ def run(name, cfg, sessions, purpose, db_dir=None, root=None, parent=None, windo
              "costs": cfg["shared"]["costs"], "fill_policy": cfg["shared"]["fill_policy"], "seed": 7,
              "replay_data_lag_s": __import__("sf_data").SNAP_TTL_S}
     try:
-        rows, fun, findings = replay(cfg, sessions, os.path.join(db_dir, f"{name}.db"), root=root)
+        # A strategy runs in ITS mode only: replaying both modes counted the other
+        # profile's legacy trades as the strategy's (found 21 Nov 2026).
+        mode = (cfg.get("strategy_ref") or {}).get("mode")
+        modes = (mode,) if mode else ("intraday", "swing")
+        rows, fun, findings = replay(cfg, sessions, os.path.join(db_dir, f"{name}.db"), modes=modes, root=root)
+        rows = [r for r in rows if r.get("mode") in modes]
         entry.update(status="DONE", trades=rows, funnel=fun, ledger_findings=findings,
                      metrics=M.by_mode_direction(rows), stressed_metrics=M.by_mode_direction(M.stressed(rows)))
     except Exception as e:  # noqa: BLE001 -- a failed candidate is still recorded

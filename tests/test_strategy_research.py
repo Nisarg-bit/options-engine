@@ -488,3 +488,30 @@ def test_published_snapshot_has_only_firebase_safe_keys():
                 yield from keys(v)
     assert all(k and not any(ch in k for ch in ".$#[]/") for k in keys(out))
     assert out["a·b"]["c_d"][0]["e_f"] == 1
+
+
+def test_a_strategy_replays_only_its_own_mode(tmp_path, monkeypatch):
+    """A swing strategy's replay must not count the intraday profile's trades (21 Nov 2026 bug)."""
+    import sf_experiments as X
+    seen = {}
+
+    def fake_replay(cfg, sessions, db, modes=("intraday", "swing"), root=None):
+        seen["modes"] = modes
+        return [{"mode": "intraday", "direction": "LONG", "class": "settled", "net_pnl": 999.0,
+                 "opened_at": "2026-11-19T10:00:00+05:30", "closed_at": "2026-11-19T15:15:00+05:30"}], {}, []
+    monkeypatch.setattr(X, "replay", fake_replay)
+    monkeypatch.setattr(X, "REGISTRY", str(tmp_path / "r.jsonl"))
+    cfg = SS.compile_config(SWING, BASE, {"strategy_id": "s", "version_id": "v"})
+    e = X.run("swing-only", cfg, [date(2026, 11, 19)], "test", db_dir=str(tmp_path))
+    assert seen["modes"] == ("swing",) and e["metrics"]["portfolio"]["settled"] == 0
+    assert cfg["profiles"]["intraday"]["paused"] is True
+
+
+def test_engine_skips_a_paused_profile(tmp_path):
+    sc = F.bullish()
+    d = sc.sessions[0]
+    cfg = SS.compile_config(SWING, BASE)                     # intraday profile paused in this config
+    st = Store(str(tmp_path / "t.db"))
+    e = Engine(st, FixtureData(sc.build()), ReplayClock(ist(d, "10:30")), cfg, env="fixture",
+               modes=("intraday", "swing"))
+    assert all(not x.startswith("intraday") for x in e.schedule(ist(d, "10:30")))
